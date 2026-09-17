@@ -52,18 +52,31 @@ class PDFParser:
 
         for page_idx in range(len(doc)):
             page = doc[page_idx]
-            page_text = page.get_text("text").strip()
+            raw_page_text = page.get_text("text").strip()
             
+            # Clean watermark spam lines (e.g. blogtailieu, http(s)://, giao-an-lop, tieuhoc, violet)
+            page_lines = [l.strip() for l in raw_page_text.splitlines() if l.strip()]
+            clean_lines = []
+            for l in page_lines:
+                l_lower = l.lower()
+                if any(w in l_lower for w in ["blogtailieu", "tailieu", "giao-an", "tieuhoc", "violet", "sách chia sẻ tại"]):
+                    continue
+                if l_lower.startswith("http://") or l_lower.startswith("https://"):
+                    continue
+                clean_lines.append(l)
+
+            page_text = "\n".join(clean_lines).strip()
+
             # Detect basic headings from text blocks if available
             headings: List[str] = []
             blocks = page.get_text("blocks")
             for block in blocks:
-                # block: (x0, y0, x1, y1, text, block_no, block_type)
                 if len(block) >= 7 and block[6] == 0:  # text block
-
                     line = block[4].strip()
-                    if re.match(r"^(Chương|CHƯƠNG|Bài|BÀI|Chủ đề|CHỦ ĐỀ|Phần|PHẦN)\b", line, re.IGNORECASE):
-                        headings.append(line)
+                    line_lower = line.lower()
+                    if not any(w in line_lower for w in ["blogtailieu", "tailieu", "http://", "https://"]):
+                        if re.match(r"^(Chương|CHƯƠNG|Bài|BÀI|Chủ đề|CHỦ ĐỀ|Phần|PHẦN)\b", line, re.IGNORECASE):
+                            headings.append(line)
 
             pages.append(
                 ParsedPage(
@@ -74,6 +87,7 @@ class PDFParser:
             )
             if page_text:
                 full_text_list.append(page_text)
+
 
         raw_text = "\n\n".join(full_text_list)
         if not raw_text.strip():

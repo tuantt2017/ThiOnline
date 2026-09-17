@@ -56,18 +56,20 @@ class GeminiKnowledgeService:
                     continue
                 lines = [l.strip() for l in text.splitlines() if l.strip()]
                 for line in lines:
-                    if any(w in line.lower() for w in ["blogtailieu", "tailieu", "http://", "https://", "giao-an"]):
+                    line_lower = line.lower()
+                    if any(w in line_lower for w in ["blogtailieu", "tailieu", "http://", "https://", "giao-an", "tieuhoc", "violet"]):
                         watermark_count += 1
-                    elif len(line) > 10 and not line.startswith("http"):
+                    elif len(line) > 15 and not line_lower.startswith("http"):
                         meaningful_text_count += 1
 
             doc.close()
-            # If watermark lines heavily outweigh meaningful text or meaningful text is virtually zero
-            if meaningful_text_count < 5 and watermark_count > 0:
+            # If watermark lines exist or meaningful text is low, FORCE Gemini Vision OCR
+            if watermark_count >= 2 or meaningful_text_count < 8:
                 return True
             return False
         except Exception:
             return False
+
 
     @classmethod
     def extract_from_scanned_pdf(
