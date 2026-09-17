@@ -13,7 +13,7 @@ from app.core.database import Base, engine
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application startup and shutdown events."""
-    # Ensure tables are created for SQLite or initial setup
+    # Ensure tables are created for SQLite / PostgreSQL
     Base.metadata.create_all(bind=engine)
 
     # Safe lightweight SQLite migration for added columns
@@ -24,7 +24,58 @@ async def lifespan(app: FastAPI):
         except Exception:
             pass  # Column already exists or unsupported dialect
 
+    # Auto-seed initial active accounts if DB has no Admin
+    from sqlalchemy.orm import Session as DBSession
+    from app.models.user import User, UserRole
+    from app.core.security import get_password_hash
+
+    with DBSession(engine) as db:
+        try:
+            admin = db.query(User).filter(User.email == "tuantt.vpc@gmail.com").first()
+            if not admin:
+                db.add(
+                    User(
+                        email="tuantt.vpc@gmail.com",
+                        hashed_password=get_password_hash("Admin@123"),
+                        full_name="Quản Trị Viên Hệ Thống",
+                        role=UserRole.ADMIN,
+                        is_active=True,
+                    )
+                )
+
+            # Ensure backup default teacher & student accounts
+            teacher = db.query(User).filter(User.email == "teacher@example.com").first()
+            if not teacher:
+                db.add(
+                    User(
+                        email="teacher@example.com",
+                        hashed_password=get_password_hash("Teacher@123"),
+                        full_name="Giáo Viên Mẫu",
+                        role=UserRole.TEACHER,
+                        is_active=True,
+                    )
+                )
+
+            student = db.query(User).filter(User.email == "student@example.com").first()
+            if not student:
+                db.add(
+                    User(
+                        email="student@example.com",
+                        hashed_password=get_password_hash("Student@123"),
+                        full_name="Học Sinh Mẫu",
+                        role=UserRole.STUDENT,
+                        grade=5,
+                        is_active=True,
+                    )
+                )
+
+            db.commit()
+        except Exception as exc:
+            pass
+
+
     yield
+
 
 
 

@@ -107,17 +107,18 @@ def seed_default_users(
     created = []
     
     # 1. Default Admin
-    admin = db.query(User).filter(User.email == "admin@example.com").first()
+    admin = db.query(User).filter(User.email == "tuantt.vpc@gmail.com").first()
     if not admin:
         admin = User(
-            email="admin@example.com",
+            email="tuantt.vpc@gmail.com",
             hashed_password=get_password_hash("Admin@123"),
-            full_name="System Administrator",
+            full_name="Quản Trị Viên Hệ Thống",
             role=UserRole.ADMIN,
             is_active=True,
         )
         db.add(admin)
-        created.append("admin@example.com")
+        created.append("tuantt.vpc@gmail.com")
+
         
     # 2. Default Student
     student = db.query(User).filter(User.email == "student@example.com").first()
