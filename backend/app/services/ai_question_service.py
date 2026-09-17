@@ -114,16 +114,34 @@ class GeminiQuestionGenerator:
         if req.document_id:
             doc_obj = db.query(Document).filter(Document.id == req.document_id).first()
             if doc_obj:
-                chunks = (
-                    db.query(DocumentChunk)
-                    .filter(DocumentChunk.document_id == req.document_id)
-                    .order_by(DocumentChunk.chunk_index)
-                    .limit(10)
-                    .all()
-                )
+                chunk_query = db.query(DocumentChunk).filter(DocumentChunk.document_id == req.document_id)
+                
+                selected_chapters = [c.strip() for c in (req.chapters or []) if c and c.strip()]
+                if not selected_chapters and req.chapter:
+                    selected_chapters = [req.chapter.strip()]
+
+                selected_topics = [t.strip() for t in (req.topics or []) if t and t.strip()]
+                if not selected_topics and req.lesson:
+                    selected_topics = [req.lesson.strip()]
+
+                chunks = []
+                if selected_chapters or selected_topics:
+                    from sqlalchemy import or_
+                    filters = []
+                    for ch in selected_chapters:
+                        filters.append(DocumentChunk.chapter.ilike(f"%{ch}%"))
+                    for tp in selected_topics:
+                        filters.append(DocumentChunk.lesson.ilike(f"%{tp}%"))
+                        filters.append(DocumentChunk.topic.ilike(f"%{tp}%"))
+                    if filters:
+                        chunks = chunk_query.filter(or_(*filters)).order_by(DocumentChunk.chunk_index).limit(15).all()
+
+                if not chunks:
+                    chunks = chunk_query.order_by(DocumentChunk.chunk_index).limit(15).all()
+
                 if chunks:
                     doc_context_text = "\n\n".join(
-                        f"[Phân đoạn {c.chunk_index} - Trang {c.page_number}]: {c.content}"
+                        f"[Phân đoạn {c.chunk_index} - Trang {c.page_number or '?'} - {c.chapter or ''} / {c.lesson or ''}]: {c.content}"
                         for c in chunks
                     )
 
@@ -269,14 +287,17 @@ class GeminiQuestionGenerator:
 --- HẾT TÀI LIỆU SGK ---
 """
 
+        chapter_str = ", ".join(req.chapters) if (req.chapters and len(req.chapters) > 0) else (req.chapter or 'Tổng hợp kiến thức')
+        lesson_str = ", ".join(req.topics) if (req.topics and len(req.topics) > 0) else (req.lesson or req.topic or 'Tất cả các bài học')
+
         prompt = f"""Bạn là Chuyên gia biên soạn Đề thi và Đánh giá Giáo dục theo chương trình GDPT 2018 Bộ Giáo dục & Đào tạo Việt Nam.
 
 NHIỆM VỤ:
 Tạo danh sách {req.count} câu hỏi trắc nghiệm chuẩn hóa 4 lựa chọn (Single-Choice Multiple Choice) dành cho:
 - Môn học: {req.subject}
 - Khối lớp: Lớp {req.grade}
-- Chương / Chủ đề: {req.chapter or 'Tổng hợp kiến thức'}
-- Bài học: {req.lesson or 'Tất cả các bài'}
+- Các Chương / Đầu mục được chọn: {chapter_str}
+- Các Bài học / Chủ đề con được chọn: {lesson_str}
 - Tỷ lệ độ khó yêu cầu: Dễ {req.difficulty_distribution.easy}%, Trung bình {req.difficulty_distribution.medium}%, Khó {req.difficulty_distribution.hard}%.
 
 QUY TẮC BẮT BUỘC:

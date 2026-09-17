@@ -237,13 +237,31 @@ export interface WordImportResult {
   errors: string[];
 }
 
+export interface DocumentSectionItem {
+  title: string;
+  lessons: string[];
+}
+
+export interface DocumentSectionsResponse {
+  document_id: number;
+  title: string;
+  subject: string;
+  grade: number;
+  book_series?: string | null;
+  chapters: DocumentSectionItem[];
+  all_chapters: string[];
+  all_topics: string[];
+}
+
 export interface AiQuestionGenerateRequest {
   subject: string;
   grade: number;
   document_id?: number | null;
   chapter?: string;
+  chapters?: string[];
   lesson?: string;
   topic?: string;
+  topics?: string[];
   count: number;
   difficulty_distribution: {
     easy: number;

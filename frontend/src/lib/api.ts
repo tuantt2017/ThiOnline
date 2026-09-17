@@ -7,6 +7,7 @@ import {
   PaginatedChunks,
   KnowledgeMapTree,
   KnowledgeOverviewItem,
+  DocumentSectionsResponse,
   Question,
   QuestionListResponse,
   QuestionStats,
@@ -246,6 +247,12 @@ export const api = {
 
   getDocumentKnowledgeMap: async (id: number): Promise<KnowledgeMapTree> => {
     return request<KnowledgeMapTree>(`/api/v1/documents/${id}/knowledge-map`, {
+      method: 'GET',
+    });
+  },
+
+  getDocumentSections: async (id: number): Promise<DocumentSectionsResponse> => {
+    return request<DocumentSectionsResponse>(`/api/v1/documents/${id}/sections`, {
       method: 'GET',
     });
   },

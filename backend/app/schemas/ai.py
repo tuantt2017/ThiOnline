@@ -15,8 +15,10 @@ class AiQuestionGenerateRequest(BaseModel):
     grade: int = Field(..., ge=4, le=9, description="Khối lớp (4 đến 9)")
     document_id: Optional[int] = Field(None, description="ID tài liệu SGK đính kèm")
     chapter: Optional[str] = Field(None, description="Chương / Chủ đề")
+    chapters: Optional[List[str]] = Field(default_factory=list, description="Danh sách các Chương/Chủ đề được chọn")
     lesson: Optional[str] = Field(None, description="Bài học")
     topic: Optional[str] = Field(None, description="Tiểu mục / Chủ đề con")
+    topics: Optional[List[str]] = Field(default_factory=list, description="Danh sách các Bài học/Chủ đề con được chọn")
     count: int = Field(5, ge=1, le=20, description="Số lượng câu hỏi cần sinh (1 đến 20)")
     difficulty_distribution: DifficultyDistribution = Field(
         default_factory=DifficultyDistribution

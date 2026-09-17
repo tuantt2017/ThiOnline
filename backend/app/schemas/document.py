@@ -86,3 +86,20 @@ class KnowledgeOverviewItem(BaseModel):
     grade: int
     book_series: Optional[str] = None
     tree: List[KnowledgeNodeResponse]
+
+
+class DocumentSectionItem(BaseModel):
+    title: str
+    lessons: List[str] = []
+
+
+class DocumentSectionsResponse(BaseModel):
+    document_id: int
+    title: str
+    subject: str
+    grade: int
+    book_series: Optional[str] = None
+    chapters: List[DocumentSectionItem] = []
+    all_chapters: List[str] = []
+    all_topics: List[str] = []
+

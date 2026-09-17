@@ -311,6 +311,98 @@ class DocumentService:
         return roots
 
     @classmethod
+    def get_document_sections(cls, db: Session, document_id: int) -> Dict[str, Any]:
+        """Fetch clean list of major sections (chapters) and sub-topics (lessons) for a document."""
+        doc = db.query(Document).filter(Document.id == document_id).first()
+        if not doc:
+            raise DocumentServiceError(f"Không tìm thấy tài liệu ID {document_id}")
+
+        chapters_map: Dict[str, List[str]] = {}
+        all_chapters: List[str] = []
+        all_topics: List[str] = []
+
+        # 1. Extract from KnowledgeNode tree
+        k_nodes = (
+            db.query(KnowledgeNode)
+            .filter(KnowledgeNode.document_id == document_id)
+            .order_by(KnowledgeNode.order_index)
+            .all()
+        )
+        if k_nodes:
+            # Find CHAPTER nodes
+            ch_nodes = [n for n in k_nodes if n.node_type == KnowledgeNodeType.CHAPTER or getattr(n.node_type, 'value', '') == "CHAPTER"]
+            for ch in ch_nodes:
+                ch_title = ch.title.strip()
+                if ch_title and ch_title not in chapters_map:
+                    chapters_map[ch_title] = []
+                    all_chapters.append(ch_title)
+
+                # Child nodes (lessons/topics)
+                children = [n for n in k_nodes if n.parent_id == ch.id]
+                for child in children:
+                    c_title = child.title.strip()
+                    if c_title and c_title not in chapters_map[ch_title]:
+                        chapters_map[ch_title].append(c_title)
+                    if c_title and c_title not in all_topics:
+                        all_topics.append(c_title)
+
+        # 2. Extract from DocumentChunk if KnowledgeNode was incomplete
+        chunks = (
+            db.query(DocumentChunk)
+            .filter(DocumentChunk.document_id == document_id)
+            .order_by(DocumentChunk.chunk_index)
+            .all()
+        )
+        for chunk in chunks:
+            c_name = (chunk.chapter or "").strip()
+            l_name = (chunk.lesson or chunk.topic or "").strip()
+
+            if c_name:
+                if c_name not in chapters_map:
+                    chapters_map[c_name] = []
+                    all_chapters.append(c_name)
+                if l_name and l_name not in chapters_map[c_name]:
+                    chapters_map[c_name].append(l_name)
+
+            if l_name and l_name not in all_topics:
+                all_topics.append(l_name)
+
+        # 3. Extract from extracted_metadata JSON if present
+        if doc.extracted_metadata and isinstance(doc.extracted_metadata, dict):
+            meta_chapters = doc.extracted_metadata.get("chapters", [])
+            if isinstance(meta_chapters, list):
+                for ch in meta_chapters:
+                    if isinstance(ch, dict):
+                        ch_title = str(ch.get("title") or "").strip()
+                        if ch_title and ch_title not in chapters_map:
+                            chapters_map[ch_title] = []
+                            all_chapters.append(ch_title)
+
+                        for les in ch.get("lessons", []):
+                            if isinstance(les, dict):
+                                les_title = str(les.get("title") or "").strip()
+                                if les_title and les_title not in chapters_map[ch_title]:
+                                    chapters_map[ch_title].append(les_title)
+                                if les_title and les_title not in all_topics:
+                                    all_topics.append(les_title)
+
+        sections_list = [
+            {"title": ch_title, "lessons": lessons}
+            for ch_title, lessons in chapters_map.items()
+        ]
+
+        return {
+            "document_id": doc.id,
+            "title": doc.title,
+            "subject": doc.subject,
+            "grade": doc.grade,
+            "book_series": doc.book_series,
+            "chapters": sections_list,
+            "all_chapters": all_chapters,
+            "all_topics": all_topics,
+        }
+
+    @classmethod
     def get_overview_knowledge_map(cls, db: Session) -> List[Dict[str, Any]]:
         """Fetch combined Knowledge Map across all completed documents."""
         docs = (

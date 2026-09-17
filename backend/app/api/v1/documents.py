@@ -14,6 +14,7 @@ from app.schemas.document import (
     PaginatedChunksResponse,
     KnowledgeMapTreeResponse,
     KnowledgeOverviewItem,
+    DocumentSectionsResponse,
 )
 from app.services.document_service import DocumentService, DocumentServiceError
 
@@ -185,6 +186,22 @@ def get_document_knowledge_map(
         book_series=doc.book_series,
         tree=tree,
     )
+
+
+@router.get("/{document_id}/sections", response_model=DocumentSectionsResponse)
+def get_document_sections(
+    document_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Lấy danh sách các đầu mục lớn (Chương) và tiểu mục (Bài học) đã trích xuất từ tài liệu."""
+    try:
+        return DocumentService.get_document_sections(db, document_id)
+    except DocumentServiceError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e),
+        )
 
 
 @router.post("/{document_id}/retry", response_model=DocumentResponse)
