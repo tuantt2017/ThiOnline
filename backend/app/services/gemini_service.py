@@ -119,6 +119,8 @@ class GeminiKnowledgeService:
                         "mime_type": "image/jpeg",
                         "data": img_b64,
                     }
+                })
+
             prompt_text = f"""Bạn là chuyên gia sư phạm và kiến trúc sư chương trình Giáo dục Phổ thông Việt Nam (GDPT 2018), chuyên trách khối Cấp 1 (Lớp 4, Lớp 5) và Cấp 2 (Lớp 6, Lớp 7, Lớp 8, Lớp 9) của các bộ sách Kết nối tri thức, Chân trời sáng tạo, Cánh Diều.
 
 Dưới đây là các trang ảnh chụp từ sách giáo khoa:
@@ -166,25 +168,17 @@ CHỈ trả về DUY NHẤT một chuỗi JSON hợp lệ (không kèm văn bả
   ]
 }}
 """
-            {{
-              "title": "Tên tiểu mục / nội dung trọng tâm của bài",
-              "order_index": 1,
-              "summary": "Tóm tắt kiến thức cốt lõi của bài học theo chuẩn GDPT",
-              "concepts": ["Khái niệm / Định nghĩa 1", "Công thức / Quy tắc 2"],
-              "learning_objectives": ["Mục tiêu cần đạt 1", "Mục tiêu cần đạt 2"]
-            }}
-          ]
-        }}
-      ]
-    }}
-  ]
-}}
-"""
             parts.append({"text": prompt_text})
 
-            # Use latest Gemini models, NEVER 2.5
-            vision_models = [settings.GEMINI_MODEL, "gemini-3.5-flash", "gemini-3.0-flash", "gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]
-            vision_models = list(dict.fromkeys([m for m in vision_models if m]))
+            vision_models = [
+                settings.GEMINI_MODEL,
+                "gemini-3.8-flash",
+                "gemini-3.5-flash",
+                "gemini-2.5-flash",
+                "gemini-flash-latest",
+                "gemini-flash-lite-latest",
+            ]
+            vision_models = list(dict.fromkeys([m.strip() for m in vision_models if m and m.strip()]))
 
 
 
