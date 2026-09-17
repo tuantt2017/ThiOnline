@@ -185,10 +185,15 @@ YÊU CẦU ĐẦU RA JSON CHÍNH XÁC (KHÔNG KÈM VĂN BẢN NGOÀI):
 }}
 """
 
-        api_key = settings.GEMINI_API_KEY.strip()
-        # Prioritize non-2.5 models as per gemini_service standard
-        models_to_try = [settings.GEMINI_MODEL, "gemini-3.5-flash", "gemini-3.0-flash", "gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]
-        models_to_try = list(dict.fromkeys([m for m in models_to_try if m]))
+        models_to_try = [
+            settings.GEMINI_MODEL,
+            "gemini-1.5-flash-latest",
+            "gemini-1.5-flash-001",
+            "gemini-2.0-flash-exp",
+            "gemini-1.5-pro-latest",
+            "gemini-pro",
+        ]
+        models_to_try = list(dict.fromkeys([m.strip() for m in models_to_try if m and m.strip()]))
 
 
 

@@ -35,8 +35,8 @@ class Settings(BaseSettings):
 
     # AI Configuration
     GEMINI_API_KEY: str = ""
-    GEMINI_MODEL: str = "gemini-1.5-flash"
-    GEMINI_MODEL_QUESTION_GEN: str = "gemini-1.5-flash"
+    GEMINI_MODEL: str = "gemini-1.5-flash-latest"
+    GEMINI_MODEL_QUESTION_GEN: str = "gemini-1.5-flash-latest"
 
     RUN_LIVE_AI_TESTS: bool = False
     

@@ -254,9 +254,15 @@ Hãy viết 1 đoạn LỜI KHUYÊN HÀNH ĐỘNG CỤ THỂ HÔM NAY (dưới 3
 Mẫu câu bắt buộc theo định dạng:
 "🎯 Hôm nay bạn nên đọc lại [Bài X - Trang Y SGK Môn Lớp] và làm 5 câu tự luyện AI để làm chủ kiến thức này!"
 """
-            api_key = settings.GEMINI_API_KEY.strip()
-            models_to_try = [settings.GEMINI_MODEL, "gemini-3.5-flash", "gemini-3.0-flash", "gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]
-            models_to_try = list(dict.fromkeys([m for m in models_to_try if m]))
+            models_to_try = [
+                settings.GEMINI_MODEL,
+                "gemini-1.5-flash-latest",
+                "gemini-1.5-flash-001",
+                "gemini-2.0-flash-exp",
+                "gemini-1.5-pro-latest",
+                "gemini-pro",
+            ]
+            models_to_try = list(dict.fromkeys([m.strip() for m in models_to_try if m and m.strip()]))
 
 
 

@@ -237,8 +237,16 @@ class GeminiQuestionGenerator:
     ) -> List[Dict[str, Any]]:
         """Invokes Google Gemini API with pedal-to-the-metal pedagogical prompt & JSON output mode."""
         api_key = settings.GEMINI_API_KEY.strip()
-        model_name = settings.GEMINI_MODEL_QUESTION_GEN or settings.GEMINI_MODEL or "gemini-1.5-flash"
-
+        models_to_try = [
+            settings.GEMINI_MODEL_QUESTION_GEN,
+            settings.GEMINI_MODEL,
+            "gemini-1.5-flash-latest",
+            "gemini-1.5-flash-001",
+            "gemini-2.0-flash-exp",
+            "gemini-1.5-pro-latest",
+            "gemini-pro",
+        ]
+        models_to_try = list(dict.fromkeys([m.strip() for m in models_to_try if m and m.strip()]))
 
         web_grounding_instruction = ""
         if req.use_web_context:
@@ -302,34 +310,36 @@ CHỈ trả về DUY NHẤT một chuỗi JSON hợp lệ theo cấu trúc sau (
 ]
 """
 
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
-        payload = {
-            "contents": [{"parts": [{"text": prompt}]}],
-            "generationConfig": {
-                "temperature": 0.4,
-                "responseMimeType": "application/json",
-            },
-        }
-
         with httpx.Client(timeout=45.0) as client:
-            resp = client.post(url, json=payload)
-            if resp.status_code == 200:
-                data = resp.json()
-                candidates = data.get("candidates", [])
-                if candidates:
-                    text_content = candidates[0].get("content", {}).get("parts", [{}])[0].get("text", "")
-                    cleaned = re.sub(r"^```(?:json)?\s*", "", text_content.strip())
-                    cleaned = re.sub(r"\s*```$", "", cleaned.strip())
-                    parsed = json.loads(cleaned)
-                    if isinstance(parsed, list):
-                        return parsed
-                    elif isinstance(parsed, dict) and "questions" in parsed:
-                        return parsed["questions"]
-            else:
-                logger.warning(f"Gemini API error {resp.status_code}: {resp.text[:200]}")
-                raise RuntimeError(f"Mã lỗi Gemini API {resp.status_code}: {resp.text[:150]}")
+            for model_name in models_to_try:
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
+                payload = {
+                    "contents": [{"parts": [{"text": prompt}]}],
+                    "generationConfig": {
+                        "temperature": 0.4,
+                        "responseMimeType": "application/json",
+                    },
+                }
+                try:
+                    resp = client.post(url, json=payload)
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        candidates = data.get("candidates", [])
+                        if candidates:
+                            text_content = candidates[0].get("content", {}).get("parts", [{}])[0].get("text", "")
+                            cleaned = re.sub(r"^```(?:json)?\s*", "", text_content.strip())
+                            cleaned = re.sub(r"\s*```$", "", cleaned.strip())
+                            parsed = json.loads(cleaned)
+                            if isinstance(parsed, list):
+                                return parsed
+                            elif isinstance(parsed, dict) and "questions" in parsed:
+                                return parsed["questions"]
+                    else:
+                        logger.warning(f"Gemini API ({model_name}) error {resp.status_code}: {resp.text[:200]}")
+                except Exception as e:
+                    logger.warning(f"Gemini API call ({model_name}) failed: {e}")
 
-        return []
+        raise RuntimeError(f"Không thể kết nối Gemini API qua các mô hình: {', '.join(models_to_try)}")
 
     @classmethod
     def _fallback_generate_questions(

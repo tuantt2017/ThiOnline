@@ -142,8 +142,15 @@ YÊU CẦU ĐẦU RA JSON ĐÚNG ĐỊNH DẠNG SAU:
 }}
 """
 
-        models_to_try = [settings.GEMINI_MODEL, "gemini-1.5-flash", "gemini-2.0-flash"]
-        models_to_try = list(dict.fromkeys([m for m in models_to_try if m]))
+        models_to_try = [
+            settings.GEMINI_MODEL,
+            "gemini-1.5-flash-latest",
+            "gemini-1.5-flash-001",
+            "gemini-2.0-flash-exp",
+            "gemini-1.5-pro-latest",
+            "gemini-pro",
+        ]
+        models_to_try = list(dict.fromkeys([m.strip() for m in models_to_try if m and m.strip()]))
 
         with httpx.Client(timeout=30.0) as client:
             for model_name in models_to_try:
