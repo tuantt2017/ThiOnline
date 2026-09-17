@@ -119,9 +119,6 @@ class GeminiKnowledgeService:
                         "mime_type": "image/jpeg",
                         "data": img_b64,
                     }
-                })
-
-
             prompt_text = f"""Bạn là chuyên gia sư phạm và kiến trúc sư chương trình Giáo dục Phổ thông Việt Nam (GDPT 2018), chuyên trách khối Cấp 1 (Lớp 4, Lớp 5) và Cấp 2 (Lớp 6, Lớp 7, Lớp 8, Lớp 9) của các bộ sách Kết nối tri thức, Chân trời sáng tạo, Cánh Diều.
 
 Dưới đây là các trang ảnh chụp từ sách giáo khoa:
@@ -131,29 +128,44 @@ Dưới đây là các trang ảnh chụp từ sách giáo khoa:
 - Tiêu đề tài liệu: {doc_title}
 - Tổng số trang: {total_pages}
 
-NHIỆM VỤ:
-1. Xác định các trang MỤC LỤC trong các ảnh trên.
-2. Đọc TOÀN BỘ nội dung chữ trên các trang Mục lục thực tế đó.
-3. Trích xuất đầy đủ, chính xác toàn bộ danh sách các Chủ đề / Chương và Bài học thực tế của cuốn sách (kèm số trang tương ứng).
-4. Đối với mỗi bài học, hãy bổ sung các Chủ đề con / Tiểu mục, các Khái niệm cốt lõi chuẩn chương trình Lớp {grade}, và các Mục tiêu cần đạt / Yêu cầu cần đạt chuẩn theo GDPT 2018.
+NHIỆM VỤ QUAN TRỌNG:
+1. Đọc TOÀN BỘ chữ trên các trang Mục lục thực tế đó.
+2. Trích xuất ĐẦY ĐỦ, CHÍNH XÁC 100% tất cả các Chủ đề / Chương và Bài học (kèm số trang tương ứng). TUYỆT ĐỐI KHÔNG BỎ SÓT BÀI HỌC NÀO!
 
-QUY TẮC BẮT BUỘC:
-- TUYỆT ĐỐI KHÔNG ghi các tên chung chung như "Nội dung trang 1", "Nội dung trang 2"...
-- Phải dùng đúng tên Chủ đề và Bài học thực tế có trong ảnh Mục lục (Ví dụ: "Chủ đề 1: Ôn tập và bổ sung", "Bài 1: Ôn tập các số đến 100 000", "Chủ đề 2: Góc và đơn vị đo góc"...).
+HƯỚNG DẪN ĐỌC BẢNG MỤC LỤC SGK TIẾNG VIỆT / TOÁN / TIẾNG ANH:
+- Các hàng in hoa / banner ngang bảng (VD: "MỖI NGƯỜI MỘT VẺ", "TRẢI NGHIỆM VÀ KHÁM PHÁ", "NIỀM VUI SÁNG TẠO", "CHẮP CÁNH ƯỚC MƠ"...): Đây chính là tên CHỦ ĐỀ / CHƯƠNG (chapters).
+- Cột "Bài": Chứa số thứ tự bài (1, 2, 3... 32). Kết hợp với tên bài đọc chính trong ô Nội dung để thành tên Bài học (VD: "Bài 1. Điều kì diệu", "Bài 2. Thi nhạc", "Bài 3. Anh em sinh đôi"...).
+- Cột "Nội dung": Chứa các phân môn/hoạt động (Đọc, Luyện từ và câu, Viết, Nói và nghe, Đọc mở rộng...). Hãy trích xuất mỗi hoạt động này thành một "topic".
+- Cột "Trang": Ghi đúng số trang tương ứng.
+- ĐỐI VỚI MỖI BÀI HỌC, hãy bổ sung tóm tắt kiến thức (summary), khái niệm chính (concepts: VD "Danh từ", "Danh từ chung, danh từ riêng", "Tính từ", "Động từ"...), và mục tiêu cần đạt (learning_objectives) chuẩn GDPT 2018 Lớp {grade}.
 
 ĐỊNH DẠNG TRẢ VỀ:
 CHỈ trả về DUY NHẤT một chuỗi JSON hợp lệ (không kèm văn bản giải thích bên ngoài):
 {{
   "chapters": [
     {{
-      "title": "Tên Chủ đề hoặc Chương thực tế (VD: Chủ đề 1: Ôn tập và bổ sung)",
+      "title": "Tên Chủ đề / Chương (VD: Chủ đề: Mỗi người một vẻ)",
       "order_index": 1,
       "lessons": [
         {{
-          "title": "Tên Bài học thực tế (VD: Bài 1. Ôn tập các số đến 100 000)",
+          "title": "Tên Bài học (VD: Bài 1. Điều kì diệu)",
           "order_index": 1,
-          "page_number": 6,
+          "page_number": 8,
           "topics": [
+            {{
+              "title": "Phân môn / Hoạt động (VD: Đọc: Điều kì diệu | Luyện từ và câu: Danh từ)",
+              "order_index": 1,
+              "summary": "Tóm tắt kiến thức cốt lõi phân môn",
+              "concepts": ["Danh từ"],
+              "learning_objectives": ["Nhận biết và sử dụng danh từ trong câu"]
+            }}
+          ]
+        }}
+      ]
+    }}
+  ]
+}}
+"""
             {{
               "title": "Tên tiểu mục / nội dung trọng tâm của bài",
               "order_index": 1,
@@ -307,30 +319,34 @@ Hãy đọc thật kỹ toàn bộ nội dung Mục lục / Phân phối chươn
 --- HẾT NỘI DUNG ---
 
 NHIỆM VỤ QUAN TRỌNG:
-1. Trích xuất ĐẦY ĐỦ TẤT CẢ các Chủ điểm / Chương (chapters) xuất hiện trong Mục lục trên.
-2. Trích xuất ĐẦY ĐỦ TẤT CẢ các Bài học (lessons) của từng Chủ điểm/Chương kèm đúng số trang (page_number). TUYỆT ĐỐI KHÔNG ĐƯỢC BỎ SÓT bài học nào!
-3. Trong mỗi bài học, trích xuất các phân môn / hoạt động (topics: Đọc, Luyện từ và câu, Viết, Nói và nghe...) kèm tóm tắt kiến thức cốt lõi (summary), các khái niệm chính (concepts), và mục tiêu cần đạt (learning_objectives) theo chuẩn GDPT 2018 Lớp {grade}.
-4. TUYỆT ĐỐI KHÔNG dùng tên chung chung như "Nội dung trang X". Dùng đúng tên Chủ điểm và Bài học có trong Mục lục!
+1. Trích xuất ĐẦY ĐỦ, CHÍNH XÁC 100% tất cả các Chủ điểm / Chương và Bài học (kèm số trang tương ứng). TUYỆT ĐỐI KHÔNG BỎ SÓT BÀI HỌC NÀO!
+
+HƯỚNG DẪN ĐỌC MỤC LỤC BẢNG SGK TIẾNG VIỆT / TOÁN:
+- Các hàng in hoa / banner ngang (VD: "MỖI NGƯỜI MỘT VẺ", "TRẢI NGHIỆM VÀ KHÁM PHÁ", "NIỀM VUI SÁNG TẠO", "CHẮP CÁNH ƯỚC MƠ"...): Đây chính là tên CHỦ ĐỀ / CHƯƠNG (chapters).
+- Cột "Bài": Chứa số bài học (1, 2, 3... 32). Ghép với tên bài đọc chính trong ô Nội dung để làm tên Bài học (VD: "Bài 1. Điều kì diệu", "Bài 2. Thi nhạc", "Bài 3. Anh em sinh đôi"...).
+- Cột "Nội dung": Chứa các phân môn/hoạt động (Đọc, Luyện từ và câu, Viết, Nói và nghe, Đọc mở rộng...). Hãy trích xuất mỗi hoạt động này thành một "topic".
+- Cột "Trang": Ghi đúng số trang tương ứng.
+- ĐỐI VỚI MỖI BÀI HỌC, hãy bổ sung tóm tắt kiến thức (summary), khái niệm chính (concepts: VD "Danh từ", "Danh từ chung, danh từ riêng", "Tính từ", "Động từ"...), và mục tiêu cần đạt (learning_objectives) chuẩn GDPT 2018 Lớp {grade}.
 
 ĐỊNH DẠNG TRẢ VỀ:
 CHỈ trả về DUY NHẤT một chuỗi JSON hợp lệ (không kèm văn bản giải thích bên ngoài):
 {{
   "chapters": [
     {{
-      "title": "Tên Chủ điểm / Chương thực tế",
+      "title": "Tên Chủ điểm / Chương (VD: Chủ đề: Mỗi người một vẻ)",
       "order_index": 1,
       "lessons": [
         {{
-          "title": "Tên Bài học thực tế",
+          "title": "Tên Bài học (VD: Bài 1. Điều kì diệu)",
           "order_index": 1,
           "page_number": 8,
           "topics": [
             {{
-              "title": "Tên phân môn / nội dung trọng tâm",
+              "title": "Phân môn / Hoạt động (VD: Đọc: Điều kì diệu | Luyện từ và câu: Danh từ)",
               "order_index": 1,
-              "summary": "Tóm tắt ngắn gọn",
-              "concepts": ["Khái niệm 1"],
-              "learning_objectives": ["Mục tiêu cần đạt 1"]
+              "summary": "Tóm tắt kiến thức cốt lõi phân môn",
+              "concepts": ["Danh từ"],
+              "learning_objectives": ["Nhận biết và sử dụng danh từ trong câu"]
             }}
           ]
         }}
@@ -338,6 +354,7 @@ CHỈ trả về DUY NHẤT một chuỗi JSON hợp lệ (không kèm văn bả
     }}
   ]
 }}
+
 """
 
         # Ensure latest models are prioritized and NO 2.5 models are used
