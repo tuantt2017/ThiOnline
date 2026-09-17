@@ -96,23 +96,23 @@ class GeminiKnowledgeService:
             total_pages = len(doc)
             logger.info(f"Đang phân tích PDF scan ({total_pages} trang) bằng Gemini Vision...")
 
-            # In Vietnamese textbooks (Grades 4-9), Table of Contents (Mục lục) is almost always in pages 3-8 or last 3 pages
+            # If document has <= 5 pages (e.g. short PDF or 2-page TOC excerpt), include ALL pages
             toc_indices = []
-            # Check pages 2 to 7 (1-indexed pages 3 to 8)
-            for idx in range(min(total_pages, 8)):
-                if idx >= 2:  # skip cover and intro
+            if total_pages <= 5:
+                toc_indices = list(range(total_pages))
+            else:
+                for idx in range(min(total_pages, 10)):
                     toc_indices.append(idx)
+                if total_pages > 10:
+                    for idx in range(max(10, total_pages - 3), total_pages):
+                        if idx not in toc_indices:
+                            toc_indices.append(idx)
 
-            # Also check last 2 pages if book has > 20 pages
-            if total_pages > 20:
-                toc_indices.append(total_pages - 2)
-                toc_indices.append(total_pages - 1)
-
-            # Render candidate pages to JPEG base64 images
+            # Render candidate pages to high-res JPEG base64 images (200 DPI)
             parts = []
             for p_idx in toc_indices:
                 page = doc[p_idx]
-                pix = page.get_pixmap(dpi=150)
+                pix = page.get_pixmap(dpi=200)
                 img_b64 = base64.b64encode(pix.tobytes("jpeg")).decode("utf-8")
                 parts.append({
                     "inline_data": {
@@ -120,6 +120,7 @@ class GeminiKnowledgeService:
                         "data": img_b64,
                     }
                 })
+
 
             prompt_text = f"""Bạn là chuyên gia sư phạm và kiến trúc sư chương trình Giáo dục Phổ thông Việt Nam (GDPT 2018), chuyên trách khối Cấp 1 (Lớp 4, Lớp 5) và Cấp 2 (Lớp 6, Lớp 7, Lớp 8, Lớp 9) của các bộ sách Kết nối tri thức, Chân trời sáng tạo, Cánh Diều.
 
@@ -227,7 +228,11 @@ CHỈ trả về DUY NHẤT một chuỗi JSON hợp lệ (không kèm văn bả
             return parsed_doc.raw_text[:10000]
 
         total_pages = len(pages)
+        if total_pages <= 5:
+            return parsed_doc.raw_text
+
         toc_candidates = []
+
 
         # Check candidate pages in first 15 pages and last 3 pages
         search_indices = list(range(min(15, total_pages)))
