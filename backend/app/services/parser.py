@@ -59,7 +59,8 @@ class PDFParser:
             blocks = page.get_text("blocks")
             for block in blocks:
                 # block: (x0, y0, x1, y1, text, block_no, block_type)
-                if len(block) >= 5 and block[6] == 0:  # text block
+                if len(block) >= 7 and block[6] == 0:  # text block
+
                     line = block[4].strip()
                     if re.match(r"^(Chương|CHƯƠNG|Bài|BÀI|Chủ đề|CHỦ ĐỀ|Phần|PHẦN)\b", line, re.IGNORECASE):
                         headings.append(line)
