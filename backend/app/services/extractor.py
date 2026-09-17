@@ -36,15 +36,15 @@ class ExtractionResult:
     summary_metadata: Dict[str, Any]
 
 
-# Regular expressions for Vietnamese textbook structure (Grades 4 - 9)
 RE_CHAPTER = re.compile(
-    r"^(?:CHƯƠNG|Chương|PHẦN|Phần|CHỦ ĐỀ|Chủ đề|Chapter)\s+([0-9IVXLCDM]+|[A-Z])[:.]?\s*(.*?)$",
+    r"^(?:CHƯƠNG|Chương|PHẦN|Phần|CHỦ ĐỀ|Chủ đề|Chapter)\s*([0-9IVXLCDM]+)?[:.]?\s*(.*?)$",
     re.IGNORECASE,
 )
 RE_LESSON = re.compile(
-    r"^(?:BÀI|Bài|TIẾT|Tiết|TUẦN|Tuần|Lesson)\s+([0-9IVXLCDM]+)[:.]?\s*(.*?)$",
+    r"^(?:Tuần\s+\d+\s*[-–:]\s*)?(?:BÀI|Bài|TIẾT|Tiết|TUẦN|Tuần|Lesson)\s*([0-9IVXLCDM]+)[:.]?\s*(.*?)$",
     re.IGNORECASE,
 )
+
 RE_TOPIC = re.compile(
     r"^(?:[I|V|X|L|C|D|M]+\.|\d+\.|\bKhám phá|\bHoạt động|\bLuyện tập|\bVận dụng|\bTrọng tâm|\bKiến thức)\s*(.*?)$",
     re.IGNORECASE,

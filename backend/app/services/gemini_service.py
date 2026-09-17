@@ -477,7 +477,20 @@ CHỈ trả về DUY NHẤT một chuỗi JSON hợp lệ (không kèm văn bả
             children=[grade_node],
         )
 
-        chapters = ai_data if isinstance(ai_data, list) else (ai_data.get("chapters", []) if isinstance(ai_data, dict) else [])
+        if isinstance(ai_data, list):
+            chapters = ai_data
+        elif isinstance(ai_data, dict):
+            chapters = (
+                ai_data.get("chapters")
+                or ai_data.get("data")
+                or ai_data.get("muc_luc")
+                or ai_data.get("chuong")
+                or ai_data.get("content")
+                or []
+            )
+        else:
+            chapters = []
+
         total_concepts = 0
         total_objectives = 0
         total_topics = 0
