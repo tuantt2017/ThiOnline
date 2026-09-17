@@ -142,16 +142,23 @@ YÊU CẦU ĐẦU RA JSON ĐÚNG ĐỊNH DẠNG SAU:
 }}
 """
 
-        endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={settings.GEMINI_API_KEY.strip()}"
-        payload = {
-            "contents": [{"parts": [{"text": prompt}]}],
-            "generationConfig": {"responseMimeType": "application/json", "temperature": 0.3},
-        }
+        models_to_try = [settings.GEMINI_MODEL, "gemini-1.5-flash", "gemini-2.0-flash"]
+        models_to_try = list(dict.fromkeys([m for m in models_to_try if m]))
 
         with httpx.Client(timeout=30.0) as client:
-            resp = client.post(endpoint, json=payload)
-            resp.raise_for_status()
-            data = resp.json()
+            for model_name in models_to_try:
+                endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={settings.GEMINI_API_KEY.strip()}"
+                payload = {
+                    "contents": [{"parts": [{"text": prompt}]}],
+                    "generationConfig": {"responseMimeType": "application/json", "temperature": 0.3},
+                }
+                resp = client.post(endpoint, json=payload)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    break
+            else:
+                resp.raise_for_status()
+
 
         text_content = data["candidates"][0]["content"]["parts"][0]["text"]
         parsed = json.loads(text_content)

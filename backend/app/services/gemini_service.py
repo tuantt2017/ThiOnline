@@ -168,8 +168,10 @@ CHỈ trả về DUY NHẤT một chuỗi JSON hợp lệ (không kèm văn bả
             parts.append({"text": prompt_text})
 
             # Use latest Gemini models, NEVER 2.5
-            vision_models = [settings.GEMINI_MODEL, "gemini-flash-lite-latest", "gemini-3.5-flash-lite", "gemini-flash-latest"]
-            vision_models = list(dict.fromkeys([m for m in vision_models if m and "2.5" not in m]))
+            vision_models = [settings.GEMINI_MODEL, "gemini-3.5-flash", "gemini-3.0-flash", "gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]
+            vision_models = list(dict.fromkeys([m for m in vision_models if m]))
+
+
 
             logger.info("Đang gửi ảnh Mục lục tới mô hình Gemini Vision mới nhất...")
             with httpx.Client(timeout=60.0) as client:
@@ -334,13 +336,15 @@ CHỈ trả về DUY NHẤT một chuỗi JSON hợp lệ (không kèm văn bả
         # Ensure latest models are prioritized and NO 2.5 models are used
         models_to_try = [
             settings.GEMINI_MODEL,
-            "gemini-flash-lite-latest",
-            "gemini-3.5-flash-lite",
-            "gemini-3.1-flash-lite",
-            "gemini-flash-latest"
+            "gemini-3.5-flash",
+            "gemini-3.0-flash",
+            "gemini-2.5-flash",
+            "gemini-2.0-flash",
+            "gemini-1.5-flash",
         ]
-        # Deduplicate while preserving order and filter out any 2.5
-        models_to_try = list(dict.fromkeys([m for m in models_to_try if m and "2.5" not in m]))
+        models_to_try = list(dict.fromkeys([m for m in models_to_try if m]))
+
+
         ai_response_json = None
 
         logger.info(f"Đang phân tích cấu trúc tài liệu bằng mô hình Gemini thế hệ mới nhất ({models_to_try[0]})...")

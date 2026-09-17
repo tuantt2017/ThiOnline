@@ -349,8 +349,10 @@ Hãy sinh báo cáo đánh giá định dạng JSON chính xác:
 }}
 """
         api_key = settings.GEMINI_API_KEY.strip()
-        models_to_try = [settings.GEMINI_MODEL, "gemini-flash-latest", "gemini-3.5-flash-lite"]
-        models_to_try = list(dict.fromkeys([m for m in models_to_try if m and "2.5" not in m]))
+        models_to_try = [settings.GEMINI_MODEL, "gemini-3.5-flash", "gemini-3.0-flash", "gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]
+        models_to_try = list(dict.fromkeys([m for m in models_to_try if m]))
+
+
 
         with httpx.Client(timeout=20.0) as client:
             for model_name in models_to_try:

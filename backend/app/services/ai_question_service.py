@@ -237,7 +237,8 @@ class GeminiQuestionGenerator:
     ) -> List[Dict[str, Any]]:
         """Invokes Google Gemini API with pedal-to-the-metal pedagogical prompt & JSON output mode."""
         api_key = settings.GEMINI_API_KEY.strip()
-        model_name = settings.GEMINI_MODEL_QUESTION_GEN or settings.GEMINI_MODEL or "gemini-flash-lite-latest"
+        model_name = settings.GEMINI_MODEL_QUESTION_GEN or settings.GEMINI_MODEL or "gemini-1.5-flash"
+
 
         web_grounding_instruction = ""
         if req.use_web_context:
