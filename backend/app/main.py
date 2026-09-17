@@ -36,14 +36,19 @@ app = FastAPI(
 )
 
 # CORS Middleware
+origins = settings.BACKEND_CORS_ORIGINS
+if isinstance(origins, str):
+    origins = [o.strip() for o in origins.split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.BACKEND_CORS_ORIGINS,
-    allow_origin_regex=r"http://.*",
+    allow_origins=origins if origins else ["*"],
+    allow_origin_regex=r"https?://.*",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 # Include API Router
 app.include_router(api_router, prefix=settings.API_V1_STR)
