@@ -350,11 +350,11 @@ Hãy sinh báo cáo đánh giá định dạng JSON chính xác:
 """
         models_to_try = [
             settings.GEMINI_MODEL,
-            "gemini-1.5-flash-latest",
-            "gemini-1.5-flash-001",
-            "gemini-2.0-flash-exp",
-            "gemini-1.5-pro-latest",
-            "gemini-pro",
+            "gemini-3.8-flash",
+            "gemini-3.5-flash",
+            "gemini-2.5-flash",
+            "gemini-flash-latest",
+            "gemini-flash-lite-latest",
         ]
         models_to_try = list(dict.fromkeys([m.strip() for m in models_to_try if m and m.strip()]))
 
