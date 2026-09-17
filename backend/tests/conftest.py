@@ -41,13 +41,17 @@ def db() -> Generator:
 
 
 @pytest.fixture(scope="function")
-def client(db) -> Generator:
-    """Test client with overridden get_db dependency."""
+def client(db, monkeypatch) -> Generator:
+    """Test client with overridden get_db dependency and background task SessionLocal."""
+    import app.core.database as db_module
+    monkeypatch.setattr(db_module, "SessionLocal", TestingSessionLocal)
+
     def override_get_db():
+        session = TestingSessionLocal()
         try:
-            yield db
+            yield session
         finally:
-            pass
+            session.close()
 
     app.dependency_overrides[get_db] = override_get_db
     with TestClient(app) as test_client:
@@ -99,3 +103,27 @@ def student_headers(student_user) -> dict:
     """Bearer auth header for student user."""
     token = create_access_token(subject=student_user.id, role=student_user.role.value)
     return {"Authorization": f"Bearer {token}"}
+
+
+@pytest.fixture(scope="function")
+def teacher_user(db) -> User:
+    """Fixture creating a teacher user."""
+    user = User(
+        email="teacher_test@example.com",
+        hashed_password=get_password_hash("TeacherPass123!"),
+        full_name="Teacher Tester",
+        role=UserRole.TEACHER,
+        is_active=True,
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+@pytest.fixture(scope="function")
+def teacher_headers(teacher_user) -> dict:
+    """Bearer auth header for teacher user."""
+    token = create_access_token(subject=teacher_user.id, role=teacher_user.role.value)
+    return {"Authorization": f"Bearer {token}"}
+

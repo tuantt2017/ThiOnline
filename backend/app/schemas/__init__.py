@@ -7,6 +7,21 @@ from app.schemas.user import (
     UserResponse,
     LoginResponse,
 )
+from app.schemas.question import (
+    QuestionOptionBase,
+    QuestionOptionCreate,
+    QuestionOptionResponse,
+    QuestionBase,
+    QuestionCreate,
+    QuestionUpdate,
+    QuestionResponse,
+    QuestionListResponse,
+    QuestionStatusUpdate,
+    BatchStatusUpdate,
+    QuestionStatsResponse,
+    ParsedQuestionItem,
+    WordImportResult,
+)
 
 __all__ = [
     "Token",
@@ -17,4 +32,17 @@ __all__ = [
     "UserLogin",
     "UserResponse",
     "LoginResponse",
+    "QuestionOptionBase",
+    "QuestionOptionCreate",
+    "QuestionOptionResponse",
+    "QuestionBase",
+    "QuestionCreate",
+    "QuestionUpdate",
+    "QuestionResponse",
+    "QuestionListResponse",
+    "QuestionStatusUpdate",
+    "BatchStatusUpdate",
+    "QuestionStatsResponse",
+    "ParsedQuestionItem",
+    "WordImportResult",
 ]

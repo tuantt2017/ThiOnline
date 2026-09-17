@@ -23,7 +23,9 @@ class User(Base):
         default=UserRole.STUDENT,
         nullable=False,
     )
+    grade = Column(Integer, nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
+
     created_at = Column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),

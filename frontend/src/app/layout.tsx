@@ -16,14 +16,14 @@ export default function RootLayout({
 }) {
   return (
     <html lang="vi" className="h-full antialiased">
-      <body className="min-h-full flex flex-col bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100 font-sans">
+      <body className="min-h-full flex flex-col bg-slate-50 text-slate-900 font-sans selection:bg-blue-100 selection:text-blue-900">
         <AuthProvider>
           <Navbar />
           <main className="flex-1 flex flex-col">{children}</main>
-          <footer className="border-t border-zinc-200/80 dark:border-zinc-800/80 bg-white/50 dark:bg-zinc-950/50 py-6 text-center text-xs text-zinc-500">
+          <footer className="border-t border-slate-200/80 bg-white/80 backdrop-blur-md py-6 text-center text-xs text-slate-500">
             <div className="container mx-auto px-4">
-              <p>© 2026 Online Exam AI. Được xây dựng dựa trên đặc tả kỹ thuật tiêu chuẩn.</p>
-              <p className="mt-1 text-zinc-400 dark:text-zinc-600">FastAPI • PostgreSQL • Next.js • Tailwind CSS • Google Gemini AI</p>
+              <p>© 2026 Online Exam AI. Hệ thống thi trực tuyến & trợ lý khảo thí thông minh.</p>
+              <p className="mt-1 text-slate-400">GDPT Lớp 4 – Lớp 9 • Môn Toán, Tiếng Việt, Tiếng Anh...</p>
             </div>
           </footer>
         </AuthProvider>

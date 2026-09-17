@@ -15,7 +15,17 @@ async def lifespan(app: FastAPI):
     """Application startup and shutdown events."""
     # Ensure tables are created for SQLite or initial setup
     Base.metadata.create_all(bind=engine)
+
+    # Safe lightweight SQLite migration for added columns
+    with engine.connect() as conn:
+        try:
+            conn.execute(text("ALTER TABLE users ADD COLUMN grade INTEGER;"))
+            conn.commit()
+        except Exception:
+            pass  # Column already exists or unsupported dialect
+
     yield
+
 
 
 app = FastAPI(
@@ -29,6 +39,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.BACKEND_CORS_ORIGINS,
+    allow_origin_regex=r"http://.*",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

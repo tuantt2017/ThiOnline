@@ -10,12 +10,13 @@ interface AuthContextType {
   token: string | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<User>;
-  register: (email: string, fullName: string, password: string) => Promise<void>;
+  register: (email: string, fullName: string, password: string, grade?: number) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -41,9 +42,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(freshUser);
           localStorage.setItem('user', JSON.stringify(freshUser));
         })
-        .catch(() => {
-          // Token expired or invalid
-          logout();
+        .catch((err: any) => {
+          // Only logout if token is expired or invalid (401/403)
+          // Do not logout during backend 503 connection errors
+          if (err?.status === 401 || err?.status === 403) {
+            logout();
+          }
         })
         .finally(() => {
           setIsLoading(false);
@@ -67,14 +71,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const register = async (email: string, fullName: string, password: string): Promise<void> => {
+  const register = async (email: string, fullName: string, password: string, grade?: number): Promise<void> => {
     setIsLoading(true);
     try {
-      await api.register(email, fullName, password);
+      await api.register(email, fullName, password, grade);
     } finally {
       setIsLoading(false);
     }
   };
+
 
   const logout = () => {
     setToken(null);

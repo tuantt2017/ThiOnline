@@ -26,7 +26,7 @@ def test_register_student_success(client):
     assert data["email"] == "newstudent@example.com"
     assert data["full_name"] == "New Student"
     assert data["role"] == "STUDENT"
-    assert data["is_active"] is True
+    assert data["is_active"] is False
     assert "id" in data
 
 

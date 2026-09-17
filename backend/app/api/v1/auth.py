@@ -17,6 +17,8 @@ from app.schemas.user import (
     UserLogin,
     UserRegister,
     UserResponse,
+    ChangePasswordInput,
+    UpdateGradeInput,
 )
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -40,8 +42,10 @@ def register(
         hashed_password=get_password_hash(user_in.password),
         full_name=user_in.full_name,
         role=UserRole.STUDENT,
-        is_active=True,
+        grade=user_in.grade,
+        is_active=False,
     )
+
     db.add(user)
     db.commit()
     db.refresh(user)
@@ -70,7 +74,7 @@ def login(
     if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Inactive user account",
+            detail="Tài khoản của bạn chưa được kích hoạt. Vui lòng chờ Quản trị viên (Admin) phê duyệt.",
         )
     
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -143,3 +147,60 @@ def seed_default_users(
         
     db.commit()
     return {"message": "Seed completed", "created_users": created}
+
+
+@router.post("/change-password", response_model=dict)
+def change_password(
+    password_in: ChangePasswordInput,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> Any:
+    """Change current user's password (for Admin, Teacher, Student)."""
+    if not verify_password(password_in.old_password, current_user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Mật khẩu hiện tại không chính xác.",
+        )
+    if len(password_in.new_password) < 6:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Mật khẩu mới phải có độ dài ít nhất 6 ký tự.",
+        )
+
+    current_user.hashed_password = get_password_hash(password_in.new_password)
+    db.add(current_user)
+    db.commit()
+    return {"message": "Đổi mật khẩu thành công!"}
+
+
+@router.put("/me/grade", response_model=UserResponse)
+def update_student_grade(
+    grade_in: UpdateGradeInput,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> Any:
+    """
+    Update student grade.
+    RULE: Students are only allowed to update their grade for the new school year starting from AUGUST (Month >= 8).
+    Admin can override and update anytime.
+    """
+    from datetime import datetime
+    if grade_in.grade < 4 or grade_in.grade > 9:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Khối lớp chỉ hỗ trợ từ Lớp 4 đến Lớp 9.",
+        )
+
+    current_month = datetime.now().month
+    if current_user.role == UserRole.STUDENT and current_month < 8:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Chức năng tự cập nhật khối lớp cho năm học mới chỉ mở từ Tháng 8 trở đi! (Hiện tại là Tháng {current_month}).",
+        )
+
+    current_user.grade = grade_in.grade
+    db.add(current_user)
+    db.commit()
+    db.refresh(current_user)
+    return current_user
+

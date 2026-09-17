@@ -41,9 +41,31 @@ def create_user_by_admin(
         hashed_password=get_password_hash(user_in.password),
         full_name=user_in.full_name,
         role=user_in.role,
+        grade=user_in.grade,
         is_active=True,
     )
+
     db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+@router.put("/{user_id}/status", response_model=UserResponse)
+def update_user_status(
+    user_id: int,
+    is_active: bool,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_active_admin),
+) -> Any:
+    """Approve/Activate or Deactivate a user account. Requires ADMIN role."""
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found",
+        )
+    user.is_active = is_active
     db.commit()
     db.refresh(user)
     return user

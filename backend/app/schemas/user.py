@@ -9,6 +9,7 @@ class UserBase(BaseModel):
     email: EmailStr
     full_name: str
     role: Optional[UserRole] = UserRole.STUDENT
+    grade: Optional[int] = None
 
 
 class UserCreate(UserBase):
@@ -19,6 +20,7 @@ class UserRegister(BaseModel):
     email: EmailStr
     full_name: str
     password: str
+    grade: Optional[int] = None
 
 
 class UserLogin(BaseModel):
@@ -31,9 +33,11 @@ class UserResponse(BaseModel):
     email: EmailStr
     full_name: str
     role: UserRole
+    grade: Optional[int] = None
     is_active: bool
     created_at: datetime
     updated_at: datetime
+
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -42,3 +46,13 @@ class LoginResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user: UserResponse
+
+
+class ChangePasswordInput(BaseModel):
+    old_password: str
+    new_password: str
+
+
+class UpdateGradeInput(BaseModel):
+    grade: int
+

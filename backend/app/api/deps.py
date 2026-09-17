@@ -1,4 +1,4 @@
-from typing import Generator
+from typing import Generator, Optional
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
@@ -54,6 +54,26 @@ def get_current_user(
             detail="Inactive user account",
         )
     
+    return user
+
+
+def get_current_user_optional(
+    auth: HTTPAuthorizationCredentials = Depends(security_scheme),
+    db: Session = Depends(get_db),
+) -> Optional[User]:
+    """Return current user if token is valid, else return None without raising 401."""
+    if not auth or not auth.credentials:
+        return None
+    token = auth.credentials
+    payload = decode_access_token(token)
+    if payload is None:
+        return None
+    user_id = payload.get("sub")
+    if not user_id:
+        return None
+    user = db.query(User).filter(User.id == int(user_id)).first()
+    if not user or not user.is_active:
+        return None
     return user
 
 
