@@ -47,8 +47,14 @@ import {
 
 function getApiBase(): string {
   if (typeof window !== 'undefined') {
+    const isHttps = window.location.protocol === 'https:';
     const isLocalhostClient =
       window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
+    // On HTTPS web pages, force relative path if NEXT_PUBLIC_API_URL is insecure http:// to prevent Mixed Content blocking
+    if (isHttps && process.env.NEXT_PUBLIC_API_URL?.startsWith('http://')) {
+      return '';
+    }
 
     // On real production domains/IPs, fallback to relative path if NEXT_PUBLIC_API_URL points to localhost/127.0.0.1
     if (!isLocalhostClient && process.env.NEXT_PUBLIC_API_URL) {
@@ -117,8 +123,8 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
         if (isLocal) {
           candidateBases.push('http://127.0.0.1:8000', 'http://localhost:8000');
         } else {
-          // Direct connection to current web server domain/IP on port 8000
-          candidateBases.push(`${window.location.protocol}//${window.location.hostname}:8000`);
+          // Direct connection to Render backend live URL or web server domain
+          candidateBases.push('https://thionline.onrender.com', `${window.location.protocol}//${window.location.hostname}:8000`);
         }
       }
 
@@ -138,6 +144,7 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
       }
 
       if (!succeeded) {
+        console.error('[API Connection Error Target]', { url, apiBase, endpoint, error: netError });
         throw netError;
       }
     }
@@ -165,7 +172,7 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
       error?.message?.includes('Load failed');
 
     const cleanMsg = isNetworkError
-      ? 'Không thể kết nối đến máy chủ Backend (Port 8000). Vui lòng kiểm tra lại dịch vụ Backend.'
+      ? `Không thể kết nối đến máy chủ Backend (Target: ${url}). Vui lòng kiểm tra lại dịch vụ Backend, CORS hoặc HTTPS/Mixed Content.`
       : error?.message || 'Lỗi không xác định khi kết nối API';
 
     throw new ApiError(cleanMsg, isNetworkError ? 503 : 500);

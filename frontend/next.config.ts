@@ -2,11 +2,25 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   async rewrites() {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+    // Internal backend target (points to Render live backend https://thionline.onrender.com)
+    let rawUrl = process.env.BACKEND_INTERNAL_URL || process.env.NEXT_PUBLIC_API_URL || 'https://thionline.onrender.com';
+    
+    // Prevent infinite self-referencing loops (if NEXT_PUBLIC_API_URL equals frontend domain)
+    if (
+      rawUrl.includes('hoccungai.io.vn') ||
+      rawUrl.startsWith('/') ||
+      rawUrl.endsWith('/api') ||
+      rawUrl.endsWith('/api/')
+    ) {
+      rawUrl = 'https://thionline.onrender.com';
+    }
+
+    const cleanBase = rawUrl.replace(/\/api\/?$/, '').replace(/\/$/, '');
+
     return [
       {
         source: '/api/:path*',
-        destination: `${apiUrl}/api/:path*`,
+        destination: `${cleanBase}/api/:path*`,
       },
     ];
   },
