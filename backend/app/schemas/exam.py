@@ -153,6 +153,7 @@ class ExamAttemptResultResponse(BaseModel):
     total_count: int
     passing_score: float
     is_passed: bool
+    diamonds_awarded: int = 0
     started_at: datetime
     submitted_at: Optional[datetime] = None
     detailed_answers: List[Dict[str, Any]] = Field(default_factory=list)

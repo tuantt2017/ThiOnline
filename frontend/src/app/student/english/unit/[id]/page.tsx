@@ -219,6 +219,8 @@ export default function EnglishUnitStudioPage() {
     ? unit.speaking_prompts.every((_, idx) => Boolean(speakingTranscripts[idx] || speakingEvaluations[idx]))
     : true;
 
+  const [aiDiamondClaimed, setAiDiamondClaimed] = useState<boolean>(false);
+
   const handleSwitchToTab = (tab: number) => {
     if (tab === 4 && !isSpeakingCompleted) {
       alert('🎙️ Bạn bắt buộc phải thu âm giọng đọc Tiếng Anh trong Phòng Luyện Nói AI (Mô-đun 3) trước khi hoàn thành bài học!');
@@ -226,6 +228,11 @@ export default function EnglishUnitStudioPage() {
       return;
     }
     setActiveTab(tab);
+    if (tab === 4 && unit && !aiDiamondClaimed) {
+      api.claimAiPracticeReward(String(unit.unit_id || unitId)).then(() => {
+        setAiDiamondClaimed(true);
+      }).catch((err) => console.error('Failed to claim AI practice reward:', err));
+    }
   };
 
   if (loading) {
@@ -835,7 +842,25 @@ export default function EnglishUnitStudioPage() {
               </div>
             </div>
 
-            <div className="flex items-center justify-center gap-4 pt-4">
+            <div className="bg-gradient-to-r from-amber-500 via-purple-600 to-cyan-500 p-0.5 rounded-2xl max-w-md mx-auto shadow-lg">
+              <div className="bg-slate-900 rounded-[15px] p-4 text-white flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <span className="text-3xl">💎</span>
+                  <div className="text-left">
+                    <h4 className="font-extrabold text-sm text-cyan-300">Thưởng +1 💎 Kim Cương Ôn Luyện AI</h4>
+                    <p className="text-[11px] text-slate-300">Chúc mừng bạn tích lũy thêm kim cương đổi quà!</p>
+                  </div>
+                </div>
+                <Link
+                  href="/student/rewards"
+                  className="px-3.5 py-2 bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 font-bold text-xs rounded-xl shadow hover:from-amber-300 hover:to-amber-400 transition"
+                >
+                  🎁 Cửa Hàng Quà
+                </Link>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-center gap-4 pt-2">
               <Link
                 href="/student/english"
                 className="px-6 py-3 bg-purple-600 hover:bg-purple-700 font-bold text-white rounded-2xl text-xs shadow-md transition"

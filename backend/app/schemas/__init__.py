@@ -23,6 +23,18 @@ from app.schemas.question import (
     WordImportResult,
 )
 
+from app.schemas.reward import (
+    RewardItemBase,
+    RewardItemCreate,
+    RewardItemUpdate,
+    RewardItemResponse,
+    DiamondTransactionResponse,
+    GiftRedemptionCreate,
+    GiftRedemptionResponse,
+    RedemptionStatusUpdate,
+    RewardBalanceResponse,
+)
+
 __all__ = [
     "Token",
     "TokenPayload",
@@ -45,4 +57,13 @@ __all__ = [
     "QuestionStatsResponse",
     "ParsedQuestionItem",
     "WordImportResult",
+    "RewardItemBase",
+    "RewardItemCreate",
+    "RewardItemUpdate",
+    "RewardItemResponse",
+    "DiamondTransactionResponse",
+    "GiftRedemptionCreate",
+    "GiftRedemptionResponse",
+    "RedemptionStatusUpdate",
+    "RewardBalanceResponse",
 ]

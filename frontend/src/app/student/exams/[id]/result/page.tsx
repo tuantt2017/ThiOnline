@@ -173,6 +173,34 @@ export default function ExamResultPage() {
           </div>
         </div>
 
+        {/* Diamond Reward Celebration Banner */}
+        {result.diamonds_awarded !== undefined && result.diamonds_awarded > 0 && (
+          <div className="mb-6 rounded-2xl bg-gradient-to-r from-amber-500 via-purple-600 to-cyan-500 p-0.5 shadow-lg animate-bounce-short">
+            <div className="bg-slate-900/95 backdrop-blur-md rounded-[15px] p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-white">
+              <div className="flex items-center gap-3">
+                <span className="text-3xl">💎</span>
+                <div>
+                  <h4 className="font-extrabold text-base bg-gradient-to-r from-amber-300 to-cyan-300 bg-clip-text text-transparent">
+                    Chúc mừng! Bạn được cộng +{result.diamonds_awarded} 💎 Kim Cương!
+                  </h4>
+                  <p className="text-xs text-slate-300 mt-0.5">
+                    {result.score >= 9.0
+                      ? 'Thành tích xuất sắc (≥9.0 điểm) nhận 2 Kim Cương!'
+                      : 'Hoàn thành bài thi nhận 1 Kim Cương tích lũy đổi quà!'}
+                  </p>
+                </div>
+              </div>
+
+              <Link
+                href="/student/rewards"
+                className="px-4 py-2 bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 rounded-xl font-bold text-xs uppercase tracking-wider hover:from-amber-300 hover:to-amber-400 transition-all shadow-md shadow-amber-500/20 whitespace-nowrap"
+              >
+                🎁 Đổi Quà Ngay &rarr;
+              </Link>
+            </div>
+          </div>
+        )}
+
         {/* Quick Stats Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
           <div className="rounded-2xl border border-slate-200/90 bg-white p-4 shadow-sm text-center">

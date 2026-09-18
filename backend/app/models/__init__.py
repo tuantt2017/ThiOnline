@@ -25,6 +25,13 @@ from app.models.exam import (
     ExamStatus,
     AttemptStatus,
 )
+from app.models.reward import (
+    RewardItem,
+    DiamondTransaction,
+    GiftRedemption,
+    TransactionType,
+    RedemptionStatus,
+)
 
 __all__ = [
     "Base",
@@ -49,4 +56,9 @@ __all__ = [
     "AttemptAnswer",
     "ExamStatus",
     "AttemptStatus",
+    "RewardItem",
+    "DiamondTransaction",
+    "GiftRedemption",
+    "TransactionType",
+    "RedemptionStatus",
 ]

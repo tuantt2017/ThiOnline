@@ -204,8 +204,14 @@ export default function EnglishLearningHubPage() {
             </p>
           </div>
 
-          {/* Action Button: Custom Unit Generator */}
-          <div className="relative z-10 shrink-0">
+          {/* Action Buttons */}
+          <div className="relative z-10 shrink-0 flex flex-col sm:flex-row items-center gap-3">
+            <Link
+              href="/student/rewards"
+              className="px-5 py-3.5 bg-gradient-to-r from-cyan-400 to-cyan-500 hover:from-cyan-300 hover:to-cyan-400 text-slate-950 font-extrabold text-sm rounded-2xl shadow-lg hover:scale-105 transition flex items-center gap-2"
+            >
+              <span>💎</span> Ví Kim Cương & Đổi Quà
+            </Link>
             <button
               onClick={() => setIsModalOpen(true)}
               className="px-5 py-3.5 bg-amber-400 hover:bg-amber-300 text-purple-950 font-extrabold text-sm rounded-2xl shadow-lg hover:scale-105 transition flex items-center gap-2"

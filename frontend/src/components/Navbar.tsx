@@ -25,6 +25,7 @@ import {
   Compass,
   Users,
   Headphones,
+  Gift,
 } from 'lucide-react';
 
 export function Navbar() {
@@ -33,6 +34,7 @@ export function Navbar() {
   const [isBackendHealthy, setIsBackendHealthy] = useState<boolean | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState<boolean>(false);
+  const [diamondBalance, setDiamondBalance] = useState<number | null>(null);
 
   const moreMenuRef = useRef<HTMLDivElement>(null);
 
@@ -42,6 +44,15 @@ export function Navbar() {
       .then((res) => setIsBackendHealthy(res.status === 'healthy'))
       .catch(() => setIsBackendHealthy(false));
   }, []);
+
+  useEffect(() => {
+    if (user?.role === 'STUDENT') {
+      api
+        .getRewardBalance()
+        .then((res) => setDiamondBalance(res.diamond_balance))
+        .catch(() => {});
+    }
+  }, [user, pathname]);
 
   // Close menus on route change
   useEffect(() => {
@@ -112,6 +123,20 @@ export function Navbar() {
       icon: FileCheck2,
       visible: user?.role === 'TEACHER' || user?.role === 'ADMIN',
       priority: true, // Primary Top Bar
+    },
+    {
+      label: 'Đổi Quà 💎',
+      href: '/student/rewards',
+      icon: Gift,
+      visible: user?.role === 'STUDENT',
+      priority: false, // "Mở rộng" Dropdown for Student
+    },
+    {
+      label: 'Quản lý Quà Tặng 🎁',
+      href: '/dashboard/admin/rewards',
+      icon: Gift,
+      visible: user?.role === 'ADMIN',
+      priority: false, // "Mở rộng" Dropdown for Admin
     },
     {
       label: 'Trợ Lý AI 1-on-1',
@@ -249,6 +274,19 @@ export function Navbar() {
         {/* Right Section: User Profile & Controls */}
         <div className="flex items-center gap-2 xl:gap-3 shrink-0">
           
+          {/* Student Diamond Wallet Counter Badge */}
+          {user && user.role === 'STUDENT' && (
+            <Link
+              href="/student/rewards"
+              title="Xem Ví Kim Cương & Đổi quà"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/10 via-purple-500/10 to-cyan-500/20 border border-cyan-400/40 text-slate-900 font-extrabold text-xs shadow-xs hover:border-cyan-400 hover:scale-105 transition"
+            >
+              <span className="text-base animate-pulse">💎</span>
+              <span className="text-cyan-700 font-black text-sm">{diamondBalance ?? user.diamond_balance ?? 0}</span>
+              <span className="text-[11px] text-slate-600 hidden sm:inline font-bold">Kim Cương</span>
+            </Link>
+          )}
+
           {/* Desktop Auth Controls */}
           {user ? (
             <div className="hidden xl:flex items-center gap-2 shrink-0">

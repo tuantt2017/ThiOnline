@@ -36,6 +36,10 @@ import {
   EnglishUnitDetailResponse,
   PronunciationEvalResponse,
   EnglishRoadmapResponse as EnglishAiRoadmapResponse,
+  RewardItem,
+  DiamondTransaction,
+  GiftRedemption,
+  RewardBalance,
 } from '@/types';
 
 
@@ -556,6 +560,61 @@ export const api = {
     return request<{ message: string; unit_id: number; status: string; score: number }>(`/api/v1/english/units/${unitId}/complete`, {
       method: 'POST',
       body: JSON.stringify({ score }),
+    });
+  },
+
+  // Rewards & Gamification Endpoints
+  getRewardBalance: async (): Promise<RewardBalance> => {
+    return request<RewardBalance>('/api/v1/rewards/balance', { method: 'GET' });
+  },
+
+  getRewardItems: async (): Promise<RewardItem[]> => {
+    return request<RewardItem[]>('/api/v1/rewards/items', { method: 'GET' });
+  },
+
+  redeemRewardItem: async (itemId: number, note?: string): Promise<GiftRedemption> => {
+    return request<GiftRedemption>(`/api/v1/rewards/redeem/${itemId}`, {
+      method: 'POST',
+      body: JSON.stringify({ note }),
+    });
+  },
+
+  claimAiPracticeReward: async (unitId: string): Promise<{ awarded: number; new_balance: number }> => {
+    return request<{ awarded: number; new_balance: number }>(`/api/v1/rewards/claim-ai-practice?unit_id=${encodeURIComponent(unitId)}`, {
+      method: 'POST',
+    });
+  },
+
+  getStudentRewardHistory: async (): Promise<{ transactions: DiamondTransaction[]; redemptions: GiftRedemption[] }> => {
+    return request<{ transactions: DiamondTransaction[]; redemptions: GiftRedemption[] }>('/api/v1/rewards/my-history', { method: 'GET' });
+  },
+
+  adminGetRewardItems: async (): Promise<RewardItem[]> => {
+    return request<RewardItem[]>('/api/v1/rewards/admin/items', { method: 'GET' });
+  },
+
+  adminCreateRewardItem: async (data: Partial<RewardItem>): Promise<RewardItem> => {
+    return request<RewardItem>('/api/v1/rewards/admin/items', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  adminUpdateRewardItem: async (itemId: number, data: Partial<RewardItem>): Promise<RewardItem> => {
+    return request<RewardItem>(`/api/v1/rewards/admin/items/${itemId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  adminGetRedemptions: async (): Promise<GiftRedemption[]> => {
+    return request<GiftRedemption[]>('/api/v1/rewards/admin/redemptions', { method: 'GET' });
+  },
+
+  adminUpdateRedemptionStatus: async (redemptionId: number, status: string, note?: string): Promise<GiftRedemption> => {
+    return request<GiftRedemption>(`/api/v1/rewards/admin/redemptions/${redemptionId}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ status, note }),
     });
   },
 

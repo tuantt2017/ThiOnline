@@ -29,6 +29,7 @@ from app.schemas.exam import (
     TeacherExamsSummaryItem,
     QuestionAnalyticsItem,
 )
+from app.services.reward_service import RewardService
 
 
 
@@ -589,6 +590,12 @@ def _auto_submit_attempt(db: Session, attempt: ExamAttempt) -> ExamAttemptResult
 
     db.commit()
 
+    # Award diamonds based on exam score (>9.0 => 2 diamonds, <9.0 => 1 diamond, based on best score rules)
+    reward_res = RewardService.award_exam_diamonds(
+        db, attempt.student_id, exam.id, attempt.score, attempt.id
+    )
+    diamonds_awarded = reward_res.get("awarded", 0)
+
     return ExamAttemptResultResponse(
         attempt_id=attempt.id,
         exam_id=exam.id,
@@ -600,6 +607,7 @@ def _auto_submit_attempt(db: Session, attempt: ExamAttempt) -> ExamAttemptResult
         total_count=attempt.total_count,
         passing_score=exam.passing_score,
         is_passed=attempt.score >= exam.passing_score,
+        diamonds_awarded=diamonds_awarded,
         started_at=_ensure_utc(attempt.started_at),
         submitted_at=_ensure_utc(attempt.submitted_at),
         detailed_answers=detailed_answers,

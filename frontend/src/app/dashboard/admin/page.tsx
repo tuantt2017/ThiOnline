@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
@@ -174,6 +175,13 @@ export default function AdminDashboardPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
+            <Link
+              href="/dashboard/admin/rewards"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 px-4 py-2 text-sm font-extrabold text-slate-950 shadow-md shadow-amber-500/20 active:scale-95 transition"
+            >
+              <span>🎁</span>
+              <span>Quản Lý Quà Tặng & Đổi 💎</span>
+            </Link>
             <button
               onClick={() => setShowCreateModal(true)}
               className="inline-flex items-center gap-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 px-4 py-2 text-sm font-bold text-white shadow-md shadow-purple-500/20 active:scale-95 transition"

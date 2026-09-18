@@ -34,6 +34,7 @@ class UserResponse(BaseModel):
     full_name: str
     role: UserRole
     grade: Optional[int] = None
+    diamond_balance: int = 0
     is_active: bool
     created_at: datetime
     updated_at: datetime

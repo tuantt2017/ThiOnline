@@ -23,10 +23,16 @@ async def lifespan(app: FastAPI):
             conn.commit()
         except Exception:
             pass  # Column already exists or unsupported dialect
+        try:
+            conn.execute(text("ALTER TABLE users ADD COLUMN diamond_balance INTEGER DEFAULT 0;"))
+            conn.commit()
+        except Exception:
+            pass
 
-    # Auto-seed initial active accounts if DB has no Admin
+    # Auto-seed initial active accounts and sample gifts if DB has no Admin / Gifts
     from sqlalchemy.orm import Session as DBSession
     from app.models.user import User, UserRole
+    from app.models.reward import RewardItem
     from app.core.security import get_password_hash
 
     with DBSession(engine) as db:
@@ -68,6 +74,57 @@ async def lifespan(app: FastAPI):
                         is_active=True,
                     )
                 )
+
+            # Seed sample student reward items if table is empty
+            if db.query(RewardItem).count() == 0:
+                sample_items = [
+                    RewardItem(
+                        title="Bộ Bút Chì Màu 12 Màu Premium",
+                        description="Bộ bút chì màu rực rỡ, chất lượng cao dành cho học sinh sáng tạo.",
+                        image_url="https://images.unsplash.com/photo-1513542789411-b6a5d4f31634?w=500&auto=format&fit=crop",
+                        diamond_cost=10,
+                        stock_quantity=50,
+                        category="Dụng cụ học tập",
+                        is_active=True,
+                    ),
+                    RewardItem(
+                        title="Sổ Tay Lò Xo Ghi Chép A5 Smart",
+                        description="Sổ ghi chép bìa cứng dày dặn, giấy kẻ ngang chống lóa mắt.",
+                        image_url="https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=500&auto=format&fit=crop",
+                        diamond_cost=15,
+                        stock_quantity=30,
+                        category="Dụng cụ học tập",
+                        is_active=True,
+                    ),
+                    RewardItem(
+                        title="Huy Hiệu Dũng Sĩ Tiếng Anh AI",
+                        description="Huy hiệu kim loại mạ vàng đính kèm cài áo dành cho học sinh xuất sắc.",
+                        image_url="https://images.unsplash.com/photo-1614680376593-902f749f705d?w=500&auto=format&fit=crop",
+                        diamond_cost=20,
+                        stock_quantity=100,
+                        category="Huy hiệu danh dự",
+                        is_active=True,
+                    ),
+                    RewardItem(
+                        title="Thước Kẻ Đa Năng 20cm Chống Gãy",
+                        description="Thước kẻ trong suốt chia vạch chính xác kèm thước đo độ góc.",
+                        image_url="https://images.unsplash.com/photo-1588072432836-e10032774350?w=500&auto=format&fit=crop",
+                        diamond_cost=8,
+                        stock_quantity=60,
+                        category="Dụng cụ học tập",
+                        is_active=True,
+                    ),
+                    RewardItem(
+                        title="Balo Học Sinh Siêu Nhẹ Anti-Gravity",
+                        description="Balo chống gù lưng thế hệ mới, đệm thoáng khí, chống nước nhẹ.",
+                        image_url="https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=500&auto=format&fit=crop",
+                        diamond_cost=50,
+                        stock_quantity=10,
+                        category="Vật phẩm cao cấp",
+                        is_active=True,
+                    ),
+                ]
+                db.add_all(sample_items)
 
             db.commit()
         except Exception as exc:

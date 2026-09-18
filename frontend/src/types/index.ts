@@ -6,6 +6,7 @@ export interface User {
   full_name: string;
   role: UserRole;
   grade?: number | null;
+  diamond_balance?: number;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -428,6 +429,7 @@ export interface ExamAttemptResultResponse {
   total_count: number;
   passing_score: number;
   is_passed: boolean;
+  diamonds_awarded?: number;
   started_at: string;
   submitted_at?: string | null;
   detailed_answers: {
@@ -759,6 +761,48 @@ export interface EnglishRoadmapResponse {
   total_units_count: number;
   units: TopicUnitSummary[];
   ai_daily_coaching_advice: string;
+}
+
+export interface RewardItem {
+  id: number;
+  title: string;
+  description?: string;
+  image_url?: string;
+  diamond_cost: number;
+  stock_quantity: number;
+  category: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DiamondTransaction {
+  id: number;
+  user_id: number;
+  amount: number;
+  transaction_type: 'EXAM_REWARD' | 'AI_PRACTICE_REWARD' | 'GIFT_REDEMPTION' | 'ADMIN_BONUS';
+  description: string;
+  reference_id?: string;
+  created_at: string;
+}
+
+export interface GiftRedemption {
+  id: number;
+  user_id: number;
+  reward_item_id: number;
+  diamond_cost: number;
+  status: 'PENDING' | 'APPROVED' | 'DELIVERED' | 'CANCELLED';
+  note?: string;
+  created_at: string;
+  updated_at: string;
+  reward_item?: RewardItem;
+  user_name?: string;
+}
+
+export interface RewardBalance {
+  diamond_balance: number;
+  total_earned: number;
+  total_spent: number;
 }
 
 
