@@ -670,6 +670,11 @@ export interface AssignRemedialRequest {
   question_count?: number;
 }
 
+export interface AssignRemedialResponse {
+  message: string;
+  assigned_count: number;
+}
+
 export interface VocabFlashcard {
   id: number;
   word: string;
@@ -690,7 +695,7 @@ export interface ExerciseOption {
 
 export interface MultimodalExercise {
   id: number;
-  exercise_type: 'MATCH_IMAGE' | 'LISTEN_SELECT' | 'SPELLING' | 'CONTEXT_FILL';
+  exercise_type: 'MATCH_IMAGE' | 'LISTEN_SELECT' | 'SPELLING' | 'CONTEXT_FILL' | 'WORD_TYPING' | 'FILL_BLANK' | string;
   prompt: string;
   media_url?: string | null;
   audio_text?: string | null;

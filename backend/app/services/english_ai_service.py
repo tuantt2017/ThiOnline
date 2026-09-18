@@ -29,6 +29,184 @@ CUSTOM_UNITS_STORE: Dict[int, EnglishUnitDetailResponse] = {}
 # Global in-memory store for completed units (unit_id -> score)
 COMPLETED_UNITS_STORE: Dict[int, float] = {2: 92.0}
 
+# Sample SGK GDPT 2018 Curriculum Units for Grade 4 - 9
+ENGLISH_CURRICULUM_UNITS = [
+    {
+        "id": 1,
+        "title": "Unit 1: My Family & Friends",
+        "topic": "Family & Relationships",
+        "grade": 5,
+        "description": "Học từ vựng và câu về gia đình, bạn bè, nghề nghiệp và hoạt động hàng ngày.",
+        "flashcards": [
+            {
+                "id": 101,
+                "word": "family",
+                "part_of_speech": "noun",
+                "ipa": "/ˈfæm.əl.i/",
+                "meaning": "gia đình",
+                "image_url": "https://images.unsplash.com/photo-1511895426328-dc8714191300?w=500&auto=format&fit=crop",
+                "audio_text": "family",
+                "example_sentence": "I love spending weekends with my family.",
+                "example_translation": "Tôi thích dành thời gian cuối tuần bên gia đình."
+            },
+            {
+                "id": 102,
+                "word": "teacher",
+                "part_of_speech": "noun",
+                "ipa": "/ˈtiː.tʃər/",
+                "meaning": "giáo viên",
+                "image_url": "https://images.unsplash.com/photo-1577896851231-70ef18881754?w=500&auto=format&fit=crop",
+                "audio_text": "teacher",
+                "example_sentence": "My English teacher is very kind and patient.",
+                "example_translation": "Giáo viên Tiếng Anh của tôi rất tốt bụng và kiên nhẫn."
+            },
+            {
+                "id": 103,
+                "word": "doctor",
+                "part_of_speech": "noun",
+                "ipa": "/ˈdɒk.tər/",
+                "meaning": "bác sĩ",
+                "image_url": "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=500&auto=format&fit=crop",
+                "audio_text": "doctor",
+                "example_sentence": "His mother is a doctor at the city hospital.",
+                "example_translation": "Mẹ của anh ấy là bác sĩ ở bệnh viện thành phố."
+            },
+            {
+                "id": 104,
+                "word": "friendly",
+                "part_of_speech": "adjective",
+                "ipa": "/ˈfrend.li/",
+                "meaning": "thân thiện",
+                "image_url": "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=500&auto=format&fit=crop",
+                "audio_text": "friendly",
+                "example_sentence": "Nam is a very friendly classmate.",
+                "example_translation": "Nam là một người bạn cùng lớp rất thân thiện."
+            }
+        ],
+        "exercises": [
+            {
+                "id": 201,
+                "exercise_type": "MATCH_IMAGE",
+                "prompt": "Từ vựng nào miêu tả nghề nghiệp 'bác sĩ' trong bức tranh?",
+                "media_url": "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=500&auto=format&fit=crop",
+                "audio_text": "Choose the word for doctor",
+                "options": [
+                    {"option_key": "A", "content": "Teacher"},
+                    {"option_key": "B", "content": "Doctor"},
+                    {"option_key": "C", "content": "Engineer"},
+                    {"option_key": "D", "content": "Driver"}
+                ],
+                "correct_answer": "B",
+                "explanation": "'Doctor' có nghĩa là bác sĩ, phù hợp với bức tranh bệnh viện."
+            },
+            {
+                "id": 202,
+                "exercise_type": "LISTEN_SELECT",
+                "prompt": "Nghe phát âm từ vựng và chọn từ Tiếng Anh chính xác:",
+                "audio_text": "family",
+                "options": [
+                    {"option_key": "A", "content": "Family"},
+                    {"option_key": "B", "content": "Famous"},
+                    {"option_key": "C", "content": "Farmer"},
+                    {"option_key": "D", "content": "Father"}
+                ],
+                "correct_answer": "A",
+                "explanation": "Đoạn âm thanh vừa phát từ 'family' (/ˈfæm.əl.i/)."
+            },
+            {
+                "id": 203,
+                "exercise_type": "WORD_TYPING",
+                "prompt": "✍️ Luyện gõ chính tả: Nghe phát âm hoặc nhìn nghĩa 'bác sĩ', hãy gõ chính xác từ Tiếng Anh:",
+                "audio_text": "doctor",
+                "options": [],
+                "correct_answer": "doctor",
+                "explanation": "Từ Tiếng Anh chính xác cho 'bác sĩ' là 'doctor' (d-o-c-t-o-r)."
+            },
+            {
+                "id": 204,
+                "exercise_type": "FILL_BLANK",
+                "prompt": "📝 Điền từ còn thiếu vào câu: 'Nam is a very _____ classmate.' (Nghĩa: Nam là một bạn học rất thân thiện)",
+                "audio_text": "friendly",
+                "options": [],
+                "correct_answer": "friendly",
+                "explanation": "Từ còn thiếu là 'friendly' (f-r-i-e-n-d-l-y)."
+            }
+        ],
+        "speaking_prompts": [
+            {
+                "id": 301,
+                "target_text": "My family lives in a beautiful house.",
+                "ipa": "/maɪ ˈfæm.əl.i lɪvz ɪn ə ˈbjuː.tɪ.fəl haʊs/",
+                "meaning": "Gia đình tôi sống trong một ngôi nhà đẹp.",
+                "tip": "Chú ý phát âm rõ âm đuôi /z/ trong từ 'lives' và /s/ trong từ 'house'."
+            },
+            {
+                "id": 302,
+                "target_text": "She is a kind teacher.",
+                "ipa": "/ʃiː ɪz ə kaɪnd ˈtiː.tʃər/",
+                "meaning": "Cô ấy là một giáo viên tốt bụng.",
+                "tip": "Đọc nối âm nhẹ giữa 'is' và 'a'."
+            }
+        ]
+    },
+    {
+        "id": 2,
+        "title": "Unit 2: School Life & Subjects",
+        "topic": "School & Education",
+        "grade": 5,
+        "description": "Từ vựng về các môn học, dụng cụ học tập và các hoạt động tại trường học.",
+        "flashcards": [
+            {
+                "id": 105,
+                "word": "classroom",
+                "part_of_speech": "noun",
+                "ipa": "/ˈklɑːs.ruːm/",
+                "meaning": "lớp học",
+                "image_url": "https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=500&auto=format&fit=crop",
+                "audio_text": "classroom",
+                "example_sentence": "Our classroom is bright and clean.",
+                "example_translation": "Lớp học của chúng tôi rất sáng sủa và sạch sẽ."
+            },
+            {
+                "id": 106,
+                "word": "science",
+                "part_of_speech": "noun",
+                "ipa": "/ˈsaɪ.əns/",
+                "meaning": "môn khoa học",
+                "image_url": "https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=500&auto=format&fit=crop",
+                "audio_text": "science",
+                "example_sentence": "We conduct fun experiments in science class.",
+                "example_translation": "Chúng tôi làm các thí nghiệm thú vị trong giờ khoa học."
+            }
+        ],
+        "exercises": [
+            {
+                "id": 204,
+                "exercise_type": "LISTEN_SELECT",
+                "prompt": "Nghe âm thanh và chọn môn học đúng:",
+                "audio_text": "science",
+                "options": [
+                    {"option_key": "A", "content": "Math"},
+                    {"option_key": "B", "content": "Science"},
+                    {"option_key": "C", "content": "English"},
+                    {"option_key": "D", "content": "History"}
+                ],
+                "correct_answer": "B",
+                "explanation": "Đoạn phát âm là 'science' (/ˈsaɪ.əns/)."
+            }
+        ],
+        "speaking_prompts": [
+            {
+                "id": 303,
+                "target_text": "We study English every day.",
+                "ipa": "/wiː ˈstʌd.i ˈɪŋ.ɡlɪʃ ˈev.ri deɪ/",
+                "meaning": "Chúng tôi học Tiếng Anh mỗi ngày.",
+                "tip": "Phát âm chuẩn âm /ʃ/ ở cuối từ 'English'."
+            }
+        ]
+    }
+]
+
 
 class EnglishAIService:
     """Service to handle Multimodal English Learning Hub, interactive roadmap, & AI Speech Recognition Evaluation."""
