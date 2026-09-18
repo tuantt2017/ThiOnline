@@ -29,77 +29,80 @@ class AdaptivePracticeService:
         count = max(3, min(20, req.count))
         grade = student.grade if student.grade and 4 <= student.grade <= 9 else 5
 
-        # 1. Analyze student's past incorrect answers for this subject
-        past_wrong_query = (
-            db.query(
-                Question.topic,
-                Question.chapter,
-                Question.lesson,
-                func.count(AttemptAnswer.id).label("wrong_count"),
-            )
-            .join(AttemptAnswer, AttemptAnswer.question_id == Question.id)
-            .join(ExamAttempt, ExamAttempt.id == AttemptAnswer.attempt_id)
-            .filter(
-                ExamAttempt.student_id == student.id,
-                Question.subject == subject,
-                Question.grade == grade,
-                AttemptAnswer.is_correct == False,
-            )
-            .group_by(Question.topic, Question.chapter, Question.lesson)
-            .order_by(desc("wrong_count"))
-            .all()
-        )
-
+        # 1. Determine target topics (user selected topics vs past weak topics)
+        selected_topics = [t.strip() for t in (req.topics or []) if t and t.strip()]
         weak_topics: List[str] = []
-        for row in past_wrong_query:
-            topic_name = row.topic or row.chapter or row.lesson
-            if topic_name and topic_name not in weak_topics:
-                weak_topics.append(topic_name)
+
+        if selected_topics:
+            target_topics = selected_topics
+        else:
+            # Analyze student's past incorrect answers for this subject
+            past_wrong_query = (
+                db.query(
+                    Question.topic,
+                    Question.chapter,
+                    Question.lesson,
+                    func.count(AttemptAnswer.id).label("wrong_count"),
+                )
+                .join(AttemptAnswer, AttemptAnswer.question_id == Question.id)
+                .join(ExamAttempt, ExamAttempt.id == AttemptAnswer.attempt_id)
+                .filter(
+                    ExamAttempt.student_id == student.id,
+                    Question.subject == subject,
+                    Question.grade == grade,
+                    AttemptAnswer.is_correct == False,
+                )
+                .group_by(Question.topic, Question.chapter, Question.lesson)
+                .order_by(desc("wrong_count"))
+                .all()
+            )
+            for row in past_wrong_query:
+                topic_name = row.topic or row.chapter or row.lesson
+                if topic_name and topic_name not in weak_topics:
+                    weak_topics.append(topic_name)
+            target_topics = weak_topics if weak_topics else [f"Kiến thức trọng tâm môn {subject} Lớp {grade}"]
+
+        # 2. Find question IDs already answered by student in past attempts to avoid repeating exact same questions
+        previous_attempt_q_ids = [
+            q_id
+            for (q_id,) in (
+                db.query(AttemptAnswer.question_id)
+                .join(ExamAttempt, ExamAttempt.id == AttemptAnswer.attempt_id)
+                .filter(ExamAttempt.student_id == student.id)
+                .all()
+            )
+        ]
 
         selected_questions: List[Question] = []
 
-        # 2. Try to fetch existing APPROVED questions targeting weak topics
-        if weak_topics:
-            weak_questions = (
-                db.query(Question)
-                .filter(
-                    Question.subject == subject,
-                    Question.grade == grade,
-                    Question.status == QuestionStatus.APPROVED,
-                    Question.topic.in_(weak_topics),
-                )
-                .limit(count * 2)
-                .all()
-            )
-            if weak_questions:
-                random.shuffle(weak_questions)
-                selected_questions.extend(weak_questions[:count])
+        # 3. Try to fetch unused existing APPROVED questions targeting target_topics
+        if target_topics:
+            from sqlalchemy import or_
+            filters = []
+            for tp in target_topics:
+                filters.append(Question.topic.ilike(f"%{tp}%"))
+                filters.append(Question.chapter.ilike(f"%{tp}%"))
+                filters.append(Question.lesson.ilike(f"%{tp}%"))
 
-        # 3. If we don't have enough questions from weak topics, fetch general APPROVED questions for subject & grade
-        if len(selected_questions) < count:
-            needed = count - len(selected_questions)
-            existing_ids = [q.id for q in selected_questions]
-            
-            general_questions_query = db.query(Question).filter(
+            matching_query = db.query(Question).filter(
                 Question.subject == subject,
                 Question.grade == grade,
                 Question.status == QuestionStatus.APPROVED,
+                or_(*filters),
             )
-            if existing_ids:
-                general_questions_query = general_questions_query.filter(
-                    Question.id.notin_(existing_ids)
-                )
+            if previous_attempt_q_ids:
+                matching_query = matching_query.filter(Question.id.notin_(previous_attempt_q_ids))
 
-            general_questions = general_questions_query.limit(needed * 2).all()
-            if general_questions:
-                random.shuffle(general_questions)
-                selected_questions.extend(general_questions[:needed])
+            matching_questions = matching_query.limit(count * 2).all()
+            if matching_questions:
+                random.shuffle(matching_questions)
+                selected_questions.extend(matching_questions[:count])
 
-        # 4. If still not enough questions in DB, dynamically generate AI questions via Gemini
+        # 4. If not enough questions, dynamically generate FRESH randomized AI questions via Gemini
         if len(selected_questions) < count:
             needed = count - len(selected_questions)
-            target_topic = weak_topics[0] if weak_topics else f"Kiến thức trọng tâm môn {subject} Lớp {grade}"
-            
+            chosen_topic = random.choice(target_topics) if target_topics else f"Kiến thức môn {subject} Lớp {grade}"
+
             from app.schemas.ai import AiQuestionGenerateRequest
             from app.services.ai_question_service import GeminiQuestionGenerator
             from app.models.question import QuestionOption, QuestionType, QuestionSource
@@ -107,8 +110,10 @@ class AdaptivePracticeService:
             ai_req = AiQuestionGenerateRequest(
                 subject=subject,
                 grade=grade,
-                topic=target_topic,
-                chapter=weak_topics[0] if weak_topics else None,
+                document_id=req.document_id,
+                topic=chosen_topic,
+                topics=target_topics,
+                chapter=target_topics[0] if target_topics else None,
                 count=needed,
                 use_web_context=True,
                 save_as_draft=False,
@@ -127,7 +132,7 @@ class AdaptivePracticeService:
                         source=QuestionSource.AI_GENERATED,
                         subject=subject,
                         grade=grade,
-                        topic=q_item.topic or target_topic,
+                        topic=q_item.topic or chosen_topic,
                         learning_objective=q_item.learning_objective,
                         explanation=q_item.explanation,
                         created_by_id=student.id,
@@ -153,6 +158,8 @@ class AdaptivePracticeService:
                 import logging
                 logging.getLogger(__name__).warning(f"Lỗi khi sinh câu hỏi AI tự luyện: {exc}")
 
+        # Final randomize question order
+        random.shuffle(selected_questions)
         db.commit()
 
         # 5. Create new Exam

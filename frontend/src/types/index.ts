@@ -553,6 +553,8 @@ export interface AiTutorResponse {
 export interface AdaptivePracticeRequest {
   subject: string;
   count: number;
+  document_id?: number;
+  topics?: string[];
 }
 
 export interface AdaptivePracticeResponse {
@@ -804,6 +806,23 @@ export interface RewardBalance {
   total_earned: number;
   total_spent: number;
 }
+
+export interface DocumentSectionItem {
+  title: string;
+  lessons: string[];
+}
+
+export interface DocumentSectionsResponse {
+  document_id: number;
+  title: string;
+  subject: string;
+  grade: number;
+  book_series?: string | null;
+  chapters: DocumentSectionItem[];
+  all_chapters: string[];
+  all_topics: string[];
+}
+
 
 
 

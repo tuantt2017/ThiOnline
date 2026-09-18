@@ -100,6 +100,8 @@ class AiTutorResponse(BaseModel):
 class AdaptivePracticeRequest(BaseModel):
     subject: str = Field(..., description="Môn học (Toán, Tiếng Việt, Tiếng Anh...)")
     count: int = Field(5, ge=3, le=20, description="Số lượng câu hỏi cần luyện tập (3 đến 20)")
+    document_id: Optional[int] = Field(None, description="ID của cuốn Sách Giáo Khoa được chọn")
+    topics: Optional[List[str]] = Field(default_factory=list, description="Danh sách các bài học / chủ đề được học sinh lựa chọn")
 
 
 class AdaptivePracticeResponse(BaseModel):
