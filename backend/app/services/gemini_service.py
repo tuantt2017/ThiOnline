@@ -135,11 +135,19 @@ NHIỆM VỤ QUAN TRỌNG:
 2. Trích xuất ĐẦY ĐỦ, CHÍNH XÁC 100% tất cả các Chủ đề / Chương và Bài học (kèm số trang tương ứng). TUYỆT ĐỐI KHÔNG BỎ SÓT BÀI HỌC NÀO!
 
 HƯỚNG DẪN ĐỌC BẢNG MỤC LỤC SGK TIẾNG VIỆT / TOÁN / TIẾNG ANH:
-- Các hàng in hoa / banner ngang bảng (VD: "MỖI NGƯỜI MỘT VẺ", "TRẢI NGHIỆM VÀ KHÁM PHÁ", "NIỀM VUI SÁNG TẠO", "CHẮP CÁNH ƯỚC MƠ"...): Đây chính là tên CHỦ ĐỀ / CHƯƠNG (chapters).
-- Cột "Bài": Chứa số thứ tự bài (1, 2, 3... 32). Kết hợp với tên bài đọc chính trong ô Nội dung để thành tên Bài học (VD: "Bài 1. Điều kì diệu", "Bài 2. Thi nhạc", "Bài 3. Anh em sinh đôi"...).
-- Cột "Nội dung": Chứa các phân môn/hoạt động (Đọc, Luyện từ và câu, Viết, Nói và nghe, Đọc mở rộng...). Hãy trích xuất mỗi hoạt động này thành một "topic".
-- Cột "Trang": Ghi đúng số trang tương ứng.
-- ĐỐI VỚI MỖI BÀI HỌC, hãy bổ sung tóm tắt kiến thức (summary), khái niệm chính (concepts: VD "Danh từ", "Danh từ chung, danh từ riêng", "Tính từ", "Động từ"...), và mục tiêu cần đạt (learning_objectives) chuẩn GDPT 2018 Lớp {grade}.
+- ĐỐI VỚI BẢNG BOOK MAP SGK TIẾNG ANH (Tiếng Anh Global Success, Smart World, Family & Friends...):
+  + Cột / Hàng Banner lớn (VD: "ME AND MY FRIENDS", "ME AND MY SCHOOL", "THE WORLD AROUND US"...): Đây chính là tên CHỦ ĐỀ / CHƯƠNG (Chapter). Nếu sách không có banner lớn, hãy gom 5 Unit thành 1 Chủ đề.
+  + Các hàng "Unit 1 My friends", "Unit 2 Time and daily routines", "Unit 3 My week", "Unit 4 My birthday party", "Starter", "Review 1"...: Đây chính là tên BÀI HỌC (Lesson).
+  + Cột "Competences": Trích xuất thành Mục tiêu cần đạt (learning_objectives: VD "Asking and answering questions about where you are from"...).
+  + Cột "Structures": Trích xuất thành Cấu trúc mẫu câu (concepts: VD "Where are you from? - I'm from...", "What time is it? - It's...").
+  + Cột "Vocabulary": Trích xuất thành Từ vựng trọng tâm (concepts: VD "America, Australia, Britain, Japan...", "get up, go to bed...").
+  + Cột "Phonics": Trích xuất thành Ngữ âm / Phát âm (concepts: VD "Phonics: America, Australia", "Phonics: get, bed").
+- ĐỐI VỚI SGK TIẾNG VIỆT / TOÁN:
+  + Các hàng in hoa / banner ngang bảng (VD: "MỖI NGƯỜI MỘT VẺ", "TRẢI NGHIỆM VÀ KHÁM PHÁ"...): Đây chính là tên CHỦ ĐỀ / CHƯƠNG (chapters).
+  + Cột "Bài": Chứa số thứ tự bài (1, 2, 3... 32). Kết hợp với tên bài đọc chính để thành tên Bài học (VD: "Bài 1. Điều kì diệu", "Bài 2. Thi nhạc"...).
+  + Cột "Nội dung": Chứa các phân môn/hoạt động (Đọc, Luyện từ và câu, Viết, Nói và nghe...). Trích xuất mỗi hoạt động này thành một "topic".
+  + Cột "Trang": Ghi đúng số trang tương ứng.
+- ĐỐI VỚI MỖI BÀI HỌC, hãy bổ sung tóm tắt kiến thức (summary), khái niệm chính (concepts: VD "Danh từ", "Cấu trúc: Where are you from?", "Từ vựng: doctor, teacher"...), và mục tiêu cần đạt (learning_objectives) chuẩn GDPT 2018 Lớp {grade}.
 
 ĐỊNH DẠNG TRẢ VỀ:
 CHỈ trả về DUY NHẤT một chuỗi JSON hợp lệ (không kèm văn bản giải thích bên ngoài):

@@ -37,30 +37,35 @@ class ExtractionResult:
 
 
 RE_CHAPTER = re.compile(
-    r"^(?:CHƯƠNG|Chương|PHẦN|Phần|CHỦ ĐỀ|Chủ đề|Chapter)\s*([0-9IVXLCDM]+)?[:.]?\s*(.*?)$",
+    r"^(?:CHƯƠNG|Chương|PHẦN|Phần|CHỦ ĐỀ|Chủ đề|CHAPTER|Chapter|THEME|Theme|MODULE|Module|BOOK\s*MAP|Book\s*map)\s*(\d+|(?:[IVXLCDM]+(?![a-z])))?\s*[:.-–]?\s*(.*?)$",
     re.IGNORECASE,
 )
 RE_LESSON = re.compile(
-    r"^(?:Tuần\s+\d+\s*[-–:]\s*)?(?:BÀI|Bài|TIẾT|Tiết|TUẦN|Tuần|Lesson)\s*([0-9IVXLCDM]+)[:.]?\s*(.*?)$",
+    r"^(?:Tuần\s+\d+\s*[-–:]\s*)?(?:BÀI|Bài|TIẾT|Tiết|TUẦN|Tuần|LESSON|Lesson|UNIT|Unit|REVIEW|Review|STARTER|Starter)\s*(\d+|(?:[IVXLCDM]+(?![a-z])))?\s*[:.-–]?\s*(.*?)$",
     re.IGNORECASE,
 )
 
 RE_TOPIC = re.compile(
-    r"^(?:[I|V|X|L|C|D|M]+\.|\d+\.|\bKhám phá|\bHoạt động|\bLuyện tập|\bVận dụng|\bTrọng tâm|\bKiến thức)\s*(.*?)$",
+    r"^(?:[I|V|X|L|C|D|M]+\.|\d+\.|\bUnit\s+\d+|\bLesson\s+\d+|\bReview\s+\d+|\bListening|\bSpeaking|\bReading|\bWriting|\bLanguage Focus|\bKhám phá|\bHoạt động|\bLuyện tập|\bVận dụng|\bTrọng tâm|\bKiến thức)\s*(.*?)$",
     re.IGNORECASE,
 )
 RE_CONCEPT_KEYWORD = re.compile(
-    r"(?:Định nghĩa|Khái niệm|Định lí|Ghi nhớ|Tính chất|Công thức|Quy tắc|Chú ý)[:.]?\s*([^.\n]+)",
+    r"(?:Định nghĩa|Khái niệm|Định lí|Ghi nhớ|Tính chất|Công thức|Quy tắc|Chú ý|Vocabulary|Structures|Structure|Grammar|Phonics|Pronunciation|Sentence Patterns|Target Words|Key Terms|Words)[:.]?\s*([^.\n]+)",
     re.IGNORECASE,
 )
 RE_OBJECTIVE_KEYWORD = re.compile(
-    r"(?:Mục tiêu|Sau bài học này|Yêu cầu cần đạt|Học sinh có thể|Kiến thức cần nắm|Em học được)[:.]?\s*([^.\n]+)",
+    r"(?:Mục tiêu|Sau bài học này|Yêu cầu cần đạt|Học sinh có thể|Kiến thức cần nắm|Em học được|Competences|Competence|Learning Objectives|Objectives|Can do|Students will be able to|Goal)[:.]?\s*([^.\n]+)",
     re.IGNORECASE,
 )
 # Vietnamese sentence definition patterns like "X là ...", "X được gọi là ..."
 RE_DEFINITION_SENTENCE = re.compile(
     r"([A-ZÀ-Ỹa-zà-ỹ0-9\s]{3,35})\s+(?:là|được gọi là|gọi là|có nghĩa là)\s+([^.\n]{10,120})",
     re.UNICODE,
+)
+# English sentence pattern matcher for structures like "Where are you from? - I'm from..."
+RE_ENGLISH_STRUCTURE = re.compile(
+    r"^(?:Where|What|When|Why|Who|How|Can|Do|Does|Is|Are|Were|Was|Have|Has|I|He|She|They|We|There)\b.*?[?.]",
+    re.IGNORECASE,
 )
 
 
@@ -103,31 +108,84 @@ class StructureExtractor:
                 line = lines[i]
                 next_line = lines[i + 1] if i + 1 < len(lines) else ""
 
-                # 1. Check Chapter marker
+                # 1. Check Chapter / Theme marker
                 m_chap = RE_CHAPTER.match(line)
                 if m_chap:
+                    # Flush previous lesson if active
+                    if current_lesson:
+                        self._register_lesson_in_hierarchy(
+                            hierarchy, current_chapter, current_lesson, current_topic,
+                            page.page_number, page_concepts, page_objectives
+                        )
+                        page_concepts = set()
+                        page_objectives = set()
+
                     chap_num, chap_name = m_chap.groups()
+                    chap_num_str = chap_num if chap_num else ""
                     chap_name = chap_name.strip() if chap_name else ""
                     # Check if chapter name is on next line
                     if not chap_name and next_line and len(next_line) < 80 and not RE_LESSON.match(next_line):
                         chap_name = next_line
                         i += 1
-                    current_chapter = f"Chương {chap_num}: {chap_name}".strip(": ")
+                    # Clean trailing page markers
+                    chap_name = re.sub(r"\s+Pages?\s+\d+.*$", "", chap_name, flags=re.IGNORECASE).strip()
+                    chap_prefix = "Chương"
+                    if any(w in line.lower() for w in ["chủ đề", "theme", "book map", "bookmap"]):
+                        chap_prefix = "Chủ đề"
+                    elif "phần" in line.lower():
+                        chap_prefix = "Phần"
+
+                    if chap_num_str:
+                        current_chapter = f"{chap_prefix} {chap_num_str}: {chap_name}".strip(": ")
+                    else:
+                        current_chapter = f"{chap_prefix}: {chap_name}".strip(": ") if chap_name else f"{chap_prefix} trọng tâm"
                     current_lesson = None
                     current_topic = None
                     i += 1
                     continue
 
-                # 2. Check Lesson marker
+                # 1b. Check if line is an uppercase English Theme banner (e.g. "ME AND MY FRIENDS", "ME AND MY SCHOOL")
+                if len(line) > 5 and len(line) < 60 and line.isupper() and not any(c in line for c in [".", "?", "!", ",", ":"]) and not line.startswith(("PAGE", "CHAPTER", "CHƯƠNG", "BÀI", "LESSON", "UNIT", "REVIEW")):
+                    if current_lesson:
+                        self._register_lesson_in_hierarchy(
+                            hierarchy, current_chapter, current_lesson, current_topic,
+                            page.page_number, page_concepts, page_objectives
+                        )
+                        page_concepts = set()
+                        page_objectives = set()
+
+                    current_chapter = f"Chủ đề: {line}"
+                    current_lesson = None
+                    current_topic = None
+                    i += 1
+                    continue
+
+                # 2. Check Lesson / Unit marker
                 m_les = RE_LESSON.match(line)
                 if m_les:
+                    # Flush previous lesson on same page if any
+                    if current_lesson:
+                        self._register_lesson_in_hierarchy(
+                            hierarchy, current_chapter, current_lesson, current_topic,
+                            page.page_number, page_concepts, page_objectives
+                        )
+                        page_concepts = set()
+                        page_objectives = set()
+
                     les_num, les_name = m_les.groups()
+                    les_num_str = les_num if les_num else ""
                     les_name = les_name.strip() if les_name else ""
                     # Check if lesson name is on next line
                     if not les_name and next_line and len(next_line) < 90 and not RE_TOPIC.match(next_line):
                         les_name = next_line
                         i += 1
-                    current_lesson = f"Bài {les_num}: {les_name}".strip(": ")
+                    # Clean trailing page numbers (e.g., "Page 10", "Pages 40 & 42")
+                    les_name = re.sub(r"\s+Pages?\s+\d+.*$", "", les_name, flags=re.IGNORECASE).strip()
+                    unit_prefix = "Unit" if "unit" in line.lower() else ("Review" if "review" in line.lower() else "Bài")
+                    if les_num_str:
+                        current_lesson = f"{unit_prefix} {les_num_str}: {les_name}".strip(": ")
+                    else:
+                        current_lesson = f"{unit_prefix}: {les_name}".strip(": ") if les_name else line
                     current_topic = None
                     i += 1
                     continue
@@ -143,7 +201,7 @@ class StructureExtractor:
                 m_con = RE_CONCEPT_KEYWORD.search(line)
                 if m_con:
                     concept_val = m_con.group(1).strip()
-                    if 5 < len(concept_val) < 100:
+                    if 3 < len(concept_val) < 120:
                         page_concepts.add(concept_val)
 
                 # 5. Check Definition patterns
@@ -154,58 +212,34 @@ class StructureExtractor:
                     if 3 < len(term) < 40 and not any(w in term.lower() for w in ["điều này", "đây", "nó", "chúng"]):
                         page_concepts.add(f"{term}: {definition[:80]}")
 
-                # 6. Check Learning Objective keywords
+                # 6. Check Learning Objective keywords or English competence statements
                 m_obj = RE_OBJECTIVE_KEYWORD.search(line)
                 if m_obj:
                     obj_val = m_obj.group(1).strip()
-                    if 8 < len(obj_val) < 150:
+                    if 5 < len(obj_val) < 150:
                         page_objectives.add(obj_val)
+                elif line.lower().startswith(("asking and", "talking about", "asking for", "using ", "describing ")):
+                    page_objectives.add(line.strip())
+
+                # 7. Check English Sentence Structure patterns
+                if RE_ENGLISH_STRUCTURE.match(line) and 10 < len(line) < 120:
+                    page_concepts.add(f"Cấu trúc: {line.strip()}")
+
+                # 8. Check English Vocabulary Lists (separated by commas)
+                if "," in line and len(line.split(",")) >= 3 and len(line) < 200:
+                    page_concepts.add(f"Từ vựng: {line.strip()}")
 
                 i += 1
 
-            # Fallbacks ensuring REAL curriculum meaning (NEVER "Nội dung trang X")
+            # Register final lesson of page into hierarchy
             effective_chapter = current_chapter or f"Chương 1: Kiến thức trọng tâm {self.subject} Lớp {self.grade}"
             effective_lesson = current_lesson or f"Bài 1: Tổng quan nội dung học tập"
+            effective_topic = current_topic or f"Trọng tâm kiến thức {effective_lesson}"
 
-            # If no topic has been set yet, synthesize from meaningful text on the page or lesson title
-            if not current_topic:
-                # Find first meaningful title-like line on page
-                candidate_topic = None
-                for line in lines[:5]:
-                    if 5 < len(line) < 70 and not line.isdigit() and not line.startswith("Trang"):
-                        candidate_topic = line
-                        break
-                effective_topic = candidate_topic or f"Trọng tâm kiến thức {effective_lesson}"
-                current_topic = effective_topic
-            else:
-                effective_topic = current_topic
-
-            # Register in hierarchy
-            if effective_chapter not in hierarchy:
-                hierarchy[effective_chapter] = {"title": effective_chapter, "lessons": {}}
-
-            if effective_lesson not in hierarchy[effective_chapter]["lessons"]:
-                hierarchy[effective_chapter]["lessons"][effective_lesson] = {
-                    "title": effective_lesson,
-                    "topics": {},
-                }
-
-            lesson_entry = hierarchy[effective_chapter]["lessons"][effective_lesson]
-            if effective_topic not in lesson_entry["topics"]:
-                lesson_entry["topics"][effective_topic] = {
-                    "title": effective_topic,
-                    "concepts": set(),
-                    "objectives": set(),
-                    "pages": set(),
-                }
-
-            topic_entry = lesson_entry["topics"][effective_topic]
-            topic_entry["pages"].add(page.page_number)
-
-            for c in page_concepts:
-                topic_entry["concepts"].add(c)
-            for o in page_objectives:
-                topic_entry["objectives"].add(o)
+            self._register_lesson_in_hierarchy(
+                hierarchy, effective_chapter, effective_lesson, effective_topic,
+                page.page_number, page_concepts, page_objectives
+            )
 
             # Slicing into semantic chunks
             page_chunks = self._chunk_text(
@@ -283,12 +317,11 @@ class StructureExtractor:
                     # Real concepts under topic
                     con_idx = 0
                     concepts_list = list(top_data["concepts"])
+                    clean_top = re.sub(r"^(?:Unit\s+\d+[:.]?|Lesson\s+\d+[:.]?|Bài\s+\d+[:.]?|\d+[:.]?|[IVXLCDM]+[:.])\s*", "", top_title, flags=re.IGNORECASE).strip()
                     if not concepts_list:
-                        # Clean synthesized concept derived from actual topic title
-                        clean_top_name = re.sub(r"^[0-9IVXLCDM.\s]+", "", top_title).strip()
                         concepts_list = [
-                            f"Định nghĩa và tính chất của {clean_top_name}",
-                            f"Phương pháp giải và quy tắc áp dụng cho {clean_top_name}",
+                            f"Định nghĩa và tính chất của {clean_top}",
+                            f"Phương pháp giải và quy tắc áp dụng cho {clean_top}",
                         ]
 
                     for con_title in concepts_list[:5]:  # limit top 5 per topic
@@ -305,10 +338,8 @@ class StructureExtractor:
                         obj_idx = 0
                         objectives_list = list(top_data["objectives"])
                         if not objectives_list:
-                            clean_top_name = re.sub(r"^[0-9IVXLCDM.\s]+", "", top_title).strip()
                             objectives_list = [
-                                f"Học sinh nắm vững khái niệm, công thức và bản chất của {clean_top_name}",
-                                f"Vận dụng thành thạo để giải các bài toán và tình huống thực tế liên quan đến {clean_top_name}",
+                                f"Học sinh nắm vững khái niệm và vận dụng {clean_top} vào bài tập"
                             ]
 
                         for obj_title in objectives_list[:4]:  # limit top 4 per concept
@@ -341,6 +372,31 @@ class StructureExtractor:
             root_nodes=[subject_node],
             summary_metadata=summary_metadata,
         )
+
+    def _register_lesson_in_hierarchy(self, hierarchy, chapter, lesson, topic, page_num, concepts, objectives):
+        eff_chap = chapter or f"Chương 1: Kiến thức trọng tâm {self.subject} Lớp {self.grade}"
+        eff_les = lesson or f"Bài 1: Tổng quan nội dung học tập"
+        eff_top = topic or f"Trọng tâm kiến thức {eff_les}"
+
+        if eff_chap not in hierarchy:
+            hierarchy[eff_chap] = {"title": eff_chap, "lessons": {}}
+        if eff_les not in hierarchy[eff_chap]["lessons"]:
+            hierarchy[eff_chap]["lessons"][eff_les] = {"title": eff_les, "topics": {}}
+
+        les_entry = hierarchy[eff_chap]["lessons"][eff_les]
+        if eff_top not in les_entry["topics"]:
+            les_entry["topics"][eff_top] = {
+                "title": eff_top,
+                "concepts": set(),
+                "objectives": set(),
+                "pages": set(),
+            }
+        top_entry = les_entry["topics"][eff_top]
+        top_entry["pages"].add(page_num)
+        for c in concepts:
+            top_entry["concepts"].add(c)
+        for o in objectives:
+            top_entry["objectives"].add(o)
 
     def _chunk_text(
         self,

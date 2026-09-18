@@ -195,3 +195,64 @@ def test_structure_extractor_and_8_level_knowledge_map():
     finally:
         if os.path.exists(temp_path):
             os.remove(temp_path)
+
+
+SAMPLE_ENGLISH_SGK_BOOKMAP = """
+Book map
+ME AND MY FRIENDS
+
+Unit 1 My friends Page 10
+Competences: Asking and answering questions about where you are from
+Structures: Where are you from? - I'm from...
+Vocabulary: America, Australia, Britain, Japan, Malaysia, Singapore, Thailand, Viet Nam
+Phonics: America, Australia
+
+Unit 2 Time and daily routines Page 16
+Competences: Asking and telling the time
+Structures: What time is it? - It's...
+Vocabulary: at, fifteen, forty-five, o'clock, thirty, get up, go to bed, go to school, have breakfast
+Phonics: get, bed
+
+Unit 3 My week Page 22
+Competences: Asking and answering questions about the days of the week
+Structures: What day is it today? - It's...
+Vocabulary: Friday, Monday, Saturday, Sunday, Thursday, Tuesday, Wednesday
+Phonics: music, Sunday
+"""
+
+
+def test_english_sgk_structure_extractor():
+    with tempfile.NamedTemporaryFile("w", encoding="utf-8", suffix=".txt", delete=False) as f:
+        f.write(SAMPLE_ENGLISH_SGK_BOOKMAP)
+        temp_path = f.name
+
+    try:
+        parsed = TXTParser.parse(temp_path)
+        extractor = StructureExtractor(
+            subject="Tiếng Anh",
+            grade=5,
+            book_series="Global Success",
+            title="Sách Giáo Khoa Tiếng Anh 5 Tập 1",
+        )
+        result = extractor.extract(parsed)
+
+        # Verify Chunks & Unit extraction
+        assert len(result.chunks) > 0
+        units_found = [c.lesson for c in result.chunks if c.lesson and "Unit" in c.lesson]
+        assert len(units_found) >= 1, "Cần trích xuất được các Unit tiếng Anh"
+
+        # Check 8-level tree structure
+        assert len(result.root_nodes) == 1
+        subject_node = result.root_nodes[0]
+        assert subject_node.title == "Tiếng Anh"
+
+        book_node = subject_node.children[0].children[0]
+        assert len(book_node.children) >= 1
+
+        all_lessons = [les.title for chap in book_node.children for les in chap.children]
+        assert any("Unit 1" in t for t in all_lessons), f"Không thấy Unit 1 trong danh sách bài học: {all_lessons}"
+        assert any("Unit 2" in t for t in all_lessons), f"Không thấy Unit 2 trong danh sách bài học: {all_lessons}"
+        assert any("Unit 3" in t for t in all_lessons), f"Không thấy Unit 3 trong danh sách bài học: {all_lessons}"
+    finally:
+        if os.path.exists(temp_path):
+            os.remove(temp_path)

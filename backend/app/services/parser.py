@@ -75,7 +75,7 @@ class PDFParser:
                     line = block[4].strip()
                     line_lower = line.lower()
                     if not any(w in line_lower for w in ["blogtailieu", "tailieu", "http://", "https://"]):
-                        if re.match(r"^(Chương|CHƯƠNG|Bài|BÀI|Chủ đề|CHỦ ĐỀ|Phần|PHẦN)\b", line, re.IGNORECASE):
+                        if re.match(r"^(Chương|CHƯƠNG|Bài|BÀI|Chủ đề|CHỦ ĐỀ|Phần|PHẦN|Unit|UNIT|Lesson|LESSON|Review|REVIEW|Starter|STARTER|Theme|THEME|Book\s*Map)\b", line, re.IGNORECASE):
                             headings.append(line)
 
             pages.append(
@@ -124,7 +124,7 @@ class DOCXParser:
             paragraphs_text.append(text)
             # Check style name for headings
             style_name = getattr(p.style, "name", "")
-            if "Heading" in style_name or re.match(r"^(Chương|CHƯƠNG|Bài|BÀI|Chủ đề|Mục)\b", text, re.IGNORECASE):
+            if "Heading" in style_name or re.match(r"^(Chương|CHƯƠNG|Bài|BÀI|Chủ đề|Mục|Unit|UNIT|Lesson|LESSON|Review|REVIEW|Starter|STARTER|Theme|THEME)\b", text, re.IGNORECASE):
                 headings.append(text)
 
         # Also extract text from tables
