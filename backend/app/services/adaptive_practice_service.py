@@ -95,35 +95,63 @@ class AdaptivePracticeService:
                 random.shuffle(general_questions)
                 selected_questions.extend(general_questions[:needed])
 
-        # 4. If still not enough questions in DB, dynamically create synthetic SGK practice questions
+        # 4. If still not enough questions in DB, dynamically generate AI questions via Gemini
         if len(selected_questions) < count:
             needed = count - len(selected_questions)
-            for i in range(needed):
-                q_topic = weak_topics[i % len(weak_topics)] if weak_topics else f"Kiến thức SGK {subject} Lớp {grade}"
-                synth_q = Question(
-                    content=f"Câu hỏi tự luyện AI ({subject} Lớp {grade}): Kiến thức trọng tâm bài học {q_topic}?",
-                    subject=subject,
-                    grade=grade,
-                    difficulty=QuestionDifficulty.MEDIUM,
-                    status=QuestionStatus.APPROVED,
-                    topic=q_topic,
-                    explanation=f"Giải thích chi tiết chuẩn SGK {subject} Lớp {grade} cho chủ đề {q_topic}.",
-                    created_by_id=student.id,
-                )
-                db.add(synth_q)
-                db.flush()
-                
-                # Add 4 options
-                from app.models.question import QuestionOption
-                options = [
-                    QuestionOption(question_id=synth_q.id, option_key="A", content="Phương án A (Chưa đúng)", is_correct=False, order_index=0),
-                    QuestionOption(question_id=synth_q.id, option_key="B", content="Phương án B (Đáp án đúng theo SGK)", is_correct=True, order_index=1),
-                    QuestionOption(question_id=synth_q.id, option_key="C", content="Phương án C (Chưa đúng)", is_correct=False, order_index=2),
-                    QuestionOption(question_id=synth_q.id, option_key="D", content="Phương án D (Chưa đúng)", is_correct=False, order_index=3),
-                ]
-                db.add_all(options)
-                db.flush()
-                selected_questions.append(synth_q)
+            target_topic = weak_topics[0] if weak_topics else f"Kiến thức trọng tâm môn {subject} Lớp {grade}"
+            
+            from app.schemas.ai import AiQuestionGenerateRequest
+            from app.services.ai_question_service import GeminiQuestionGenerator
+            from app.models.question import QuestionOption, QuestionType, QuestionSource
+
+            ai_req = AiQuestionGenerateRequest(
+                subject=subject,
+                grade=grade,
+                topic=target_topic,
+                chapter=weak_topics[0] if weak_topics else None,
+                count=needed,
+                use_web_context=True,
+                save_as_draft=False,
+            )
+
+            try:
+                ai_res = GeminiQuestionGenerator.generate_questions(db=db, req=ai_req, user_id=student.id)
+                for q_item in ai_res.questions:
+                    if not q_item.is_valid:
+                        continue
+                    synth_q = Question(
+                        content=q_item.question_text,
+                        question_type=QuestionType.MULTIPLE_CHOICE_SINGLE,
+                        difficulty=q_item.difficulty,
+                        status=QuestionStatus.APPROVED,
+                        source=QuestionSource.AI_GENERATED,
+                        subject=subject,
+                        grade=grade,
+                        topic=q_item.topic or target_topic,
+                        learning_objective=q_item.learning_objective,
+                        explanation=q_item.explanation,
+                        created_by_id=student.id,
+                    )
+                    db.add(synth_q)
+                    db.flush()
+
+                    for idx, opt in enumerate(q_item.options):
+                        db.add(
+                            QuestionOption(
+                                question_id=synth_q.id,
+                                option_key=opt.key,
+                                content=opt.text,
+                                is_correct=opt.is_correct,
+                                order_index=idx,
+                            )
+                        )
+                    db.flush()
+                    selected_questions.append(synth_q)
+                    if len(selected_questions) >= count:
+                        break
+            except Exception as exc:
+                import logging
+                logging.getLogger(__name__).warning(f"Lỗi khi sinh câu hỏi AI tự luyện: {exc}")
 
         db.commit()
 

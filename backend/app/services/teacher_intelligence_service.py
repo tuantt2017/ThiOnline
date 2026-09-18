@@ -446,32 +446,57 @@ Hãy sinh báo cáo đánh giá định dạng JSON chính xác:
             .all()
         )
 
-        # If not enough questions, dynamically generate synthetic questions
+        # If not enough questions, dynamically generate AI questions via Gemini
         if len(questions) < req.question_count:
             needed = req.question_count - len(questions)
-            for i in range(needed):
-                synth_q = Question(
-                    content=f"Câu hỏi ôn tập khắc phục điểm yếu ({req.subject} Lớp {req.grade}): {topic_name}?",
-                    subject=req.subject,
-                    grade=req.grade,
-                    difficulty=QuestionDifficulty.MEDIUM,
-                    status=QuestionStatus.APPROVED,
-                    topic=topic_name,
-                    explanation=f"Giải thích chi tiết chuẩn SGK {req.subject} Lớp {req.grade}.",
-                    created_by_id=teacher.id,
-                )
-                db.add(synth_q)
-                db.flush()
+            from app.schemas.ai import AiQuestionGenerateRequest
+            from app.services.ai_question_service import GeminiQuestionGenerator
+            from app.models.question import QuestionSource, QuestionType
 
-                options = [
-                    QuestionOption(question_id=synth_q.id, option_key="A", content="Phương án A (Chưa đúng)", is_correct=False, order_index=0),
-                    QuestionOption(question_id=synth_q.id, option_key="B", content="Phương án B (Đáp án đúng chuẩn SGK)", is_correct=True, order_index=1),
-                    QuestionOption(question_id=synth_q.id, option_key="C", content="Phương án C (Chưa đúng)", is_correct=False, order_index=2),
-                    QuestionOption(question_id=synth_q.id, option_key="D", content="Phương án D (Chưa đúng)", is_correct=False, order_index=3),
-                ]
-                db.add_all(options)
-                db.flush()
-                questions.append(synth_q)
+            ai_req = AiQuestionGenerateRequest(
+                subject=req.subject,
+                grade=req.grade,
+                topic=topic_name,
+                count=needed,
+                use_web_context=True,
+                save_as_draft=False,
+            )
+
+            try:
+                ai_res = GeminiQuestionGenerator.generate_questions(db=db, req=ai_req, user_id=teacher.id)
+                for q_item in ai_res.questions:
+                    if not q_item.is_valid:
+                        continue
+                    synth_q = Question(
+                        content=q_item.question_text,
+                        question_type=QuestionType.MULTIPLE_CHOICE_SINGLE,
+                        difficulty=q_item.difficulty,
+                        status=QuestionStatus.APPROVED,
+                        source=QuestionSource.AI_GENERATED,
+                        subject=req.subject,
+                        grade=req.grade,
+                        topic=q_item.topic or topic_name,
+                        learning_objective=q_item.learning_objective,
+                        explanation=q_item.explanation,
+                        created_by_id=teacher.id,
+                    )
+                    db.add(synth_q)
+                    db.flush()
+
+                    for idx, opt in enumerate(q_item.options):
+                        db.add(
+                            QuestionOption(
+                                question_id=synth_q.id,
+                                option_key=opt.key,
+                                content=opt.text,
+                                is_correct=opt.is_correct,
+                                order_index=idx,
+                            )
+                        )
+                    db.flush()
+                    questions.append(synth_q)
+            except Exception as exc:
+                logger.warning(f"Lỗi khi sinh câu hỏi AI khắc phục điểm yếu: {exc}")
 
         random.shuffle(questions)
         selected_questions = questions[:req.question_count]

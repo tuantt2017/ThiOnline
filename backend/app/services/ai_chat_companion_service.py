@@ -134,11 +134,14 @@ class AiChatCompanionService:
         history: List[Any],
         chunks: List[Dict[str, Any]],
     ) -> ChatMessageResponse:
-        """Generates structured response using Gemini AI with strict SGK Grounding Rule."""
+        """Generates structured response using Gemini AI with SGK Grounding & Reference Rule."""
+        api_key = settings.GEMINI_API_KEY.strip() if settings.GEMINI_API_KEY else ""
+        if not api_key:
+            raise RuntimeError("GEMINI_API_KEY chưa được cấu hình.")
 
         context_str = ""
         if chunks:
-            context_str = "DỮ LIỆU SÁCH GIÁO KHOA THAM CHIẾU NỘI BỘ:\n"
+            context_str = "TÀI LIỆU SÁCH GIÁO KHOA PHỤ LỤC THAM CHIẾU (SGK REFERENCE GROUNDING):\n"
             for idx, c in enumerate(chunks, 1):
                 page_info = f"Trang {c['page_number']}" if c.get("page_number") else "SGK"
                 context_str += f"[{idx}] {c['document_title']} | {c['chapter']} | {c['lesson']} ({page_info}):\n{c['content']}\n\n"
@@ -147,18 +150,25 @@ class AiChatCompanionService:
         if history:
             history_str = "LỊCH SỬ HỘI THOẠI TRƯỚC ĐÓ:\n"
             for item in history[-4:]:  # last 4 turns
-                role = "Học sinh" if getattr(item, "role", "user") == "user" else "AI Tutor"
+                role = "Học sinh" if getattr(item, "role", "user") == "user" else "Trợ lý AI"
                 content = getattr(item, "content", "")
                 history_str += f"{role}: {content}\n"
 
-        prompt = f"""Bạn là **Trợ Lý Học Tập AI 1-on-1** chuyên trách hỗ trợ học sinh Phổ thông (GDPT Việt Nam Lớp 4–9).
-Hiện tại bạn đang giải đáp thắc mắc cho học sinh **{student_name}** về môn **{subject}** khối **Lớp {grade}**.
+        prompt = f"""Bạn là **Trợ Lý Học Tập AI Thông Minh 1-on-1 (Gemini AI)** dành cho học sinh Phổ thông (GDPT Việt Nam Lớp 4–9).
+Hiện tại bạn đang giảng giải bài tập và giải đáp thắc mắc cho học sinh **{student_name}** về môn **{subject}** khối **Lớp {grade}**.
 
-QUY TẮC SGK GROUNDING BẮT BUỘC (CRITICAL):
-1. **Phạm vi kiến thức**: TUYỆT ĐỐI KHÔNG sử dụng khái niệm, công thức hoặc thuật ngữ thuộc chương trình khối lớp cao hơn Lớp {grade}. Giải thích bằng ngôn ngữ thân thiện, dễ hiểu, sinh động và trực quan chuẩn độ tuổi Lớp {grade}.
-2. **Ví dụ minh họa**: Luôn cung cấp 1–2 ví dụ thực tế hoặc bài toán mẫu cụ thể kèm lời giải từng bước rõ ràng.
-3. **Trích dẫn nguồn SGK**: Phải liệt kê chính xác tên Bài học, Chương/Chủ đề và Số trang SGK tham chiếu để học sinh mở sách đối chiếu.
-4. **Gợi ý học tập tiếp theo**: Đề xuất 3 câu hỏi gợi mở đào sâu tiếp theo.
+VAI TRÒ VÀ NGUYÊN TẮC GIẢNG BÀI:
+1. **Gemini AI là Bộ Não Trực Tiếp Trả Lời (Primary Intelligence)**:
+   - Hãy trực tiếp suy luận, giảng bài chi tiết, sinh động, dễ hiểu, từng bước rõ ràng (Step-by-step) bám sát độ tuổi học sinh Lớp {grade}.
+   - Luôn cung cấp 1–2 ví dụ thực tế hoặc bài toán minh họa cụ thể kèm phương pháp giải từng bước.
+   - Giữ văn phong sư phạm ấm áp, thân thiện, động viên học sinh tư duy sáng tạo.
+
+2. **Sách Giáo Khoa (SGK) làm Phụ Lục Tham Chiếu & Đối Chiếu (Grounding & Footnote Citations)**:
+   - Các đoạn trích SGK cung cấp bên dưới đóng vai trò là PHỤ LỤC CƠ SỞ DỮ LIỆU ĐỔI CHIẾU để bạn đảm bảo kiến thức chuẩn GDPT 2018.
+   - Trích dẫn chính xác Tên bài học, Chương/Chủ đề và Số trang SGK ở phần phụ lục trích dẫn (`citations`) để học sinh mở SGK xem lại.
+   - Dù tài liệu phụ lục có chứa trích đoạn cụ thể hay không, bạn vẫn chủ động dùng trí tuệ AI Gemini của mình để giải thích đầy đủ, chính xác nhất cho câu hỏi của học sinh.
+
+3. **Phạm vi kiến thức**: Phù hợp chuẩn chương trình Lớp {grade}. Không dùng công thức hay thuật ngữ quá nâng cao vượt khối lớp.
 
 {context_str}
 {history_str}
@@ -167,14 +177,14 @@ CÂU HỎI CỦA HỌC SINH: "{user_message}"
 
 YÊU CẦU ĐẦU RA JSON CHÍNH XÁC (KHÔNG KÈM VĂN BẢN NGOÀI):
 {{
-  "reply": "Nội dung giải thích chi tiết, thân thiện, từng bước kèm ví dụ trực quan...",
+  "reply": "Nội dung giảng bài chi tiết, từng bước kèm ví dụ trực quan do Gemini AI trực tiếp biên soạn...",
   "citations": [
     {{
       "document_title": "Sách giáo khoa {subject} Lớp {grade}",
-      "chapter": "Tên Chương / Chủ đề SGK",
-      "lesson": "Tên Bài học SGK",
+      "chapter": "Tên Chương / Chủ đề SGK tham chiếu",
+      "lesson": "Tên Bài học SGK tham chiếu",
       "page_number": 42,
-      "snippet": "Tóm tắt ngắn 1 câu kiến thức cốt lõi từ SGK"
+      "snippet": "Tóm tắt ngắn 1 câu kiến thức cốt lõi SGK đối chiếu"
     }}
   ],
   "suggested_followups": [
@@ -195,8 +205,6 @@ YÊU CẦU ĐẦU RA JSON CHÍNH XÁC (KHÔNG KÈM VĂN BẢN NGOÀI):
         ]
         models_to_try = list(dict.fromkeys([m.strip() for m in models_to_try if m and m.strip()]))
 
-
-
         with httpx.Client(timeout=35.0) as client:
             for model_name in models_to_try:
                 url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
@@ -216,7 +224,16 @@ YÊU CẦU ĐẦU RA JSON CHÍNH XÁC (KHÔNG KÈM VĂN BẢN NGOÀI):
                             text_content = candidates[0]["content"]["parts"][0]["text"]
                             cleaned = re.sub(r"^```(?:json)?\s*", "", text_content.strip())
                             cleaned = re.sub(r"\s*```$", "", cleaned.strip())
-                            parsed = json.loads(cleaned)
+                            
+                            try:
+                                parsed = json.loads(cleaned)
+                            except json.JSONDecodeError:
+                                # Fallback if response is raw text instead of strict JSON
+                                parsed = {
+                                    "reply": cleaned,
+                                    "citations": [],
+                                    "suggested_followups": [],
+                                }
 
                             citations = [
                                 SgkCitation(
@@ -224,20 +241,33 @@ YÊU CẦU ĐẦU RA JSON CHÍNH XÁC (KHÔNG KÈM VĂN BẢN NGOÀI):
                                     chapter=c.get("chapter") or f"Chương trình {subject} Lớp {grade}",
                                     lesson=c.get("lesson") or "Bài học trọng tâm",
                                     page_number=c.get("page_number"),
-                                    snippet=c.get("snippet") or "Kiến thức chuẩn SGK GDPT 2018.",
+                                    snippet=c.get("snippet") or "Kiến thức đối chiếu SGK GDPT 2018.",
                                 )
                                 for c in parsed.get("citations", [])
                             ]
 
+                            # Ensure fallback citations if AI produced none but chunks exist
+                            if not citations and chunks:
+                                first_c = chunks[0]
+                                citations.append(
+                                    SgkCitation(
+                                        document_title=first_c.get("document_title") or f"SGK {subject} Lớp {grade}",
+                                        chapter=first_c.get("chapter") or f"Chương trình {subject} Lớp {grade}",
+                                        lesson=first_c.get("lesson") or "Bài học trọng tâm",
+                                        page_number=first_c.get("page_number"),
+                                        snippet=first_c.get("content", "")[:120] + "...",
+                                    )
+                                )
+
                             return ChatMessageResponse(
-                                reply=parsed.get("reply") or f"Chào {student_name}, AI đã tiếp nhận câu hỏi của em về môn {subject} Lớp {grade}.",
+                                reply=parsed.get("reply") or f"Chào {student_name}, AI đã giải đáp câu hỏi về môn {subject} Lớp {grade}.",
                                 subject=subject,
                                 grade=grade,
                                 citations=citations,
                                 suggested_followups=parsed.get("suggested_followups") or [
-                                    f"Em có muốn thử giải một bài tập mẫu về {subject} Lớp {grade} không?",
-                                    "Em có thắc mắc nào về ví dụ trên không?",
-                                    "Em muốn tìm hiểu thêm về bài học tiếp theo trong SGK?",
+                                    f"Em có muốn thử làm 1 bài tập áp dụng về {subject} Lớp {grade} không?",
+                                    "Em có thắc mắc nào về bước giải trên không?",
+                                    "Em muốn AI hướng dẫn tiếp bài học tiếp theo trong SGK?",
                                 ],
                             )
                 except Exception as e:
@@ -266,12 +296,12 @@ YÊU CẦU ĐẦU RA JSON CHÍNH XÁC (KHÔNG KÈM VĂN BẢN NGOÀI):
 
             reply_text = (
                 f"Chào **{student_name}**! Trợ lý Học tập AI đã tra cứu hệ thống Sách Giáo Khoa môn **{subject} Lớp {grade}** "
-                f"và tìm thấy thông tin cho câu hỏi của em:\n\n"
-                f"📌 **Nội dung cốt lõi ({lesson_name})**:\n"
+                f"để giải đáp cho em:\n\n"
+                f"📌 **Giải thích & Kiến thức cốt lõi ({lesson_name})**:\n"
                 f"{content_snippet}\n\n"
-                f"💡 **Hướng dẫn học tập chuẩn GDPT Lớp {grade}**:\n"
-                f"- Để nắm chắc bài học này, em nên đọc kỹ lý thuyết và làm các bài tập tự luyện trong SGK {subject} Lớp {grade}.\n"
-                f"- Nhớ áp dụng đúng công thức và quy tắc dành riêng cho học sinh Lớp {grade} nhé!"
+                f"💡 **Phương pháp học tập & Hướng dẫn làm bài**:\n"
+                f"- Để làm tốt dạng bài này, em hãy xem lại lý thuyết trong {doc_title} ({chapter_name}).\n"
+                f"- Áp dụng các quy tắc và phương pháp giải từng bước chuẩn chương trình Lớp {grade} nhé!"
             )
 
             citations = [
@@ -290,10 +320,10 @@ YÊU CẦU ĐẦU RA JSON CHÍNH XÁC (KHÔNG KÈM VĂN BẢN NGOÀI):
             reply_text = (
                 f"Chào **{student_name}**! Về câu hỏi *\"{user_message}\"* thuộc môn **{subject} Lớp {grade}**:\n\n"
                 f"📖 **Giải thích kiến thức**:\n"
-                f"Theo chương trình Sách giáo khoa {subject} Lớp {grade} (GDPT 2018), đây là kiến thức cơ bản trọng tâm. "
-                f"Em cần lưu ý áp dụng đúng phương pháp giải dành riêng cho khối Lớp {grade}, chú ý các quy tắc tính toán và phân tích bài toán step-by-step.\n\n"
-                f"✨ **Ví dụ trực quan**:\n"
-                f"Hãy mở SGK môn {subject} Lớp {grade} để xem lại các hình vẽ minh họa và các ví dụ mẫu ở đầu bài học."
+                f"Theo chương trình Sách giáo khoa {subject} Lớp {grade} (GDPT 2018), đây là phần kiến thức cơ bản quan trọng. "
+                f"Em cần áp dụng phương pháp giải từng bước bám sát bài học trên lớp.\n\n"
+                f"✨ **Hướng dẫn**:\n"
+                f"Hãy mở SGK môn {subject} Lớp {grade} để đối chiếu lý thuyết và xem lại các ví dụ mẫu ở đầu bài học."
             )
 
             citations = [
@@ -302,7 +332,7 @@ YÊU CẦU ĐẦU RA JSON CHÍNH XÁC (KHÔNG KÈM VĂN BẢN NGOÀI):
                     chapter=chapter_name,
                     lesson=lesson_name,
                     page_number=None,
-                    snippet=f"Kiến thức trọng tâm chương trình {subject} Lớp {grade} chuẩn bộ GD&ĐT.",
+                    snippet=f"Kiến thức trọng tâm chương trình {subject} Lớp {grade} chuẩn Bộ GD&ĐT.",
                 )
             ]
 
@@ -319,3 +349,4 @@ YÊU CẦU ĐẦU RA JSON CHÍNH XÁC (KHÔNG KÈM VĂN BẢN NGOÀI):
             citations=citations,
             suggested_followups=suggested_followups,
         )
+
