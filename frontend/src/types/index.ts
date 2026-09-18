@@ -670,11 +670,91 @@ export interface AssignRemedialRequest {
   question_count?: number;
 }
 
-export interface AssignRemedialResponse {
-  exam_id: number;
-  title: string;
-  assigned_count: number;
-  message: string;
+export interface VocabFlashcard {
+  id: number;
+  word: string;
+  part_of_speech: string;
+  ipa: string;
+  meaning: string;
+  image_url: string;
+  audio_text: string;
+  example_sentence: string;
+  example_translation: string;
 }
+
+export interface ExerciseOption {
+  option_key: string;
+  content: string;
+  image_url?: string | null;
+}
+
+export interface MultimodalExercise {
+  id: number;
+  exercise_type: 'MATCH_IMAGE' | 'LISTEN_SELECT' | 'SPELLING' | 'CONTEXT_FILL';
+  prompt: string;
+  media_url?: string | null;
+  audio_text?: string | null;
+  options: ExerciseOption[];
+  correct_answer: string;
+  explanation: string;
+}
+
+export interface SpeakingPrompt {
+  id: number;
+  target_text: string;
+  ipa: string;
+  meaning: string;
+  tip?: string;
+}
+
+export interface EnglishUnitDetailResponse {
+  unit_id: number;
+  title: string;
+  topic: string;
+  grade: number;
+  description: string;
+  flashcards: VocabFlashcard[];
+  exercises: MultimodalExercise[];
+  speaking_prompts: SpeakingPrompt[];
+}
+
+export interface WordScoreDetail {
+  word: string;
+  is_correct: boolean;
+  confidence: number;
+}
+
+export interface PronunciationEvalResponse {
+  target_text: string;
+  spoken_text: string;
+  score: number;
+  accuracy_level: 'EXCELLENT' | 'GOOD' | 'NEED_PRACTICE';
+  feedback: string;
+  word_details: WordScoreDetail[];
+}
+
+export interface TopicUnitSummary {
+  id: number;
+  title: string;
+  topic: string;
+  vocab_count: number;
+  exercise_count: number;
+  status: 'AVAILABLE' | 'COMPLETED' | 'LOCKED';
+  score?: number | null;
+}
+
+export interface EnglishRoadmapResponse {
+  grade: number;
+  student_name: string;
+  overall_vocabulary_score: number;
+  overall_listening_score: number;
+  overall_speaking_score: number;
+  overall_grammar_score: number;
+  completed_units_count: number;
+  total_units_count: number;
+  units: TopicUnitSummary[];
+  ai_daily_coaching_advice: string;
+}
+
 
 

@@ -33,6 +33,9 @@ import {
   StudentAiEvaluationResponse,
   AssignRemedialRequest,
   AssignRemedialResponse,
+  EnglishUnitDetailResponse,
+  PronunciationEvalResponse,
+  EnglishRoadmapResponse as EnglishAiRoadmapResponse,
 } from '@/types';
 
 
@@ -518,6 +521,41 @@ export const api = {
     return request<AssignRemedialResponse>('/api/v1/ai/teacher/assign-remedial', {
       method: 'POST',
       body: JSON.stringify(data),
+    });
+  },
+
+  // English AI Multimodal Endpoints
+  getEnglishAiRoadmap: async (subject?: string): Promise<EnglishAiRoadmapResponse> => {
+    const query = subject ? `?subject=${encodeURIComponent(subject)}` : '';
+    return request<EnglishAiRoadmapResponse>(`/api/v1/english/roadmap${query}`, {
+      method: 'GET',
+    });
+  },
+
+  getEnglishUnitDetail: async (unitId: number): Promise<EnglishUnitDetailResponse> => {
+    return request<EnglishUnitDetailResponse>(`/api/v1/english/units/${unitId}`, {
+      method: 'GET',
+    });
+  },
+
+  evaluatePronunciation: async (targetText: string, spokenText: string, unitId?: number): Promise<PronunciationEvalResponse> => {
+    return request<PronunciationEvalResponse>('/api/v1/english/evaluate-pronunciation', {
+      method: 'POST',
+      body: JSON.stringify({ target_text: targetText, spoken_text: spokenText, unit_id: unitId }),
+    });
+  },
+
+  generateCustomEnglishUnit: async (topic: string, grade: number = 5): Promise<EnglishUnitDetailResponse> => {
+    return request<EnglishUnitDetailResponse>('/api/v1/english/generate-custom-unit', {
+      method: 'POST',
+      body: JSON.stringify({ topic, grade }),
+    });
+  },
+
+  completeEnglishUnit: async (unitId: number, score: number = 100.0): Promise<{ message: string; unit_id: number; status: string; score: number }> => {
+    return request<{ message: string; unit_id: number; status: string; score: number }>(`/api/v1/english/units/${unitId}/complete`, {
+      method: 'POST',
+      body: JSON.stringify({ score }),
     });
   },
 

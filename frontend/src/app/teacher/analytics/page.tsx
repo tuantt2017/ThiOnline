@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Navbar } from '@/components/Navbar';
 import { api, ApiError } from '@/lib/api';
 import {
   TeacherClassOverviewResponse,
@@ -161,8 +160,6 @@ export default function TeacherAnalyticsPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans pb-16">
-      <Navbar />
-
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
         {/* Navigation Breadcrumb */}
         <div className="flex items-center justify-between mb-6">

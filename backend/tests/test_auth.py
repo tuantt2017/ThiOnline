@@ -119,12 +119,12 @@ def test_seed_default_users(client):
     response = client.post("/api/v1/auth/seed")
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
-    assert "admin@example.com" in data["created_users"]
+    assert "tuantt.vpc@gmail.com" in data["created_users"]
     assert "student@example.com" in data["created_users"]
 
     # Test login with seeded admin
     login_res = client.post("/api/v1/auth/login", json={
-        "email": "admin@example.com",
+        "email": "tuantt.vpc@gmail.com",
         "password": "Admin@123",
     })
     assert login_res.status_code == status.HTTP_200_OK
