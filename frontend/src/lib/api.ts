@@ -46,6 +46,21 @@ import {
 
 
 function getApiBase(): string {
+  if (typeof window !== 'undefined') {
+    const isLocalhostClient =
+      window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
+    // On real production domains/IPs, fallback to relative path if NEXT_PUBLIC_API_URL points to localhost/127.0.0.1
+    if (!isLocalhostClient && process.env.NEXT_PUBLIC_API_URL) {
+      if (
+        process.env.NEXT_PUBLIC_API_URL.includes('127.0.0.1') ||
+        process.env.NEXT_PUBLIC_API_URL.includes('localhost')
+      ) {
+        return '';
+      }
+    }
+  }
+
   if (process.env.NEXT_PUBLIC_API_URL) {
     return process.env.NEXT_PUBLIC_API_URL;
   }
@@ -70,7 +85,7 @@ export class ApiError extends Error {
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const apiBase = getApiBase();
   const url = apiBase ? `${apiBase}${endpoint}` : endpoint;
-  
+
   const headers: Record<string, string> = {
     ...(options.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
     ...(options.headers as Record<string, string>),
@@ -91,14 +106,20 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
         headers,
       });
     } catch (netError: any) {
-      // Retry using alternative host targets (127.0.0.1 <-> localhost or direct backend port)
+      // Retry using alternative host targets (127.0.0.1 <-> localhost or direct backend server port 8000)
       const candidateBases: string[] = [];
       if (apiBase.includes('localhost')) {
         candidateBases.push(apiBase.replace('localhost', '127.0.0.1'));
       } else if (apiBase.includes('127.0.0.1')) {
         candidateBases.push(apiBase.replace('127.0.0.1', 'localhost'));
-      } else if (apiBase === '' && typeof window !== 'undefined') {
-        candidateBases.push('http://127.0.0.1:8000', 'http://localhost:8000');
+      } else if (typeof window !== 'undefined') {
+        const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        if (isLocal) {
+          candidateBases.push('http://127.0.0.1:8000', 'http://localhost:8000');
+        } else {
+          // Direct connection to current web server domain/IP on port 8000
+          candidateBases.push(`${window.location.protocol}//${window.location.hostname}:8000`);
+        }
       }
 
       let succeeded = false;
