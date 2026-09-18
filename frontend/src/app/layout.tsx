@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { AuthProvider } from '@/context/AuthContext';
 import { Navbar } from '@/components/Navbar';
+import { FloatingContactWidget } from '@/components/FloatingContactWidget';
 
 export const metadata: Metadata = {
   title: 'Online Exam AI — Hệ Thống Khảo Thí & Gia Sư AI Thông Minh',
@@ -20,6 +21,7 @@ export default function RootLayout({
         <AuthProvider>
           <Navbar />
           <main className="flex-1 flex flex-col">{children}</main>
+          <FloatingContactWidget />
           <footer className="border-t border-slate-200/80 bg-white/80 backdrop-blur-md py-6 text-center text-xs text-slate-500">
             <div className="container mx-auto px-4">
               <p>© 2026 Online Exam AI. Hệ thống thi trực tuyến & trợ lý khảo thí thông minh.</p>

@@ -70,7 +70,11 @@ export default function AdminRewardsPage() {
       setActiveTab('ITEMS');
       fetchData();
     } catch (err: any) {
-      setError(err.message || 'Lỗi khi tạo vật phẩm quà tặng');
+      if (err.status === 404 || (err.message && err.message.includes('Not Found'))) {
+        setError('Lỗi 404 Not Found: Máy chủ Backend trên Web chưa được khởi động lại (restart). Vui lòng chạy git pull và RESTART lại dịch vụ Backend trên server để nhận API đổi quà mới (/api/v1/rewards/admin/items).');
+      } else {
+        setError(err.message || 'Lỗi khi tạo vật phẩm quà tặng');
+      }
     }
   };
 

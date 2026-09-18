@@ -91,6 +91,7 @@ def get_student_reward_history(
 
 
 @router.get("/admin/items", response_model=List[RewardItemResponse])
+@router.get("/admin/items/", response_model=List[RewardItemResponse], include_in_schema=False)
 def admin_get_all_reward_items(
     db: Session = Depends(get_db),
     admin: User = Depends(get_current_active_admin),
@@ -100,6 +101,7 @@ def admin_get_all_reward_items(
 
 
 @router.post("/admin/items", response_model=RewardItemResponse)
+@router.post("/admin/items/", response_model=RewardItemResponse, include_in_schema=False)
 def admin_create_reward_item(
     data: RewardItemCreate,
     db: Session = Depends(get_db),
@@ -110,6 +112,7 @@ def admin_create_reward_item(
 
 
 @router.put("/admin/items/{item_id}", response_model=RewardItemResponse)
+@router.put("/admin/items/{item_id}/", response_model=RewardItemResponse, include_in_schema=False)
 def admin_update_reward_item(
     item_id: int,
     data: RewardItemUpdate,
