@@ -16,24 +16,41 @@ def test_reward_service_exam_rules(db):
     db.commit()
     db.refresh(student)
 
-    # Attempt 1: score 7.5 (< 9.0) -> gets 1 diamond
-    res1 = RewardService.award_exam_diamonds(db, student.id, exam_id=1, score=7.5, attempt_id=101)
+    # Test 1: Score < 7.0 (e.g. 6.5) -> gets 0 diamonds
+    res_low = RewardService.award_exam_diamonds(db, student.id, exam_id=888, score=6.5, attempt_id=100)
+    assert res_low["awarded"] == 0
+    assert res_low["new_balance"] == 0
+
+    # Test 2: Attempt 1 with score 7.5 (>= 7.0, < 9.0) on official exam -> gets 1 diamond
+    res1 = RewardService.award_exam_diamonds(db, student.id, exam_id=888, score=7.5, attempt_id=101)
     assert res1["awarded"] == 1
     assert res1["new_balance"] == 1
 
-    # Attempt 2: score 8.0 (< 9.0) -> already earned 1 diamond for this exam, so 0 additional
-    res2 = RewardService.award_exam_diamonds(db, student.id, exam_id=1, score=8.0, attempt_id=102)
+    # Test 3: Attempt 2 with score 8.0 (< 9.0) -> already earned 1 diamond for this exam, so 0 additional
+    res2 = RewardService.award_exam_diamonds(db, student.id, exam_id=888, score=8.0, attempt_id=102)
     assert res2["awarded"] == 0
 
-    # Attempt 3: score 9.5 (>= 9.0) -> improved to top tier (2 diamonds total for exam), earns +1 bonus diamond
-    res3 = RewardService.award_exam_diamonds(db, student.id, exam_id=1, score=9.5, attempt_id=103)
+    # Test 4: Attempt 3 with score 9.5 (>= 9.0) -> improved to top tier (2 diamonds total for exam), earns +1 bonus diamond
+    res3 = RewardService.award_exam_diamonds(db, student.id, exam_id=888, score=9.5, attempt_id=103)
     assert res3["awarded"] == 1
     assert res3["new_balance"] == 2
 
-    # Attempt 4: score 10.0 (>= 9.0) -> already reached 2 diamonds cap for exam, earns 0 additional
-    res4 = RewardService.award_exam_diamonds(db, student.id, exam_id=1, score=10.0, attempt_id=104)
-    assert res4["awarded"] == 0
-    assert res4["new_balance"] == 2
+    # Test 5: Student Self-Created Practice Exam (score 9.8 >= 7.0) -> capped at max 1 diamond total
+    from app.models.exam import Exam, ExamStatus
+    self_exam = Exam(
+        title="🚀 Đề Tự Luyện AI - Toán Lớp 5",
+        subject="Toán",
+        grade=5,
+        status=ExamStatus.PUBLISHED,
+        created_by_id=student.id,
+    )
+    db.add(self_exam)
+    db.commit()
+    db.refresh(self_exam)
+
+    res_self = RewardService.award_exam_diamonds(db, student.id, exam_id=self_exam.id, score=9.8, attempt_id=201)
+    assert res_self["awarded"] == 1
+    assert res_self["new_balance"] == 3
 
 
 def test_ai_practice_reward_rule(db):

@@ -47,8 +47,27 @@ class RewardService:
         if not user:
             return {"awarded": 0, "total_earned_for_exam": 0}
 
-        # Target reward for this score
-        target_diamonds = 2 if score >= 9.0 else 1
+        # Rule 1: Under 7.0 score on ANY exam => 0 diamonds
+        if score < 7.0:
+            target_diamonds = 0
+        else:
+            # Rule 2: Check if exam is a Student Self-Created AI Practice Exam
+            from app.models.exam import Exam
+            is_student_self_created = False
+            exam = db.query(Exam).filter(Exam.id == exam_id).first()
+            if exam:
+                creator = db.query(User).filter(User.id == exam.created_by_id).first()
+                is_student_creator = bool(creator and getattr(creator.role, "value", str(creator.role)) == "STUDENT")
+                is_adaptive = "Đề Tự Luyện AI" in (exam.title or "")
+                if is_student_creator or is_adaptive:
+                    is_student_self_created = True
+
+            if is_student_self_created:
+                # Student self-created practice exam capped at max 1 diamond (for score >= 7.0)
+                target_diamonds = 1
+            else:
+                # Official / Teacher exam: >= 9.0 => 2 diamonds; 7.0 <= score < 9.0 => 1 diamond
+                target_diamonds = 2 if score >= 9.0 else 1
 
         # Check total diamonds already earned by user for this exam
         prefix = f"exam_{exam_id}_"
