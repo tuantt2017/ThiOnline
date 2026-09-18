@@ -16,18 +16,21 @@ async def lifespan(app: FastAPI):
     # Ensure tables are created for SQLite / PostgreSQL
     Base.metadata.create_all(bind=engine)
 
-    # Safe lightweight SQLite migration for added columns
-    with engine.connect() as conn:
-        try:
-            conn.execute(text("ALTER TABLE users ADD COLUMN grade INTEGER;"))
-            conn.commit()
-        except Exception:
-            pass  # Column already exists or unsupported dialect
-        try:
-            conn.execute(text("ALTER TABLE users ADD COLUMN diamond_balance INTEGER DEFAULT 0;"))
-            conn.commit()
-        except Exception:
-            pass
+    # Safe robust DB migration for PostgreSQL / MySQL / SQLite added columns
+    from sqlalchemy import inspect
+    try:
+        inspector = inspect(engine)
+        user_cols = [c["name"] for c in inspector.get_columns("users")]
+
+        if "grade" not in user_cols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE users ADD COLUMN grade INTEGER;"))
+
+        if "diamond_balance" not in user_cols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE users ADD COLUMN diamond_balance INTEGER DEFAULT 0;"))
+    except Exception as exc:
+        print(f"[Migration Info] {exc}")
 
     # Auto-seed initial active accounts and sample gifts if DB has no Admin / Gifts
     from sqlalchemy.orm import Session as DBSession
