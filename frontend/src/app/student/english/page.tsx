@@ -52,6 +52,24 @@ export default function EnglishLearningHubPage() {
     setLoading(true);
     try {
       const res = await api.getEnglishAiRoadmap('Tiếng Anh');
+      if (typeof window !== 'undefined' && res?.units) {
+        try {
+          const savedCompleted: number[] = JSON.parse(localStorage.getItem('completed_english_units') || '[]');
+          if (savedCompleted.length > 0) {
+            let completedCount = 0;
+            res.units = res.units.map((u) => {
+              if (u.status === 'COMPLETED' || savedCompleted.includes(u.id)) {
+                completedCount++;
+                return { ...u, status: 'COMPLETED', score: u.score ?? 100.0 };
+              }
+              return u;
+            });
+            res.completed_units_count = completedCount;
+          }
+        } catch (e) {
+          console.error('Lỗi đọc completed_english_units từ localStorage:', e);
+        }
+      }
       setData(res);
     } catch (err: any) {
       setError(err.message || 'Không thể tải dữ liệu môn Tiếng Anh');
