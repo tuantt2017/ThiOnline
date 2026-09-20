@@ -38,6 +38,25 @@ export default function EnglishLearningHubPage() {
   const [selectedGrade, setSelectedGrade] = useState(5);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isRecalculating, setIsRecalculating] = useState(false);
+  const [isStartingDaily, setIsStartingDaily] = useState(false);
+
+  const handleStartDaily5MinPractice = async () => {
+    if (isStartingDaily) return;
+    setIsStartingDaily(true);
+    try {
+      const todayStr = new Date().toLocaleDateString('vi-VN');
+      const randomSeed = Math.floor(Math.random() * 9000) + 1000;
+      const topic = `Thử Thách Tiếng Anh 5 Phút Hàng Ngày (${todayStr}) #${randomSeed}`;
+
+      const generated = await api.generateCustomEnglishUnit(topic, data?.grade || 5);
+      const targetId = generated?.unit_id ?? 1;
+      router.push(`/student/english/unit/${targetId}`);
+    } catch (err: any) {
+      alert(`Lỗi khi tạo bài học 5 phút: ${err.message}`);
+    } finally {
+      setIsStartingDaily(false);
+    }
+  };
 
   const SUGGESTED_TOPICS = [
     'Giao tiếp & Từ vựng Cuộc sống',
@@ -325,12 +344,23 @@ export default function EnglishLearningHubPage() {
                 {data.ai_daily_coaching_advice}
               </p>
             </div>
-            <Link
-              href="/student/english/unit/1"
-              className="w-full inline-flex items-center justify-center gap-2 py-3 bg-purple-600 hover:bg-purple-700 font-bold text-white rounded-2xl text-sm shadow-md transition"
+            <button
+              onClick={handleStartDaily5MinPractice}
+              disabled={isStartingDaily}
+              className="w-full inline-flex items-center justify-center gap-2 py-3.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 font-extrabold text-white rounded-2xl text-sm shadow-md transition active:scale-95 disabled:opacity-60"
             >
-              <Play className="w-4 h-4 fill-white" /> Bắt Đầu Học Ngay (5 Phút)
-            </Link>
+              {isStartingDaily ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin text-white" />
+                  <span>AI Gemini Đang Sinh Bài 5 Phút Mới...</span>
+                </>
+              ) : (
+                <>
+                  <Play className="w-4 h-4 fill-white" />
+                  <span>🚀 Bắt Đầu Học Ngay (5 Phút Mới)</span>
+                </>
+              )}
+            </button>
           </div>
         </div>
 

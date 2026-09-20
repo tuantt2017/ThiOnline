@@ -395,8 +395,19 @@ class EnglishAIService:
             return None
 
         api_key = settings.GEMINI_API_KEY.strip()
+        grade_speaking_rule = (
+            f"QUY TẮC BẮT BUỘC VỀ ĐỘ DÀI & ĐỘ KHÓ CÂU LUYỆN NÓI (speaking_prompts) CHO LỚP {grade}:\n"
+            f"- Học sinh Lớp {grade} (Cấp 1 - Tiểu học): Các câu mẫu đọc luyện nói (speaking_prompts) PHẢI RẤT NGẮN, ĐƠN GIẢN, CHỈ TỪ 3 ĐẾN 5 TỪ (ví dụ: 'I love my school.', 'This cat is cute.', 'She is my friend.'). TUYỆT ĐỐI KHÔNG TẠO CÂU QUÁ DÀI HAY CHỨA TỪ KHÓ THÁCH THỨC HỌC SINH CẤP 1!\n"
+            if grade <= 5 else
+            f"- Học sinh Lớp {grade} (Cấp 2 - THCS): Các câu mẫu đọc luyện nói (speaking_prompts) có độ dài vừa phải, ngắn gọn tự nhiên từ 5 đến 8 từ (ví dụ: 'We usually study English at school.'). Rõ ràng, dễ đọc."
+        )
+
         prompt = f"""Bạn là chuyên gia thiết kế bài học Tiếng Anh AI chuẩn GDPT 2018 cho học sinh Lớp {grade} tại Việt Nam.
 Hãy biên soạn 1 bài học Tiếng Anh Đa Phương Thức AI hoàn chỉnh cho chủ đề: "{topic_title}".
+
+YÊU CẦU ĐẶC BIỆT: Hãy tạo ra bộ từ vựng (flashcards), các bài tập trắc nghiệm, hình ảnh, luyện gõ chính tả, điền từ còn thiếu và câu Luyện nói HOÀN TOÀN MỚI, SÁNG TẠO, ĐA DẠNG, ngẫu nhiên và bám sát trình độ Lớp {grade}.
+
+{grade_speaking_rule}
 
 Cấu trúc JSON yêu cầu trả về:
 {{
@@ -507,7 +518,7 @@ CHỈ TRẢ VỀ DUY NHẤT VĂN BẢN JSON HỢP LỆ."""
                 payload = {
                     "contents": [{"parts": [{"text": prompt}]}],
                     "generationConfig": {
-                        "temperature": 0.3,
+                        "temperature": 0.85,
                         "responseMimeType": "application/json",
                     },
                 }
@@ -665,22 +676,40 @@ CHỈ TRẢ VỀ DUY NHẤT VĂN BẢN JSON HỢP LỆ."""
             ),
         ]
 
-        speaking_prompts = [
-            SpeakingPrompt(
-                id=custom_id * 30 + 1,
-                target_text=words[0][4],
-                ipa=f"/{words[0][0]} sentence/",
-                meaning=words[0][5],
-                tip=f"Chú ý nhấn đúng trọng âm của từ '{words[0][0]}'.",
-            ),
-            SpeakingPrompt(
-                id=custom_id * 30 + 2,
-                target_text=words[1][4],
-                ipa=f"/{words[1][0]} sentence/",
-                meaning=words[1][5],
-                tip=f"Đọc trôi chảy và nối âm chuẩn bản ngữ.",
-            ),
-        ]
+        if grade <= 5:
+            speaking_prompts = [
+                SpeakingPrompt(
+                    id=custom_id * 30 + 1,
+                    target_text=f"I love my {words[0][0]}.",
+                    ipa=f"/aɪ lʌv maɪ {words[0][0]}/",
+                    meaning=f"Tôi yêu {words[0][3]} của tôi.",
+                    tip=f"Mẫu câu ngắn 4 từ đơn giản dành cho học sinh Cấp 1 (Lớp {grade}).",
+                ),
+                SpeakingPrompt(
+                    id=custom_id * 30 + 2,
+                    target_text=f"This is a {words[1][0]}.",
+                    ipa=f"/ðɪs ɪz ə {words[1][0]}/",
+                    meaning=f"Đây là một {words[1][3]}.",
+                    tip=f"Phát âm rõ ràng từng từ ngắn.",
+                ),
+            ]
+        else:
+            speaking_prompts = [
+                SpeakingPrompt(
+                    id=custom_id * 30 + 1,
+                    target_text=words[0][4],
+                    ipa=f"/{words[0][0]} sentence/",
+                    meaning=words[0][5],
+                    tip=f"Chú ý nhấn đúng trọng âm của từ '{words[0][0]}'.",
+                ),
+                SpeakingPrompt(
+                    id=custom_id * 30 + 2,
+                    target_text=words[1][4],
+                    ipa=f"/{words[1][0]} sentence/",
+                    meaning=words[1][5],
+                    tip=f"Đọc trôi chảy và nối âm chuẩn bản ngữ.",
+                ),
+            ]
 
         return EnglishUnitDetailResponse(
             unit_id=custom_id,
