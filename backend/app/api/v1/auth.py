@@ -91,7 +91,50 @@ def login(
     )
 
 
+from pydantic import BaseModel
+
+
+from fastapi import APIRouter, Depends, HTTPException, status, Body
+
+
+class DemoLoginInput(BaseModel):
+    role: str = "STUDENT"
+
+
+@router.post("/demo-login", response_model=LoginResponse)
+def demo_login(
+    data: DemoLoginInput = Body(default_factory=DemoLoginInput),
+    db: Session = Depends(get_db),
+) -> Any:
+    """Authenticate 1-click sandbox demo user (STUDENT, TEACHER, or ADMIN)."""
+    from app.services.trial_guard_service import TrialGuardService
+    role_str = (data.role if data and data.role else "STUDENT").upper()
+    try:
+        target_role = UserRole[role_str]
+    except KeyError:
+        target_role = UserRole.STUDENT
+
+    user = TrialGuardService.get_or_create_demo_user(db, target_role)
+
+    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        subject=user.id,
+        role=user.role.value if hasattr(user.role, "value") else str(user.role),
+        expires_delta=access_token_expires,
+    )
+
+    return LoginResponse(
+        access_token=access_token,
+        token_type="bearer",
+        user=UserResponse.model_validate(user),
+    )
+
+
+
+
+
 @router.get("/me", response_model=UserResponse)
+
 def get_current_user_profile(
     current_user: User = Depends(get_current_user),
 ) -> Any:

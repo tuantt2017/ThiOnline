@@ -15,8 +15,10 @@ from app.schemas.reward import (
     DiamondTransactionResponse,
 )
 from app.services.reward_service import RewardService
+from app.services.trial_guard_service import TrialGuardService
 
 router = APIRouter()
+
 
 
 @router.get("/balance", response_model=RewardBalanceResponse)
@@ -45,8 +47,10 @@ def redeem_gift_item(
     current_user: User = Depends(get_current_user),
 ):
     """Redeem a gift item using student's diamond balance."""
+    TrialGuardService.check_and_increment_trial_usage(db, current_user, "doi_qua_tang")
     note = data.note if data else None
     redemption = RewardService.redeem_gift(db, current_user.id, item_id, note)
+
     return {
         "id": redemption.id,
         "user_id": redemption.user_id,

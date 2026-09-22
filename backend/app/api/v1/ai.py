@@ -23,6 +23,7 @@ from app.services.adaptive_practice_service import AdaptivePracticeService
 from app.services.ai_chat_companion_service import AiChatCompanionService
 from app.services.learning_roadmap_service import LearningRoadmapService
 from app.services.teacher_intelligence_service import TeacherIntelligenceService
+from app.services.trial_guard_service import TrialGuardService
 
 router = APIRouter(prefix="/ai", tags=["ai"])
 
@@ -41,6 +42,8 @@ def generate_ai_questions(
     - Real-world Context: Web / Real-life scenarios (khi use_web_context=True)
     - Validation: Strict backend verification for 4 options, 1 correct answer, non-empty explanation
     """
+    TrialGuardService.check_and_increment_trial_usage(db, current_user, "sinh_cau_hoi_ai")
+
     if request_in.grade < 4 or request_in.grade > 9:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -70,6 +73,7 @@ def create_adaptive_practice_exam(
     """
     Generate a personalized AI practice exam tailored to the student's weak areas.
     """
+    TrialGuardService.check_and_increment_trial_usage(db, current_user, "de_tu_luyen_ai")
     try:
         response = AdaptivePracticeService.create_adaptive_practice(
             db=db,
@@ -95,6 +99,7 @@ def chat_with_ai_companion(
     Enforces SGK Grounding Rule (strictly limits knowledge & tone to student's grade level 4-9)
     and provides explicit SGK citations (Chapter, Lesson, Page Number).
     """
+    TrialGuardService.check_and_increment_trial_usage(db, current_user, "tro_ly_ai_chat")
     try:
         return AiChatCompanionService.generate_chat_reply(
             db=db,
@@ -106,6 +111,7 @@ def chat_with_ai_companion(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Lỗi khi tương tác với Trợ Lý AI: {str(exc)}",
         )
+
 
 
 @router.get("/roadmap", response_model=LearningRoadmapResponse)
@@ -189,6 +195,7 @@ def assign_remedial_practice(
     """
     Assign a targeted remedial AI practice exam to specific weak students.
     """
+    TrialGuardService.check_and_increment_trial_usage(db, current_user, "giao_bai_khac_phuc")
     try:
         return TeacherIntelligenceService.assign_remedial_practice_exam(
             db=db,
@@ -200,6 +207,7 @@ def assign_remedial_practice(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Lỗi khi giao bài thi tự luyện khắc phục điểm yếu: {str(exc)}",
         )
+
 
 
 

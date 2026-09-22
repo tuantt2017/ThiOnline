@@ -188,12 +188,20 @@ export const api = {
     });
   },
 
+  demoLogin: async (role: string): Promise<AuthResponse> => {
+    return request<AuthResponse>('/api/v1/auth/demo-login', {
+      method: 'POST',
+      body: JSON.stringify({ role }),
+    });
+  },
+
   register: async (email: string, full_name: string, password: string, grade?: number): Promise<User> => {
     return request<User>('/api/v1/auth/register', {
       method: 'POST',
       body: JSON.stringify({ email, full_name, password, grade }),
     });
   },
+
 
 
   getMe: async (): Promise<User> => {
@@ -660,6 +668,20 @@ export const api = {
       method: 'GET',
     });
   },
+
+  getTrialLimit: async (): Promise<{ trial_max_uses: number }> => {
+    return request<{ trial_max_uses: number }>('/api/v1/system-settings/trial-limit', {
+      method: 'GET',
+    });
+  },
+
+  updateTrialLimit: async (max_uses: number): Promise<{ trial_max_uses: number }> => {
+    return request<{ trial_max_uses: number }>('/api/v1/system-settings/trial-limit', {
+      method: 'PUT',
+      body: JSON.stringify({ max_uses }),
+    });
+  },
 };
+
 
 

@@ -36,7 +36,9 @@ class UserResponse(BaseModel):
     grade: Optional[int] = None
     diamond_balance: int = 0
     is_active: bool
+    is_demo: bool = False
     created_at: datetime
+
     updated_at: datetime
 
 

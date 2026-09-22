@@ -32,6 +32,7 @@ from app.models.reward import (
     TransactionType,
     RedemptionStatus,
 )
+from app.models.system_setting import SystemSetting, TrialFeatureUsage
 
 __all__ = [
     "Base",
@@ -61,4 +62,7 @@ __all__ = [
     "GiftRedemption",
     "TransactionType",
     "RedemptionStatus",
+    "SystemSetting",
+    "TrialFeatureUsage",
 ]
+

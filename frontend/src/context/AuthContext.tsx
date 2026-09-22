@@ -10,6 +10,7 @@ interface AuthContextType {
   token: string | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<User>;
+  demoLogin: (role: string) => Promise<User>;
   register: (email: string, fullName: string, password: string, grade?: number) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
@@ -71,6 +72,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const demoLogin = async (role: string): Promise<User> => {
+    setIsLoading(true);
+    try {
+      const response = await api.demoLogin(role);
+      setToken(response.access_token);
+      setUser(response.user);
+      localStorage.setItem('token', response.access_token);
+      localStorage.setItem('user', JSON.stringify(response.user));
+      return response.user;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const register = async (email: string, fullName: string, password: string, grade?: number): Promise<void> => {
     setIsLoading(true);
     try {
@@ -107,6 +122,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         token,
         isLoading,
         login,
+        demoLogin,
         register,
         logout,
         refreshUser,
@@ -116,6 +132,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     </AuthContext.Provider>
   );
 }
+
 
 export function useAuth() {
   const context = useContext(AuthContext);

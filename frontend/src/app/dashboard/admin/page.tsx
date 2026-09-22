@@ -25,6 +25,9 @@ export default function AdminDashboardPage() {
   const router = useRouter();
   const [users, setUsers] = useState<User[]>([]);
   const [health, setHealth] = useState<SystemHealth | null>(null);
+  const [trialMaxUses, setTrialMaxUses] = useState<number>(1);
+  const [isUpdatingLimit, setIsUpdatingLimit] = useState(false);
+  const [limitNotice, setLimitNotice] = useState<string | null>(null);
   const [isFetching, setIsFetching] = useState(false);
   const [seedNotice, setSeedNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -49,18 +52,36 @@ export default function AdminDashboardPage() {
     setIsFetching(true);
     setError(null);
     try {
-      const [userList, healthRes] = await Promise.all([
+      const [userList, healthRes, limitRes] = await Promise.all([
         api.getUsers(),
         api.getHealth(),
+        api.getTrialLimit().catch(() => ({ trial_max_uses: 1 })),
       ]);
       setUsers(userList);
       setHealth(healthRes);
+      setTrialMaxUses(limitRes.trial_max_uses);
     } catch (err: any) {
       setError(err.message || 'Không thể tải danh sách dữ liệu.');
     } finally {
       setIsFetching(false);
     }
   };
+
+  const handleSaveTrialLimit = async () => {
+    setIsUpdatingLimit(true);
+    setLimitNotice(null);
+    try {
+      const res = await api.updateTrialLimit(trialMaxUses);
+      setTrialMaxUses(res.trial_max_uses);
+      setLimitNotice(`Đã cập nhật hạn mức dùng thử thành công: ${res.trial_max_uses} lượt/tài khoản!`);
+      setTimeout(() => setLimitNotice(null), 4000);
+    } catch (err: any) {
+      alert(`Lỗi khi cập nhật hạn mức dùng thử: ${err.message}`);
+    } finally {
+      setIsUpdatingLimit(false);
+    }
+  };
+
 
   useEffect(() => {
     if (user && user.role === 'ADMIN') {
@@ -339,6 +360,56 @@ export default function AdminDashboardPage() {
             <span>{seedNotice}</span>
           </div>
         )}
+
+        {limitNotice && (
+          <div className="rounded-2xl bg-amber-50 border border-amber-200 p-4 text-sm font-semibold text-amber-800 flex items-center gap-2 shadow-sm animate-fadeIn">
+            <CheckCircle2 className="w-5 h-5 shrink-0 text-amber-600" />
+            <span>{limitNotice}</span>
+          </div>
+        )}
+
+        {/* Dynamic Trial Limit Configuration Card */}
+        <div className="rounded-3xl border border-amber-200/90 bg-gradient-to-r from-amber-50 via-orange-50/40 to-yellow-50 p-6 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="space-y-1">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-200/80 text-amber-900 text-xs font-bold uppercase tracking-wider">
+                ⚡ Cấu Hình Hạn Mức Dùng Thử (Trial Sandbox)
+              </div>
+              <h3 className="text-lg font-bold text-slate-900">
+                Giới Hạn Lượt Thao Tác Cho Tài Khoản Demo
+              </h3>
+              <p className="text-xs font-medium text-slate-600 max-w-xl">
+                Điều chỉnh số lượt dùng thử tính năng nâng cao (AI, Khảo thí, Đổi quà...) áp dụng cho tài khoản Demo Sandbox. Admin có thể linh hoạt tăng hoặc giảm giới hạn này bất kỳ lúc nào mà không cần chỉnh sửa code.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3 bg-white p-3.5 rounded-2xl border border-amber-200 shadow-sm shrink-0">
+              <div className="text-right">
+                <label className="block text-[11px] font-bold text-slate-500 uppercase">
+                  Số lượt cho phép
+                </label>
+                <div className="text-xs font-bold text-slate-400">lượt/tài khoản</div>
+              </div>
+              <input
+                type="number"
+                min={1}
+                max={100}
+                value={trialMaxUses}
+                onChange={(e) => setTrialMaxUses(Math.max(1, parseInt(e.target.value) || 1))}
+                className="w-20 px-3 py-2 text-center text-lg font-extrabold rounded-xl border border-slate-300 bg-slate-50 text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
+              />
+              <button
+                type="button"
+                onClick={handleSaveTrialLimit}
+                disabled={isUpdatingLimit}
+                className="px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-md shadow-amber-500/20 disabled:opacity-50 transition"
+              >
+                {isUpdatingLimit ? 'Đang lưu...' : 'Lưu Hạn Mức'}
+              </button>
+            </div>
+          </div>
+        </div>
+
 
         {error && (
           <div className="rounded-2xl bg-rose-50 border border-rose-200 p-4 text-sm font-semibold text-rose-800 flex items-center gap-2 shadow-sm">

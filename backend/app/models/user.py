@@ -26,6 +26,8 @@ class User(Base):
     grade = Column(Integer, nullable=True)
     diamond_balance = Column(Integer, default=0, nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
+    is_demo = Column(Boolean, default=False, nullable=False)
+
 
     created_at = Column(
         DateTime(timezone=True),

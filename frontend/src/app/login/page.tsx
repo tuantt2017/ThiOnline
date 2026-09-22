@@ -4,14 +4,28 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { Lock, Mail, ArrowRight, Shield, GraduationCap, BookOpen, AlertCircle } from 'lucide-react';
+import {
+  Lock,
+  Mail,
+  ArrowRight,
+  Shield,
+  GraduationCap,
+  BookOpen,
+  AlertCircle,
+  Zap,
+  X,
+  Sparkles,
+} from 'lucide-react';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { login } = useAuth();
+  const [showDemoModal, setShowDemoModal] = useState(false);
+  const [isDemoSubmitting, setIsDemoSubmitting] = useState(false);
+
+  const { login, demoLogin } = useAuth();
   const router = useRouter();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -33,14 +47,26 @@ export default function LoginPage() {
     }
   };
 
-  const fillQuickCredentials = (e: string, p: string) => {
-    setEmail(e);
-    setPassword(p);
+  const handleDemoSelect = async (role: string) => {
     setError(null);
+    setIsDemoSubmitting(true);
+    try {
+      const user = await demoLogin(role);
+      setShowDemoModal(false);
+      if (user.role === 'ADMIN') {
+        router.push('/dashboard/admin');
+      } else {
+        router.push('/dashboard/student');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Không thể tạo phiên dùng thử demo.');
+    } finally {
+      setIsDemoSubmitting(false);
+    }
   };
 
   return (
-    <div className="flex-1 flex items-center justify-center px-4 py-12 sm:px-6 lg:px-8 bg-slate-50">
+    <div className="flex-1 flex items-center justify-center px-4 py-12 sm:px-6 lg:px-8 bg-slate-50 relative">
       <div className="w-full max-w-md space-y-8 bg-white p-8 rounded-3xl border border-slate-200/90 shadow-sm">
         <div className="text-center">
           <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-lg shadow-blue-500/20 mb-4">
@@ -52,39 +78,6 @@ export default function LoginPage() {
           <p className="mt-2 text-sm text-slate-500 font-medium">
             Truy cập nền tảng khảo thí và gia sư trí tuệ nhân tạo
           </p>
-        </div>
-
-        {/* Quick Demo Accounts */}
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm">
-          <p className="text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">
-            Tài khoản dùng thử (1-Click điền thông tin):
-          </p>
-          <div className="grid grid-cols-3 gap-2">
-            <button
-              type="button"
-              onClick={() => fillQuickCredentials('admin@example.com', 'Admin@123')}
-              className="flex flex-col items-center justify-center rounded-xl border border-purple-200 bg-purple-50 p-2 text-center text-xs font-bold text-purple-700 hover:bg-purple-100 transition shadow-sm"
-            >
-              <Shield className="w-4 h-4 mb-1 text-purple-600" />
-              <span>Admin</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => fillQuickCredentials('student@example.com', 'Student@123')}
-              className="flex flex-col items-center justify-center rounded-xl border border-blue-200 bg-blue-50 p-2 text-center text-xs font-bold text-blue-700 hover:bg-blue-100 transition shadow-sm"
-            >
-              <GraduationCap className="w-4 h-4 mb-1 text-blue-600" />
-              <span>Học sinh</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => fillQuickCredentials('teacher@example.com', 'Teacher@123')}
-              className="flex flex-col items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 p-2 text-center text-xs font-bold text-emerald-700 hover:bg-emerald-100 transition shadow-sm"
-            >
-              <BookOpen className="w-4 h-4 mb-1 text-emerald-600" />
-              <span>Giáo viên</span>
-            </button>
-          </div>
         </div>
 
         {/* Login Form */}
@@ -146,13 +139,110 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <div className="text-center text-xs font-medium text-slate-500">
-          Chưa có tài khoản học sinh?{' '}
-          <Link href="/register" className="font-bold text-blue-600 hover:underline">
-            Đăng ký ngay
-          </Link>
+        <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs font-medium text-slate-500">
+          <div>
+            Chưa có tài khoản?{' '}
+            <Link href="/register" className="font-bold text-blue-600 hover:underline">
+              Đăng ký ngay
+            </Link>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setShowDemoModal(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 text-amber-700 font-bold border border-amber-200 hover:bg-amber-100 transition shadow-sm"
+          >
+            <Zap className="w-3.5 h-3.5 text-amber-600 fill-amber-500" />
+            <span>⚡ Dùng thử nhanh</span>
+          </button>
         </div>
       </div>
+
+      {/* Demo Role Selector Modal */}
+      {showDemoModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-100 p-6 space-y-6 relative overflow-hidden">
+            {/* Header */}
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-amber-100 rounded-2xl text-amber-700">
+                  <Sparkles className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-slate-900">⚡ Chọn Vai Trò Dùng Thử</h3>
+                  <p className="text-xs text-slate-500 font-medium">Trải nghiệm tức thì không cần đăng ký</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowDemoModal(false)}
+                className="p-1 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Warning / Sandbox Info Alert */}
+            <div className="rounded-2xl bg-amber-50 border border-amber-200/80 p-3.5 text-xs text-amber-900 font-medium leading-relaxed">
+              <strong>🔒 Phân vùng Demo Sandbox:</strong> Tài khoản trải nghiệm được cấp giới hạn lượt sử dụng các tính năng cao cấp (AI, Khảo thí, Quà tặng). Toàn bộ dữ liệu trải nghiệm được bảo mật riêng biệt.
+            </div>
+
+            {/* Role Options */}
+            <div className="space-y-3">
+              <button
+                type="button"
+                disabled={isDemoSubmitting}
+                onClick={() => handleDemoSelect('STUDENT')}
+                className="w-full flex items-center gap-4 p-3.5 rounded-2xl border border-blue-200 bg-blue-50/50 hover:bg-blue-100/70 hover:border-blue-300 text-left transition shadow-sm group"
+              >
+                <div className="p-3 bg-blue-600 text-white rounded-xl shadow-md group-hover:scale-105 transition">
+                  <GraduationCap className="w-6 h-6" />
+                </div>
+                <div className="flex-1">
+                  <div className="text-sm font-bold text-blue-950">Học Sinh (Demo Sandbox)</div>
+                  <div className="text-xs text-blue-700">Thử nghiệm làm bài thi AI, Gia sư AI, Đổi quà</div>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                disabled={isDemoSubmitting}
+                onClick={() => handleDemoSelect('TEACHER')}
+                className="w-full flex items-center gap-4 p-3.5 rounded-2xl border border-emerald-200 bg-emerald-50/50 hover:bg-emerald-100/70 hover:border-emerald-300 text-left transition shadow-sm group"
+              >
+                <div className="p-3 bg-emerald-600 text-white rounded-xl shadow-md group-hover:scale-105 transition">
+                  <BookOpen className="w-6 h-6" />
+                </div>
+                <div className="flex-1">
+                  <div className="text-sm font-bold text-emerald-950">Giáo Viên (Demo Sandbox)</div>
+                  <div className="text-xs text-emerald-700">Thử nghiệm sinh câu hỏi AI, Giám sát lớp học</div>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                disabled={isDemoSubmitting}
+                onClick={() => handleDemoSelect('ADMIN')}
+                className="w-full flex items-center gap-4 p-3.5 rounded-2xl border border-purple-200 bg-purple-50/50 hover:bg-purple-100/70 hover:border-purple-300 text-left transition shadow-sm group"
+              >
+                <div className="p-3 bg-purple-600 text-white rounded-xl shadow-md group-hover:scale-105 transition">
+                  <Shield className="w-6 h-6" />
+                </div>
+                <div className="flex-1">
+                  <div className="text-sm font-bold text-purple-950">Quản Trị Viên (Demo Sandbox)</div>
+                  <div className="text-xs text-purple-700">Khám phá giao diện Admin & Ngân hàng đề</div>
+                </div>
+              </button>
+            </div>
+
+            {isDemoSubmitting && (
+              <div className="text-center text-xs font-bold text-amber-700 animate-pulse">
+                ⏳ Đang khởi tạo môi trường Demo Sandbox...
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
