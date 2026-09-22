@@ -148,3 +148,10 @@ def test_clean_math_notation():
     assert "≤" in cleaned
     assert "1/2" in cleaned
 
+    raw_text_numbers = r"Tính tổng số tiền nhập quạt: 24 \times 400\,000 = 9\,600\,000 (đồng)."
+    cleaned_numbers = clean_math_notation(raw_text_numbers)
+    assert r"\," not in cleaned_numbers
+    assert "400 000" in cleaned_numbers
+    assert "9 600 000" in cleaned_numbers
+
+

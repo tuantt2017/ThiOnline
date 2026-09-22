@@ -14,7 +14,12 @@ export function formatMathText(text: string | null | undefined): string {
   cleaned = cleaned.replace(/\\pm\b/g, '±');
   cleaned = cleaned.replace(/\\degree\b|\\deg\b/g, '°');
 
-  // 2. Convert \frac{a}{b} -> a/b
+  // 2. Replace LaTeX spacing commands (\, \; \: \! \ ) e.g. 400\,000 -> 400 000
+  cleaned = cleaned.replace(/\\,/g, ' ');
+  cleaned = cleaned.replace(/\\([;:!])/g, ' ');
+  cleaned = cleaned.replace(/\\ /g, ' ');
+
+  // 3. Convert \frac{a}{b} -> a/b
   cleaned = cleaned.replace(/\\frac\{([^{}]+)\}\{([^{}]+)\}/g, (_, num, den) => {
     const n = num.trim();
     const d = den.trim();
@@ -23,19 +28,22 @@ export function formatMathText(text: string | null | undefined): string {
     return `${cleanNum}/${cleanDen}`;
   });
 
-  // 3. Square roots: \sqrt{x} -> √(x)
+  // 4. Square roots: \sqrt{x} -> √(x)
   cleaned = cleaned.replace(/\\sqrt\{([^{}]+)\}/g, '√($1)');
 
-  // 4. Remove LaTeX dollar sign delimiters: $...$ or $$...$$
+  // 5. Remove LaTeX dollar sign delimiters: $...$ or $$...$$
   cleaned = cleaned.replace(/\$\$([^\$]+)\$\$/g, '$1');
   cleaned = cleaned.replace(/\$([^\$]+)\$/g, '$1');
 
-  // 5. Clean remaining stray dollar signs or stray backslashes
+  // 6. Clean remaining stray dollar signs or stray backslashes
   cleaned = cleaned.replace(/\$/g, '');
   cleaned = cleaned.replace(/\\([a-zA-Z]+)/g, '$1');
+  cleaned = cleaned.replace(/\\([#$%&_{}])/g, '$1');
+  cleaned = cleaned.replace(/\\/g, '');
 
-  // 6. Normalize multiple spaces
+  // 7. Normalize multiple spaces
   cleaned = cleaned.replace(/  +/g, ' ');
+
 
   return cleaned.trim();
 }

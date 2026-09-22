@@ -31,6 +31,7 @@ def clean_math_notation(text: str) -> str:
     """
     Sanitizes raw AI math text to follow standard Vietnamese GDPT notation.
     - Replaces LaTeX operators (\\times, \\div, \\cdot, \\le, \\ge) with Unicode (×, :, ., ≤, ≥).
+    - Removes LaTeX digit space commands (\\, \\; \\: \\! \\ ) e.g. 400\\,000 -> 400 000.
     - Converts \\frac{a}{b} -> a/b.
     - Removes raw LaTeX inline/display dollar delimiters ($...$, $$...$$) and stray $ signs.
     """
@@ -50,7 +51,12 @@ def clean_math_notation(text: str) -> str:
     s = re.sub(r'\\pm\b', '±', s)
     s = re.sub(r'\\degree\b|\\deg\b', '°', s)
 
-    # 2. Fractions: \frac{a}{b} -> a/b
+    # 2. Replace LaTeX spacing commands (\, \; \: \! \ ) e.g. 400\,000 -> 400 000
+    s = re.sub(r'\\,', ' ', s)
+    s = re.sub(r'\\([;:!])', ' ', s)
+    s = re.sub(r'\\ ', ' ', s)
+
+    # 3. Fractions: \frac{a}{b} -> a/b
     def _frac_sub(m):
         n = m.group(1).strip()
         d = m.group(2).strip()
@@ -62,20 +68,23 @@ def clean_math_notation(text: str) -> str:
 
     s = re.sub(r'\\frac\{([^{}]+)\}\{([^{}]+)\}', _frac_sub, s)
 
-    # 3. Square roots: \sqrt{x} -> √(x)
+    # 4. Square roots: \sqrt{x} -> √(x)
     s = re.sub(r'\\sqrt\{([^{}]+)\}', r'√(\1)', s)
 
-    # 4. Remove LaTeX dollar sign delimiters: $...$ or $$...$$
+    # 5. Remove LaTeX dollar sign delimiters: $...$ or $$...$$
     s = re.sub(r'\$\$([^\$]+)\$\$', r'\1', s)
     s = re.sub(r'\$([^\$]+)\$', r'\1', s)
 
-    # 5. Clean remaining stray dollar signs or stray backslashes before words
+    # 6. Clean remaining stray dollar signs or stray backslashes
     s = s.replace('$', '')
     s = re.sub(r'\\([a-zA-Z]+)', r'\1', s)
+    s = re.sub(r'\\([#$%&_{}])', r'\1', s)
+    s = s.replace('\\', '')
 
-    # 6. Normalize multiple spaces
+    # 7. Normalize multiple spaces
     s = re.sub(r'  +', ' ', s)
     return s.strip()
+
 
 
 class BackendQuestionValidator:
@@ -368,6 +377,7 @@ QUY TẮC BẮT BUỘC:
 5. QUY TẮC BẮT BUỘC VỀ KÝ HIỆU TOÁN HỌC (ĐẶC BIỆT MÔN TOÁN GDPT VIỆT NAM):
    - KHÔNG DÙNG MÃ LATEX '\\times', '\\div', '\\cdot'. Phép nhân phải viết bằng ký hiệu Unicode '×', phép chia viết bằng ':' hoặc '÷'.
    - TUYỆT ĐỐI KHÔNG bao quanh các biểu thức/công thức toán bằng các dấu '$' hoặc '$$' (Ví dụ: Viết 'A = a × 4 + b : 2 - c' chứ KHÔNG được viết '$A = a \\times 4 + b : 2 - c$').
+   - TUYỆT ĐỐI KHÔNG dùng mã '\\,' hay mã khoảng trắng LaTeX trong các số chục nghìn, trăm nghìn, triệu (Ví dụ: Viết '400 000' hoặc '400000', KHÔNG được viết '400\\,000' hay '9\\,600\\,000').
    - Phân số viết dạng 'a/b' hoặc '(a+b)/c'. Ký hiệu so sánh dùng '≤', '≥', '≠'.
 {web_grounding_instruction}
 {doc_instruction}
