@@ -49,12 +49,16 @@ class TeacherIntelligenceService:
         target_subject = (subject or "Toán").strip()
         target_grade = grade or 5
 
-        # Query all students matching grade
-        students_query = db.query(User).filter(User.role == UserRole.STUDENT)
+        # Query all approved students matching grade (chỉ học sinh đã được duyệt)
+        students_query = db.query(User).filter(
+            User.role == UserRole.STUDENT,
+            User.is_active == True,
+        )
         if target_grade:
             students_query = students_query.filter(User.grade == target_grade)
         
         students = students_query.all()
+
         total_students_cnt = len(students)
 
         risk_students: List[StudentRiskItem] = []
@@ -192,13 +196,16 @@ class TeacherIntelligenceService:
             )
             .join(AttemptAnswer, AttemptAnswer.question_id == Question.id)
             .join(ExamAttempt, ExamAttempt.id == AttemptAnswer.attempt_id)
+            .join(User, User.id == ExamAttempt.student_id)
             .filter(
                 Question.subject == subject,
                 Question.grade == grade,
+                User.is_active == True,
                 ExamAttempt.status.in_([AttemptStatus.SUBMITTED, AttemptStatus.TIMED_OUT]),
             )
             .group_by(Question.chapter, Question.lesson)
             .all()
+
         )
 
         gaps: List[ClassKnowledgeGapItem] = []
@@ -272,12 +279,13 @@ class TeacherIntelligenceService:
         """
         Generates 1-Click AI Student Progress Evaluation & Report Card for parents & students.
         """
-        student = db.query(User).filter(User.id == student_id, User.role == UserRole.STUDENT).first()
+        student = db.query(User).filter(User.id == student_id, User.role == UserRole.STUDENT, User.is_active == True).first()
         if not student:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Không tìm thấy học sinh với ID {student_id}",
+                detail=f"Không tìm thấy học sinh đã được duyệt với ID {student_id}",
             )
+
 
         attempts = (
             db.query(ExamAttempt)
@@ -523,11 +531,14 @@ Hãy sinh báo cáo đánh giá định dạng JSON chính xác:
             db.add(ExamQuestion(exam_id=exam.id, question_id=q.id, points=pts, order_index=idx))
             exam.total_questions += 1
 
-        # Assign to students
+        # Assign to active approved students only
         assigned_cnt = 0
         for s_id in req.student_ids:
-            db.add(ExamAssignment(exam_id=exam.id, assigned_to_user_id=s_id, assigned_grade=req.grade))
-            assigned_cnt += 1
+            s_user = db.query(User).filter(User.id == s_id, User.role == UserRole.STUDENT, User.is_active == True).first()
+            if s_user:
+                db.add(ExamAssignment(exam_id=exam.id, assigned_to_user_id=s_id, assigned_grade=req.grade))
+                assigned_cnt += 1
+
 
         db.commit()
         db.refresh(exam)

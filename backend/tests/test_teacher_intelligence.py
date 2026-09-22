@@ -82,3 +82,31 @@ def test_teacher_analytics_unauthorized_for_students(
         headers=student_headers,
     )
     assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+def test_unapproved_students_excluded_from_analytics(
+    client: TestClient, db: Session, teacher_headers: dict
+):
+    # Create an unapproved student (is_active=False)
+    unapproved_student = User(
+        email="unapproved_student@example.com",
+        hashed_password="hash",
+        full_name="Học Sinh Chưa Duyệt",
+        role=UserRole.STUDENT,
+        grade=5,
+        is_active=False,
+    )
+    db.add(unapproved_student)
+    db.commit()
+
+    response = client.get(
+        "/api/v1/ai/teacher/class-analytics?subject=Toán&grade=5",
+        headers=teacher_headers,
+    )
+    assert response.status_code == 200
+    data = response.json()
+
+    # Verify unapproved student is NOT in risk_students monitoring list
+    risk_ids = [s["student_id"] for s in data["risk_students"]]
+    assert unapproved_student.id not in risk_ids
+
