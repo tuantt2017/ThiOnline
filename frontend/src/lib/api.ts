@@ -635,6 +635,13 @@ export const api = {
     });
   },
 
+  adminDeleteRewardItem: async (itemId: number): Promise<{ message: string; deleted: boolean; soft_deleted?: boolean }> => {
+    return request<{ message: string; deleted: boolean; soft_deleted?: boolean }>(`/api/v1/rewards/admin/items/${itemId}`, {
+      method: 'DELETE',
+    });
+  },
+
+
   adminGetRedemptions: async (): Promise<GiftRedemption[]> => {
     return request<GiftRedemption[]>('/api/v1/rewards/admin/redemptions', { method: 'GET' });
   },

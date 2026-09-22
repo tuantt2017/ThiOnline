@@ -123,7 +123,19 @@ def admin_update_reward_item(
     return RewardService.update_reward_item(db, item_id, data)
 
 
+@router.delete("/admin/items/{item_id}")
+@router.delete("/admin/items/{item_id}/", include_in_schema=False)
+def admin_delete_reward_item(
+    item_id: int,
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_current_active_admin),
+):
+    """Admin: Delete a gift item (or deactivate if redemptions exist)."""
+    return RewardService.delete_reward_item(db, item_id)
+
+
 @router.get("/admin/redemptions")
+
 def admin_get_all_redemptions(
     db: Session = Depends(get_db),
     admin: User = Depends(get_current_active_admin),

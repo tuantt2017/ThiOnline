@@ -165,7 +165,34 @@ class RewardService:
         return item
 
     @staticmethod
+    def delete_reward_item(db: Session, item_id: int) -> dict:
+        item = db.query(RewardItem).filter(RewardItem.id == item_id).first()
+        if not item:
+            raise HTTPException(status_code=404, detail="Vật phẩm không tồn tại")
+
+        # Check if there are redemptions referencing this item
+        redemption_count = (
+            db.query(GiftRedemption)
+            .filter(GiftRedemption.reward_item_id == item_id)
+            .count()
+        )
+        if redemption_count > 0:
+            # Soft delete by deactivating to preserve transaction history
+            item.is_active = False
+            db.commit()
+            return {
+                "message": "Vật phẩm đã có lịch sử đơn đổi quà từ học sinh, hệ thống đã chuyển sang trạng thái ngưng hoạt động (tạm ẩn) để bảo toàn dữ liệu.",
+                "deleted": False,
+                "soft_deleted": True,
+            }
+        else:
+            db.delete(item)
+            db.commit()
+            return {"message": "Đã xóa vật phẩm quà tặng thành công.", "deleted": True}
+
+    @staticmethod
     def redeem_gift(
+
         db: Session, user_id: int, item_id: int, note: Optional[str] = None
     ) -> GiftRedemption:
         user = db.query(User).filter(User.id == user_id).first()

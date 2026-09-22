@@ -151,3 +151,19 @@ def test_reward_api_endpoints(client, student_user, student_headers, admin_heade
     # Admin lists all redemptions
     r_redemptions = client.get("/api/v1/rewards/admin/redemptions", headers=admin_headers)
     assert r_redemptions.status_code == 200
+
+    # Admin updates (edits) reward item
+    r_update = client.put(
+        f"/api/v1/rewards/admin/items/{new_item['id']}",
+        headers=admin_headers,
+        json={"title": "Bình Nước Cỡ Lớn 800ml", "diamond_cost": 30},
+    )
+    assert r_update.status_code == 200
+    assert r_update.json()["title"] == "Bình Nước Cỡ Lớn 800ml"
+    assert r_update.json()["diamond_cost"] == 30
+
+    # Admin deletes reward item
+    r_delete = client.delete(f"/api/v1/rewards/admin/items/{new_item['id']}", headers=admin_headers)
+    assert r_delete.status_code == 200
+    assert r_delete.json()["deleted"] is True
+

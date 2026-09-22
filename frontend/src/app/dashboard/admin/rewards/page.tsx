@@ -26,6 +26,15 @@ export default function AdminRewardsPage() {
   });
 
   const [editingItem, setEditingItem] = useState<RewardItem | null>(null);
+  const [editForm, setEditForm] = useState({
+    title: '',
+    description: '',
+    image_url: '',
+    diamond_cost: 10,
+    stock_quantity: 50,
+    category: 'Dụng cụ học tập',
+    is_active: true,
+  });
 
   const fetchData = async () => {
     setLoading(true);
@@ -75,6 +84,51 @@ export default function AdminRewardsPage() {
       } else {
         setError(err.message || 'Lỗi khi tạo vật phẩm quà tặng');
       }
+    }
+  };
+
+  const handleStartEdit = (item: RewardItem) => {
+    setEditingItem(item);
+    setEditForm({
+      title: item.title,
+      description: item.description || '',
+      image_url: item.image_url || '',
+      diamond_cost: item.diamond_cost,
+      stock_quantity: item.stock_quantity,
+      category: item.category || 'Dụng cụ học tập',
+      is_active: item.is_active,
+    });
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingItem || !editForm.title.trim()) return;
+    setError(null);
+    setSuccessMsg(null);
+
+    try {
+      await api.adminUpdateRewardItem(editingItem.id, editForm);
+      setSuccessMsg(`Cập nhật quà tặng "${editForm.title}" thành công!`);
+      setEditingItem(null);
+      fetchData();
+    } catch (err: any) {
+      setError(err.message || 'Không thể cập nhật vật phẩm quà tặng');
+    }
+  };
+
+  const handleDeleteItem = async (item: RewardItem) => {
+    if (!window.confirm(`Bạn có chắc chắn muốn xóa vật phẩm quà tặng "${item.title}" không?`)) {
+      return;
+    }
+    setError(null);
+    setSuccessMsg(null);
+
+    try {
+      const res = await api.adminDeleteRewardItem(item.id);
+      setSuccessMsg(res.message || `Đã xóa quà tặng "${item.title}"!`);
+      fetchData();
+    } catch (err: any) {
+      setError(err.message || 'Không thể xóa vật phẩm quà tặng');
     }
   };
 
@@ -310,31 +364,49 @@ export default function AdminRewardsPage() {
                     </div>
                   </div>
 
-                  <div className="border-t border-slate-800 pt-3 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-slate-400">Tồn kho:</span>
-                      <input
-                        type="number"
-                        defaultValue={item.stock_quantity}
-                        onBlur={(e) => handleUpdateStock(item.id, parseInt(e.target.value) || 0)}
-                        className="w-16 bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-center text-white font-bold"
-                      />
+                  <div className="border-t border-slate-800 pt-3 flex flex-col gap-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-slate-400">Tồn kho:</span>
+                        <input
+                          type="number"
+                          defaultValue={item.stock_quantity}
+                          onBlur={(e) => handleUpdateStock(item.id, parseInt(e.target.value) || 0)}
+                          className="w-16 bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-center text-white font-bold"
+                        />
+                      </div>
+
+                      <button
+                        onClick={() => handleToggleActive(item.id, item.is_active)}
+                        className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors ${
+                          item.is_active ? 'bg-amber-600/80 hover:bg-amber-500 text-white' : 'bg-emerald-600/80 hover:bg-emerald-500 text-white'
+                        }`}
+                      >
+                        {item.is_active ? 'Ẩn Quà' : 'Hiện Quà'}
+                      </button>
                     </div>
 
-                    <button
-                      onClick={() => handleToggleActive(item.id, item.is_active)}
-                      className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors ${
-                        item.is_active ? 'bg-amber-600/80 hover:bg-amber-500 text-white' : 'bg-emerald-600/80 hover:bg-emerald-500 text-white'
-                      }`}
-                    >
-                      {item.is_active ? 'Ẩn Quà' : 'Hiện Quà'}
-                    </button>
+                    <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-800/60">
+                      <button
+                        onClick={() => handleStartEdit(item)}
+                        className="px-3 py-1 bg-cyan-600/80 hover:bg-cyan-500 text-white text-xs font-bold rounded-lg transition-colors flex items-center gap-1"
+                      >
+                        <span>✏️</span> Sửa
+                      </button>
+                      <button
+                        onClick={() => handleDeleteItem(item)}
+                        className="px-3 py-1 bg-rose-600/80 hover:bg-rose-500 text-white text-xs font-bold rounded-lg transition-colors flex items-center gap-1"
+                      >
+                        <span>🗑️</span> Xóa
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
           </div>
         )}
+
 
         {/* TAB 3: THÊM VẬT PHẨM MỚI */}
         {activeTab === 'CREATE' && (
@@ -440,7 +512,131 @@ export default function AdminRewardsPage() {
           </div>
         )}
 
+        {/* EDIT ITEM MODAL */}
+        {editingItem && (
+          <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-2xl w-full space-y-6 shadow-2xl relative">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                  <span>✏️</span> Chỉnh Sửa Vật Phẩm Quà Tặng
+                </h3>
+                <button
+                  onClick={() => setEditingItem(null)}
+                  className="text-slate-400 hover:text-white font-bold text-lg"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveEdit} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Tên Vật Phẩm Quà Tặng *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editForm.title}
+                    onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-cyan-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Mô Tả Quà Tặng</label>
+                  <textarea
+                    value={editForm.description}
+                    onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-cyan-400"
+                    rows={3}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">Số Kim Cương Quy Đổi (💎) *</label>
+                    <input
+                      type="number"
+                      required
+                      min={1}
+                      value={editForm.diamond_cost}
+                      onChange={(e) => setEditForm({ ...editForm, diamond_cost: parseInt(e.target.value) || 1 })}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-cyan-400"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">Số Lượng Tồn Kho *</label>
+                    <input
+                      type="number"
+                      required
+                      min={0}
+                      value={editForm.stock_quantity}
+                      onChange={(e) => setEditForm({ ...editForm, stock_quantity: parseInt(e.target.value) || 0 })}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-cyan-400"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">Phân Loại</label>
+                    <select
+                      value={editForm.category}
+                      onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-cyan-400"
+                    >
+                      <option value="Dụng cụ học tập">Dụng cụ học tập</option>
+                      <option value="Huy hiệu danh dự">Huy hiệu danh dự</option>
+                      <option value="Đồ dùng cá nhân">Đồ dùng cá nhân</option>
+                      <option value="Vật phẩm cao cấp">Vật phẩm cao cấp</option>
+                      <option value="Thẻ quà tặng">Thẻ quà tặng</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">Đường Dẫn Ảnh (URL Image)</label>
+                    <input
+                      type="text"
+                      value={editForm.image_url}
+                      onChange={(e) => setEditForm({ ...editForm, image_url: e.target.value })}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-cyan-400"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="flex items-center gap-2 text-xs font-semibold text-slate-300 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={editForm.is_active}
+                      onChange={(e) => setEditForm({ ...editForm, is_active: e.target.checked })}
+                      className="w-4 h-4 rounded bg-slate-950 border-slate-700 text-cyan-500"
+                    />
+                    Hiển thị vật phẩm quà tặng cho học sinh đổi
+                  </label>
+                </div>
+
+                <div className="pt-4 flex justify-end gap-3 border-t border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => setEditingItem(null)}
+                    className="px-5 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:bg-slate-800"
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-6 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-cyan-500/20 hover:from-cyan-400 hover:to-blue-500"
+                  >
+                    Lưu Thay Đổi
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   );
 }
+
