@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.models.question import Question, QuestionSource, QuestionStatus
 from app.schemas.ai import AiQuestionGenerateRequest, DifficultyDistribution
-from app.services.ai_question_service import BackendQuestionValidator, GeminiQuestionGenerator
+from app.services.ai_question_service import BackendQuestionValidator, GeminiQuestionGenerator, clean_math_notation
 
 
 def test_validator_valid_question():
@@ -136,3 +136,15 @@ def test_api_generate_questions_student_forbidden(client: TestClient, student_he
         },
     )
     assert response.status_code == 403
+
+
+def test_clean_math_notation():
+    raw_text = r"Tính $A = a \times 4 + b : 2 - c$ với $a = \frac{1}{2}$ và $x \le 5$"
+    cleaned = clean_math_notation(raw_text)
+    assert "$" not in cleaned
+    assert r"\times" not in cleaned
+    assert r"\le" not in cleaned
+    assert "×" in cleaned
+    assert "≤" in cleaned
+    assert "1/2" in cleaned
+

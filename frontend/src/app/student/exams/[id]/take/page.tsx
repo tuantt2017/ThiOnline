@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
+import { formatMathText } from '@/lib/formatMath';
 import { StudentExamTakeResponse, StudentQuestionTakeResponse } from '@/types';
 import {
   Clock,
@@ -276,7 +277,7 @@ export default function ExamTakePage() {
 
               {/* Question Text */}
               <div className="text-base sm:text-lg font-bold text-slate-900 leading-relaxed mb-8">
-                {currentQuestion.content}
+                {formatMathText(currentQuestion.content)}
               </div>
 
               {/* Options List */}
@@ -303,7 +304,7 @@ export default function ExamTakePage() {
                         {opt.option_key}
                       </div>
                       <span className="text-sm sm:text-base font-normal flex-1 text-slate-900">
-                        {opt.content}
+                        {formatMathText(opt.content)}
                       </span>
                     </button>
                   );

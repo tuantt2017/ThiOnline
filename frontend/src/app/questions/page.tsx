@@ -4,6 +4,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
+import { formatMathText } from '@/lib/formatMath';
 import {
   Question,
   QuestionDifficulty,
@@ -723,7 +724,7 @@ export default function QuestionsPage() {
 
                     {/* Question Content */}
                     <div className="text-sm font-medium text-slate-900 leading-relaxed mb-4 whitespace-pre-wrap">
-                      {q.content}
+                      {formatMathText(q.content)}
                     </div>
 
                     {/* 4 Options Grid */}
@@ -746,7 +747,7 @@ export default function QuestionsPage() {
                           >
                             {opt.option_key}
                           </span>
-                          <span className="flex-1 mt-0.5">{opt.content}</span>
+                          <span className="flex-1 mt-0.5">{formatMathText(opt.content)}</span>
                           {opt.is_correct && (
                             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
                           )}
@@ -760,7 +761,7 @@ export default function QuestionsPage() {
                         <div className="flex items-center gap-1 font-semibold text-amber-800 mb-1">
                           <Lightbulb className="w-3.5 h-3.5" /> Lời giải / Giải thích:
                         </div>
-                        <p className="whitespace-pre-wrap leading-relaxed">{q.explanation}</p>
+                        <p className="whitespace-pre-wrap leading-relaxed">{formatMathText(q.explanation)}</p>
                       </div>
                     )}
                   </div>

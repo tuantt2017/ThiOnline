@@ -12,6 +12,8 @@ from app.models.user import User
 from app.schemas.chat import ChatMessageInput, ChatMessageResponse, SgkCitation
 from app.services.gemini_service import GeminiKnowledgeService
 
+from app.services.ai_question_service import clean_math_notation
+
 logger = logging.getLogger(__name__)
 
 
@@ -259,8 +261,11 @@ YÊU CẦU ĐẦU RA JSON CHÍNH XÁC (KHÔNG KÈM VĂN BẢN NGOÀI):
                                     )
                                 )
 
+                            raw_reply = parsed.get("reply") or f"Chào {student_name}, AI đã giải đáp câu hỏi về môn {subject} Lớp {grade}."
+                            clean_reply = clean_math_notation(raw_reply)
+
                             return ChatMessageResponse(
-                                reply=parsed.get("reply") or f"Chào {student_name}, AI đã giải đáp câu hỏi về môn {subject} Lớp {grade}.",
+                                reply=clean_reply,
                                 subject=subject,
                                 grade=grade,
                                 citations=citations,

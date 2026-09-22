@@ -27,6 +27,57 @@ from app.schemas.ai import (
 logger = logging.getLogger(__name__)
 
 
+def clean_math_notation(text: str) -> str:
+    """
+    Sanitizes raw AI math text to follow standard Vietnamese GDPT notation.
+    - Replaces LaTeX operators (\\times, \\div, \\cdot, \\le, \\ge) with Unicode (×, :, ., ≤, ≥).
+    - Converts \\frac{a}{b} -> a/b.
+    - Removes raw LaTeX inline/display dollar delimiters ($...$, $$...$$) and stray $ signs.
+    """
+    if not text or not isinstance(text, str):
+        return ""
+
+    s = text
+
+    # 1. Replace LaTeX operators with standard Vietnamese Math symbols
+    s = re.sub(r'\\times\b', '×', s)
+    s = re.sub(r'\\div\b', ':', s)
+    s = re.sub(r'\\cdot\b', '.', s)
+    s = re.sub(r'\\leq?\b', '≤', s)
+    s = re.sub(r'\\geq?\b', '≥', s)
+    s = re.sub(r'\\neq\b', '≠', s)
+    s = re.sub(r'\\approx\b', '≈', s)
+    s = re.sub(r'\\pm\b', '±', s)
+    s = re.sub(r'\\degree\b|\\deg\b', '°', s)
+
+    # 2. Fractions: \frac{a}{b} -> a/b
+    def _frac_sub(m):
+        n = m.group(1).strip()
+        d = m.group(2).strip()
+        if ' ' in n or '+' in n or '-' in n:
+            n = f"({n})"
+        if ' ' in d or '+' in d or '-' in d:
+            d = f"({d})"
+        return f"{n}/{d}"
+
+    s = re.sub(r'\\frac\{([^{}]+)\}\{([^{}]+)\}', _frac_sub, s)
+
+    # 3. Square roots: \sqrt{x} -> √(x)
+    s = re.sub(r'\\sqrt\{([^{}]+)\}', r'√(\1)', s)
+
+    # 4. Remove LaTeX dollar sign delimiters: $...$ or $$...$$
+    s = re.sub(r'\$\$([^\$]+)\$\$', r'\1', s)
+    s = re.sub(r'\$([^\$]+)\$', r'\1', s)
+
+    # 5. Clean remaining stray dollar signs or stray backslashes before words
+    s = s.replace('$', '')
+    s = re.sub(r'\\([a-zA-Z]+)', r'\1', s)
+
+    # 6. Normalize multiple spaces
+    s = re.sub(r'  +', ' ', s)
+    return s.strip()
+
+
 class BackendQuestionValidator:
     """Validates raw question structures returned by AI against strict system invariants."""
 
@@ -168,18 +219,28 @@ class GeminiQuestionGenerator:
         saved_count = 0
 
         for raw in raw_items:
-            is_valid, val_errors = BackendQuestionValidator.validate_question(raw)
+            # Sanitize math notation in question text, options, and explanation
+            q_text_clean = clean_math_notation(str(raw.get("question_text") or raw.get("content") or ""))
+            expl_clean = clean_math_notation(str(raw.get("explanation") or ""))
+            raw["question_text"] = q_text_clean
+            raw["content"] = q_text_clean
+            raw["explanation"] = expl_clean
 
             # Build options
             options_list: List[AiGeneratedOption] = []
             for opt_raw in raw.get("options", []):
+                opt_text_clean = clean_math_notation(str(opt_raw.get("text") or opt_raw.get("content") or ""))
+                opt_raw["text"] = opt_text_clean
+                opt_raw["content"] = opt_text_clean
                 options_list.append(
                     AiGeneratedOption(
                         key=str(opt_raw.get("key", "A")).upper(),
-                        text=str(opt_raw.get("text") or opt_raw.get("content") or "").strip(),
+                        text=opt_text_clean,
                         is_correct=bool(opt_raw.get("is_correct")),
                     )
                 )
+
+            is_valid, val_errors = BackendQuestionValidator.validate_question(raw)
 
             diff_val = QuestionDifficulty.MEDIUM
             diff_str = str(raw.get("difficulty") or "MEDIUM").upper()
@@ -213,12 +274,12 @@ class GeminiQuestionGenerator:
                 )
 
             item = AiGeneratedQuestionItem(
-                question_text=str(raw.get("question_text") or raw.get("content") or "").strip(),
+                question_text=q_text_clean,
                 options=options_list,
                 difficulty=diff_val,
                 topic=req.topic or raw.get("topic"),
                 learning_objective=raw.get("learning_objective"),
-                explanation=str(raw.get("explanation") or "").strip(),
+                explanation=expl_clean,
                 knowledge_source=k_source,
                 context_source=c_source,
                 is_valid=is_valid,
@@ -304,7 +365,10 @@ QUY TẮC BẮT BUỘC:
 1. Mỗi câu hỏi PHẢI CÓ CHÍNH XÁC 4 PHƯƠNG ÁN A, B, C, D.
 2. CHỈ CÓ DUY NHẤT 1 ĐÁP ÁN ĐÚNG (`"is_correct": true`). Các phương án còn lại là `"is_correct": false`.
 3. Phải có Lời giải / Giải thích chi tiết (`explanation`) giải thích rõ vì sao đáp án đúng và vì sao các phương án khác sai.
-4. Ghi rõ mục tiêu cần đạt (`learning_objective`) chuẩn GDPT Lớp {req.grade}.
+5. QUY TẮC BẮT BUỘC VỀ KÝ HIỆU TOÁN HỌC (ĐẶC BIỆT MÔN TOÁN GDPT VIỆT NAM):
+   - KHÔNG DÙNG MÃ LATEX '\\times', '\\div', '\\cdot'. Phép nhân phải viết bằng ký hiệu Unicode '×', phép chia viết bằng ':' hoặc '÷'.
+   - TUYỆT ĐỐI KHÔNG bao quanh các biểu thức/công thức toán bằng các dấu '$' hoặc '$$' (Ví dụ: Viết 'A = a × 4 + b : 2 - c' chứ KHÔNG được viết '$A = a \\times 4 + b : 2 - c$').
+   - Phân số viết dạng 'a/b' hoặc '(a+b)/c'. Ký hiệu so sánh dùng '≤', '≥', '≠'.
 {web_grounding_instruction}
 {doc_instruction}
 

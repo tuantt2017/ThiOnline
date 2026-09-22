@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { api } from '@/lib/api';
+import { formatMathText } from '@/lib/formatMath';
 import { ExamAttemptResultResponse, AiTutorResponse } from '@/types';
 import {
   Award,
@@ -411,7 +412,7 @@ export default function ExamResultPage() {
 
                   {/* Question Content */}
                   <div className="text-base font-bold text-slate-900 mb-5 leading-relaxed">
-                    {ans.question_text}
+                    {formatMathText(ans.question_text)}
                   </div>
 
                   {/* Options List with status */}
@@ -450,7 +451,7 @@ export default function ExamResultPage() {
                             <span className="font-bold text-xs w-6 h-6 rounded-lg bg-slate-200 flex items-center justify-center text-slate-700">
                               {opt.option_key}
                             </span>
-                            <span className="text-slate-900">{opt.content}</span>
+                            <span className="text-slate-900">{formatMathText(opt.content)}</span>
                           </div>
                           {badge}
                         </div>
@@ -464,7 +465,7 @@ export default function ExamResultPage() {
                       <div className="font-bold text-blue-700 mb-1 flex items-center gap-1.5">
                         <HelpCircle className="w-4 h-4 text-blue-600" /> Lời giải chi tiết:
                       </div>
-                      <p className="leading-relaxed text-slate-800">{ans.explanation}</p>
+                      <p className="leading-relaxed text-slate-800">{formatMathText(ans.explanation)}</p>
                     </div>
                   )}
                 </div>
