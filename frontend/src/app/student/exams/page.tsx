@@ -47,6 +47,7 @@ export default function StudentExamsPage() {
   // Filters
   const [selectedSubject, setSelectedSubject] = useState<string>('');
   const [selectedGrade, setSelectedGrade] = useState<string>('');
+  const [activeTab, setActiveTab] = useState<'UNCOMPLETED' | 'COMPLETED'>('UNCOMPLETED');
 
   useEffect(() => {
     if (user?.grade && !selectedGrade) {
@@ -103,6 +104,17 @@ export default function StudentExamsPage() {
     }
   };
 
+  // Filter logic for student tabs
+  const completedExamIds = new Set(
+    myAttempts
+      .filter((att) => att.status === 'SUBMITTED' || att.status === 'TIMED_OUT')
+      .map((att) => Number(att.exam_id))
+  );
+
+  const uncompletedExams = exams.filter((exam) => !completedExamIds.has(Number(exam.id)));
+  const completedExams = exams.filter((exam) => completedExamIds.has(Number(exam.id)));
+  const displayedExams = activeTab === 'UNCOMPLETED' ? uncompletedExams : completedExams;
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 pb-20">
       <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-8">
@@ -119,7 +131,7 @@ export default function StudentExamsPage() {
               Đề Thi Của Tôi
             </h1>
             <p className="text-sm sm:text-base text-blue-100 mt-2 font-normal leading-relaxed">
-              Lựa chọn bài thi theo môn học và khối lớp để bắt đầu làm bài. Đề thi đã thi được đánh dấu rõ ràng kèm nút xem kết quả và làm lại bài thi.
+              Lựa chọn bài thi theo môn học và khối lớp để bắt đầu làm bài. Đề thi đã thi được tách riêng sang mục làm bài & xem lại kết quả.
             </p>
           </div>
         </div>
@@ -188,25 +200,77 @@ export default function StudentExamsPage() {
           </div>
         )}
 
+        {/* Student Section Tabs */}
+        <div className="flex flex-wrap items-center gap-3 border-b border-slate-200 pb-3 mb-6">
+          <button
+            onClick={() => setActiveTab('UNCOMPLETED')}
+            className={`px-5 py-2.5 rounded-xl font-extrabold text-sm transition-all flex items-center gap-2 ${
+              activeTab === 'UNCOMPLETED'
+                ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
+                : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+            }`}
+          >
+            <span>📝 Bài Thi Chưa Làm</span>
+            <span className={`px-2 py-0.5 rounded-full text-xs font-black ${activeTab === 'UNCOMPLETED' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-700'}`}>
+              {uncompletedExams.length}
+            </span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('COMPLETED')}
+            className={`px-5 py-2.5 rounded-xl font-extrabold text-sm transition-all flex items-center gap-2 ${
+              activeTab === 'COMPLETED'
+                ? 'bg-emerald-600 text-white shadow-md shadow-emerald-500/20'
+                : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+            }`}
+          >
+            <span>✅ Bài Thi Đã Làm & Kết Quả</span>
+            <span className={`px-2 py-0.5 rounded-full text-xs font-black ${activeTab === 'COMPLETED' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-700'}`}>
+              {completedExams.length}
+            </span>
+          </button>
+        </div>
+
         {/* Exam Cards Grid */}
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20">
             <RefreshCw className="w-8 h-8 animate-spin text-blue-600 mb-3" />
             <p className="text-sm font-medium text-slate-500">Đang tải danh sách bài thi và lịch sử làm bài...</p>
           </div>
-        ) : exams.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-slate-300 p-12 text-center bg-white">
-            <BookOpen className="w-12 h-12 text-slate-400 mx-auto mb-3" />
-            <h3 className="text-base font-bold text-slate-900">
-              Hiện chưa có đề thi nào mở cho học sinh
-            </h3>
-            <p className="text-sm text-slate-500 mt-1 max-w-md mx-auto">
-              Vui lòng quay lại sau hoặc liên hệ giáo viên để biết thêm chi tiết.
-            </p>
-          </div>
+        ) : displayedExams.length === 0 ? (
+          activeTab === 'UNCOMPLETED' ? (
+            <div className="rounded-2xl border border-emerald-200 p-8 text-center bg-emerald-50/50">
+              <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto mb-3" />
+              <h3 className="text-lg font-extrabold text-emerald-950">
+                🎉 Tuyệt vời! Bạn đã hoàn thành tất cả bài thi!
+              </h3>
+              <p className="text-sm text-emerald-800 mt-1 max-w-md mx-auto">
+                Hiện tại không còn bài thi nào chưa làm. Bạn có thể tự tạo đề mới bằng AI ở mục trên hoặc xem lại bài đã thi trong tab "Bài Thi Đã Làm".
+              </p>
+              {completedExams.length > 0 && (
+                <button
+                  onClick={() => setActiveTab('COMPLETED')}
+                  className="mt-4 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md transition"
+                >
+                  Xem Lại Bài Thi Đã Làm ({completedExams.length})
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-dashed border-slate-300 p-12 text-center bg-white">
+              <BookOpen className="w-12 h-12 text-slate-400 mx-auto mb-3" />
+              <h3 className="text-base font-bold text-slate-900">
+                Chưa có lịch sử làm bài nào
+              </h3>
+              <p className="text-sm text-slate-500 mt-1 max-w-md mx-auto">
+                Sau khi bạn hoàn thành các bài thi, kết quả và nút làm lại bài sẽ xuất hiện tại đây.
+              </p>
+            </div>
+          )
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {exams.map((exam) => {
+            {displayedExams.map((exam) => {
+
               const examAttempts = myAttempts.filter((att) => Number(att.exam_id) === Number(exam.id));
               const completedAttempt = examAttempts.find(
                 (att) => att.status === 'SUBMITTED' || att.status === 'TIMED_OUT'

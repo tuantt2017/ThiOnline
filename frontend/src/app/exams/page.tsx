@@ -16,6 +16,7 @@ import {
   AlertCircle,
   RefreshCw,
   Shield,
+  Search,
 } from 'lucide-react';
 
 const SUBJECTS = [
@@ -34,10 +35,13 @@ export default function ExamsPage() {
   const [exams, setExams] = useState<Exam[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Filters
+  // Filters & View Mode
   const [selectedSubject, setSelectedSubject] = useState<string>('');
   const [selectedGrade, setSelectedGrade] = useState<string>('');
   const [selectedStatus, setSelectedStatus] = useState<string>('');
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [creatorCategory, setCreatorCategory] = useState<'ALL' | 'OFFICIAL' | 'STUDENT_AI'>('ALL');
+  const [viewMode, setViewMode] = useState<'TABLE' | 'GRID'>('TABLE');
 
   const isTeacherOrAdmin = user?.role === 'TEACHER' || user?.role === 'ADMIN';
 
@@ -49,7 +53,7 @@ export default function ExamsPage() {
         grade: selectedGrade ? parseInt(selectedGrade) : undefined,
         status: selectedStatus || undefined,
         page: 1,
-        page_size: 50,
+        page_size: 100,
       });
       setExams(res.items || []);
     } catch (err: any) {
@@ -57,6 +61,7 @@ export default function ExamsPage() {
     } finally {
       setLoading(false);
     }
+
   }, [selectedSubject, selectedGrade, selectedStatus]);
 
   useEffect(() => {
@@ -76,19 +81,19 @@ export default function ExamsPage() {
     switch (st) {
       case ExamStatus.PUBLISHED:
         return (
-          <span className="flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-bold text-emerald-800 border border-emerald-200">
+          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-bold text-emerald-800 border border-emerald-200">
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Đã xuất bản
           </span>
         );
       case ExamStatus.CLOSED:
         return (
-          <span className="flex items-center gap-1 rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-bold text-rose-800 border border-rose-200">
+          <span className="inline-flex items-center gap-1 rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-bold text-rose-800 border border-rose-200">
             <AlertCircle className="w-3.5 h-3.5 text-rose-600" /> Đã đóng
           </span>
         );
       default:
         return (
-          <span className="flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-bold text-slate-700 border border-slate-200">
+          <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-bold text-slate-700 border border-slate-200">
             Bản nháp
           </span>
         );
@@ -99,26 +104,46 @@ export default function ExamsPage() {
     if (role === 'ADMIN') {
       return (
         <span className="inline-flex items-center gap-1 rounded-full bg-purple-100 px-2.5 py-0.5 text-[11px] font-extrabold text-purple-800 border border-purple-200">
-          <Shield className="w-3 h-3 text-purple-600" /> Tạo bởi Admin: {name || 'Hệ thống'}
+          <Shield className="w-3 h-3 text-purple-600" /> Admin: {name || 'Hệ thống'}
         </span>
       );
     }
     if (role === 'TEACHER') {
       return (
         <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-extrabold text-emerald-800 border border-emerald-200">
-          <BookOpen className="w-3 h-3 text-emerald-600" /> Tạo bởi GV: {name || 'Giáo viên'}
+          <BookOpen className="w-3 h-3 text-emerald-600" /> GV: {name || 'Giáo viên'}
         </span>
       );
     }
     if (role === 'STUDENT') {
       return (
         <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-[11px] font-extrabold text-amber-800 border border-amber-200">
-          <GraduationCap className="w-3 h-3 text-amber-600" /> Đề tự luyện AI: {name || 'Học sinh'}
+          <GraduationCap className="w-3 h-3 text-amber-600" /> Đề AI tự luyện: {name || 'Học sinh'}
         </span>
       );
     }
     return null;
   };
+
+  // Filter exams by search term and creator category
+  const officialCount = exams.filter(e => e.created_by_role !== 'STUDENT' && !e.title.includes('Đề Tự Luyện AI')).length;
+  const studentAiCount = exams.filter(e => e.created_by_role === 'STUDENT' || e.title.includes('Đề Tự Luyện AI')).length;
+
+  const filteredExams = exams.filter((exam) => {
+    if (searchTerm.trim() && !exam.title.toLowerCase().includes(searchTerm.toLowerCase())) {
+      return false;
+    }
+    if (creatorCategory === 'OFFICIAL') {
+      if (exam.created_by_role === 'STUDENT' || exam.title.includes('Đề Tự Luyện AI')) {
+        return false;
+      }
+    } else if (creatorCategory === 'STUDENT_AI') {
+      if (exam.created_by_role !== 'STUDENT' && !exam.title.includes('Đề Tự Luyện AI')) {
+        return false;
+      }
+    }
+    return true;
+  });
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 pb-20">
@@ -130,10 +155,10 @@ export default function ExamsPage() {
               <GraduationCap className="w-4 h-4" /> Quản Lý Kỳ Thi & Đề Thi GDPT (Lớp 4 – 9)
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 mt-1">
-              Danh Sách Đề Thi
+              Danh Sách Quản Lý Đề Thi
             </h1>
             <p className="text-sm text-slate-600 font-medium mt-1">
-              Tạo đề thi chuẩn hóa, cấu hình thời gian Server-Authoritative, chọn câu hỏi và xuất bản.
+              Phân loại đề thi chính thức của Admin/Giáo viên và đề tự luyện AI của Học sinh. Giao diện bảng thu gọn giúp quản lý hàng trăm bản ghi dễ dàng.
             </p>
           </div>
 
@@ -150,14 +175,101 @@ export default function ExamsPage() {
           )}
         </div>
 
-        {/* Filter Bar */}
-        <div className="rounded-2xl border border-slate-200/90 bg-white p-4 shadow-sm my-6">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {/* Summary Metric Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 my-6">
+          <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-sm">
+            <span className="text-xs font-bold text-slate-500 uppercase">Tổng số đề</span>
+            <div className="text-2xl font-black text-slate-900 mt-1">{exams.length}</div>
+          </div>
+          <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-sm">
+            <span className="text-xs font-bold text-purple-600 uppercase">Đề chính thức (Admin/GV)</span>
+            <div className="text-2xl font-black text-purple-700 mt-1">{officialCount}</div>
+          </div>
+          <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-sm">
+            <span className="text-xs font-bold text-amber-600 uppercase">Đề AI tự luyện (Học sinh)</span>
+            <div className="text-2xl font-black text-amber-700 mt-1">{studentAiCount}</div>
+          </div>
+          <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-sm">
+            <span className="text-xs font-bold text-emerald-600 uppercase">Đã xuất bản</span>
+            <div className="text-2xl font-black text-emerald-700 mt-1">{exams.filter(e => e.status === 'PUBLISHED').length}</div>
+          </div>
+        </div>
+
+        {/* Category Tabs & View Controls */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => setCreatorCategory('ALL')}
+              className={`px-4 py-2 rounded-xl text-xs font-extrabold transition ${
+                creatorCategory === 'ALL'
+                  ? 'bg-slate-900 text-white shadow'
+                  : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+              }`}
+            >
+              Tất Cả Đề ({exams.length})
+            </button>
+
+            <button
+              onClick={() => setCreatorCategory('OFFICIAL')}
+              className={`px-4 py-2 rounded-xl text-xs font-extrabold transition ${
+                creatorCategory === 'OFFICIAL'
+                  ? 'bg-purple-600 text-white shadow shadow-purple-500/20'
+                  : 'bg-white text-purple-700 hover:bg-purple-50 border border-purple-200'
+              }`}
+            >
+              👑 Đề Chính Thức Admin & GV ({officialCount})
+            </button>
+
+            <button
+              onClick={() => setCreatorCategory('STUDENT_AI')}
+              className={`px-4 py-2 rounded-xl text-xs font-extrabold transition ${
+                creatorCategory === 'STUDENT_AI'
+                  ? 'bg-amber-600 text-white shadow shadow-amber-500/20'
+                  : 'bg-white text-amber-700 hover:bg-amber-50 border border-amber-200'
+              }`}
+            >
+              🚀 Đề AI Học Sinh Tự Luyện ({studentAiCount})
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setViewMode('TABLE')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                viewMode === 'TABLE' ? 'bg-blue-600 text-white shadow-sm' : 'bg-white text-slate-600 border border-slate-200'
+              }`}
+            >
+              📊 Bảng Thu Gọn
+            </button>
+            <button
+              onClick={() => setViewMode('GRID')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                viewMode === 'GRID' ? 'bg-blue-600 text-white shadow-sm' : 'bg-white text-slate-600 border border-slate-200'
+              }`}
+            >
+              🎴 Dạng Thẻ (Grid)
+            </button>
+          </div>
+        </div>
+
+        {/* Search & Filter Bar */}
+        <div className="rounded-2xl border border-slate-200/90 bg-white p-4 shadow-sm mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+            <div className="sm:col-span-1">
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="🔍 Tìm theo tên đề thi..."
+                className="w-full px-3 py-2 text-xs font-medium rounded-xl border border-slate-200 bg-slate-50 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
             <div>
               <select
                 value={selectedSubject}
                 onChange={(e) => setSelectedSubject(e.target.value)}
-                className="w-full px-3 py-2 text-sm font-bold rounded-xl border border-slate-200 bg-slate-50 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 text-xs font-bold rounded-xl border border-slate-200 bg-slate-50 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">Tất cả môn học</option>
                 {SUBJECTS.map((sub) => (
@@ -172,7 +284,7 @@ export default function ExamsPage() {
               <select
                 value={selectedGrade}
                 onChange={(e) => setSelectedGrade(e.target.value)}
-                className="w-full px-3 py-2 text-sm font-bold rounded-xl border border-slate-200 bg-slate-50 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 text-xs font-bold rounded-xl border border-slate-200 bg-slate-50 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">Tất cả khối lớp (4-9)</option>
                 {GRADES.map((g) => (
@@ -187,7 +299,7 @@ export default function ExamsPage() {
               <select
                 value={selectedStatus}
                 onChange={(e) => setSelectedStatus(e.target.value)}
-                className="w-full px-3 py-2 text-sm font-bold rounded-xl border border-slate-200 bg-slate-50 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 text-xs font-bold rounded-xl border border-slate-200 bg-slate-50 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">Tất cả trạng thái</option>
                 <option value="DRAFT">Bản nháp (Draft)</option>
@@ -198,35 +310,97 @@ export default function ExamsPage() {
           </div>
         </div>
 
-        {/* Exams Grid */}
+        {/* Content Section */}
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20">
             <RefreshCw className="w-8 h-8 animate-spin text-blue-600 mb-3" />
             <p className="text-sm font-semibold text-slate-500">Đang tải danh sách đề thi...</p>
           </div>
-        ) : exams.length === 0 ? (
+        ) : filteredExams.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-slate-300 p-12 text-center bg-white">
             <FileCheck2 className="w-12 h-12 text-slate-400 mx-auto mb-3" />
             <h3 className="text-base font-bold text-slate-900">
-              Chưa có đề thi nào
+              Không tìm thấy đề thi phù hợp
             </h3>
             <p className="text-sm text-slate-500 mt-1 max-w-md mx-auto">
-              Tạo đề thi mới để giao bài cho học sinh và bắt đầu kỳ thi trực tuyến.
+              Thử điều chỉnh bộ lọc môn học, khối lớp hoặc từ khóa tìm kiếm.
             </p>
-            {isTeacherOrAdmin && (
-              <div className="mt-6">
-                <Link
-                  href="/exams/create"
-                  className="px-4 py-2 text-sm font-bold rounded-xl bg-blue-600 text-white hover:bg-blue-700 transition shadow-sm"
-                >
-                  Tạo Đề Thi Ngay
-                </Link>
-              </div>
-            )}
+          </div>
+        ) : viewMode === 'TABLE' ? (
+          /* COMPACT TABLE VIEW FOR ADMIN/TEACHER */
+          <div className="rounded-2xl border border-slate-200/90 bg-white overflow-hidden shadow-sm">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm text-slate-700">
+                <thead className="bg-slate-100/80 text-[11px] font-extrabold text-slate-500 uppercase tracking-wider border-b border-slate-200">
+                  <tr>
+                    <th className="px-4 py-3">ID</th>
+                    <th className="px-4 py-3">Tên Đề Thi</th>
+                    <th className="px-4 py-3">Môn Học</th>
+                    <th className="px-4 py-3">Khối Lớp</th>
+                    <th className="px-4 py-3">Nguồn Tạo</th>
+                    <th className="px-4 py-3">Thời Gian</th>
+                    <th className="px-4 py-3">Số Câu</th>
+                    <th className="px-4 py-3">Trạng Thái</th>
+                    {isTeacherOrAdmin && <th className="px-4 py-3 text-right">Thao Tác</th>}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-xs">
+                  {filteredExams.map((exam) => (
+                    <tr key={exam.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="px-4 py-3 font-mono text-slate-400 font-semibold">#{exam.id}</td>
+                      <td className="px-4 py-3 font-bold text-slate-900 max-w-xs truncate" title={exam.title}>
+                        {exam.title}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">
+                          {exam.subject}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                          Lớp {exam.grade}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        {getCreatorBadge(exam.created_by_role, exam.created_by_name)}
+                      </td>
+                      <td className="px-4 py-3 font-medium text-slate-600">
+                        {exam.duration_minutes} phút
+                      </td>
+                      <td className="px-4 py-3 font-medium text-slate-600">
+                        {exam.total_questions} câu
+                      </td>
+                      <td className="px-4 py-3">
+                        {getStatusBadge(exam.status)}
+                      </td>
+                      {isTeacherOrAdmin && (
+                        <td className="px-4 py-3 text-right space-x-2">
+                          {exam.status === 'DRAFT' && (
+                            <button
+                              onClick={() => handlePublish(exam.id)}
+                              className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded shadow-sm text-xs"
+                            >
+                              Xuất bản
+                            </button>
+                          )}
+                          <Link
+                            href={`/exams/${exam.id}/report`}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-700 hover:bg-blue-100 font-bold rounded border border-blue-200 text-xs"
+                          >
+                            <Layers className="w-3 h-3 text-blue-600" /> Báo cáo
+                          </Link>
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         ) : (
+          /* CARD GRID VIEW */
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {exams.map((exam) => (
+            {filteredExams.map((exam) => (
               <div
                 key={exam.id}
                 className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm hover:border-blue-400 transition flex flex-col justify-between"
