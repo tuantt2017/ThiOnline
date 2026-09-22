@@ -29,8 +29,13 @@ async def lifespan(app: FastAPI):
         if "diamond_balance" not in user_cols:
             with engine.begin() as conn:
                 conn.execute(text("ALTER TABLE users ADD COLUMN diamond_balance INTEGER DEFAULT 0;"))
+
+        if "is_demo" not in user_cols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE users ADD COLUMN is_demo BOOLEAN DEFAULT FALSE;"))
     except Exception as exc:
         print(f"[Migration Info] {exc}")
+
 
     # Auto-seed initial active accounts and sample gifts if DB has no Admin / Gifts
     from sqlalchemy.orm import Session as DBSession
