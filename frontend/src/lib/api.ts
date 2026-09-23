@@ -40,7 +40,10 @@ import {
   DiamondTransaction,
   GiftRedemption,
   RewardBalance,
+  WordScrambleQuestion,
+  WordScrambleVerifyResponse,
 } from '@/types';
+
 
 
 
@@ -681,7 +684,26 @@ export const api = {
       body: JSON.stringify({ max_uses }),
     });
   },
+
+  // Word Scramble Game Endpoints
+  getWordScrambleQuestion: async (subject?: string, grade?: number): Promise<WordScrambleQuestion> => {
+    const query = new URLSearchParams();
+    if (subject) query.append('subject', subject);
+    if (grade) query.append('grade', grade.toString());
+    const queryString = query.toString() ? `?${query.toString()}` : '';
+    return request<WordScrambleQuestion>(`/api/v1/games/word-scramble/next${queryString}`, {
+      method: 'GET',
+    });
+  },
+
+  verifyWordScrambleAnswer: async (gameId: string, userAnswer: string, streakCount: number = 0): Promise<WordScrambleVerifyResponse> => {
+    return request<WordScrambleVerifyResponse>('/api/v1/games/word-scramble/verify', {
+      method: 'POST',
+      body: JSON.stringify({ game_id: gameId, user_answer: userAnswer, streak_count: streakCount }),
+    });
+  },
 };
+
 
 
 

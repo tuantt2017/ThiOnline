@@ -801,6 +801,36 @@ export interface GiftRedemption {
   user_name?: string;
 }
 
+export interface WordScrambleQuestion {
+  game_id: string;
+  subject: string;
+  grade: number;
+  scrambled_letters: string[];
+  letter_count: number;
+  hint_meaning: string;
+  hint_sgk_lesson?: string | null;
+  first_letter_hint?: string | null;
+  english_audio_prompt?: string | null;
+  reward_diamonds: number;
+}
+
+export interface WordScrambleVerifyRequest {
+  game_id: string;
+  user_answer: string;
+  streak_count: number;
+}
+
+export interface WordScrambleVerifyResponse {
+  is_correct: boolean;
+  target_word: string;
+  user_answer: string;
+  explanation: string;
+  current_streak: number;
+  earned_diamonds: number;
+  new_diamond_balance?: number | null;
+}
+
+
 export interface RewardBalance {
   diamond_balance: number;
   total_earned: number;

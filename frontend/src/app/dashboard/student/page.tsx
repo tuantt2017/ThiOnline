@@ -62,8 +62,33 @@ export default function StudentDashboardPage() {
         {/* AI Adaptive Practice Generator Component */}
         <AiAdaptivePracticeCard />
 
+        {/* Word Scramble Game Banner Card */}
+        <div className="rounded-3xl border border-amber-200/90 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 p-6 text-slate-950 shadow-md flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 relative overflow-hidden">
+          <div className="space-y-1.5 z-10 max-w-2xl">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-950 text-amber-400 font-extrabold text-xs shadow-sm uppercase tracking-wider">
+              <span>👑</span> Game Show Trí Tuệ Học Đường
+            </div>
+            <h2 className="text-2xl font-black text-slate-950 tracking-tight">
+              Đấu Trường "Vua Từ Vựng SGK"
+            </h2>
+            <p className="text-xs font-semibold text-slate-900 leading-relaxed">
+              Giải trí cực vui cùng trò chơi xếp từ đảo lộn môn <strong>Tiếng Việt</strong> (từ ghép, thành ngữ) & <strong>Tiếng Anh</strong> (vựng SGK Lớp 4–9). Nhận ngay <strong>1–2 💎 Kim Cương</strong> khi đạt chuỗi thắng!
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => router.push('/student/games/word-scramble')}
+            className="z-10 shrink-0 inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-950 hover:bg-slate-900 text-amber-400 font-black px-6 py-3.5 text-xs shadow-xl active:scale-95 transition"
+          >
+            <span>Vào Chơi Vua Từ Vựng</span>
+            <ArrowRight className="w-4 h-4 text-amber-400" />
+          </button>
+        </div>
+
         {/* Action Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+
           {/* Card 1: Kỳ thi trực tuyến */}
           <div className="rounded-3xl border border-blue-200/90 bg-white p-6 shadow-sm flex flex-col justify-between hover:shadow-md hover:border-blue-400 transition">
             <div>

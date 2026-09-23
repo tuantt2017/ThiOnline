@@ -8,6 +8,7 @@ from app.api.v1.exams import router as exams_router
 from app.api.v1.english import router as english_router
 from app.api.v1.rewards import router as rewards_router
 from app.api.v1.system_settings import router as system_settings_router
+from app.api.v1.word_scramble import router as word_scramble_router
 
 api_router = APIRouter()
 api_router.include_router(auth_router)
@@ -19,5 +20,7 @@ api_router.include_router(exams_router)
 api_router.include_router(english_router, prefix="/english", tags=["english-ai"])
 api_router.include_router(rewards_router, prefix="/rewards", tags=["rewards"])
 api_router.include_router(system_settings_router)
+api_router.include_router(word_scramble_router)
+
 
 
