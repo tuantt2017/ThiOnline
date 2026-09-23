@@ -155,6 +155,13 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     const data = await response.json().catch(() => null);
 
     if (!response.ok) {
+      if ((response.status === 401 || response.status === 403) && typeof window !== 'undefined') {
+        if (!endpoint.includes('/auth/login') && !endpoint.includes('/auth/register')) {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          localStorage.removeItem('last_activity');
+        }
+      }
       const errorMessage = data?.detail || data?.message || `HTTP error! status: ${response.status}`;
       throw new ApiError(errorMessage, response.status, data);
     }
