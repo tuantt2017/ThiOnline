@@ -22,6 +22,7 @@ import {
   RotateCcw,
   Zap,
   Award,
+  Loader2,
 } from 'lucide-react';
 
 interface SelectedTile {
@@ -73,11 +74,13 @@ export default function WordScrambleGamePage() {
     }
   }, [user]);
 
-  // Fetch question
+  // Fetch question (Immediately clear old question so player doesn't see stale word while loading)
   const fetchNextQuestion = async (targetSub = subject, targetGrade = grade) => {
     setIsFetching(true);
-    setResult(null);
+    setQuestion(null); // CLEAR OLD QUESTION IMMEDIATELY
+    setScrambledList([]); // CLEAR OLD SCRAMBLED TILES IMMEDIATELY
     setSelectedTiles([]);
+    setResult(null);
     setShowHintModal(false);
     setTimerSeconds(60);
 
@@ -100,7 +103,7 @@ export default function WordScrambleGamePage() {
 
   // Timer Countdown
   useEffect(() => {
-    if (!question || result) return;
+    if (!question || result || isFetching) return;
     if (timerSeconds <= 0) {
       handleTimeOut();
       return;
@@ -113,7 +116,7 @@ export default function WordScrambleGamePage() {
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [timerSeconds, question, result]);
+  }, [timerSeconds, question, result, isFetching]);
 
   const handleTimeOut = () => {
     if (!question || result) return;
@@ -131,8 +134,7 @@ export default function WordScrambleGamePage() {
 
   // Handle Tile Click in Scrambled Grid
   const handleTileClick = (index: number, letter: string) => {
-    if (result || isVerifying) return;
-    // Check if tile already selected
+    if (result || isVerifying || isFetching) return;
     if (selectedTiles.some((t) => t.index === index)) return;
 
     setSelectedTiles((prev) => [...prev, { index, letter }]);
@@ -140,13 +142,13 @@ export default function WordScrambleGamePage() {
 
   // Handle Remove Tile from Answer Tray
   const handleRemoveTrayTile = (trayIndex: number) => {
-    if (result || isVerifying) return;
+    if (result || isVerifying || isFetching) return;
     setSelectedTiles((prev) => prev.filter((_, idx) => idx !== trayIndex));
   };
 
   // Reset entire answer tray
   const handleResetTray = () => {
-    if (result || isVerifying) return;
+    if (result || isVerifying || isFetching) return;
     setSelectedTiles([]);
   };
 
@@ -191,9 +193,9 @@ export default function WordScrambleGamePage() {
 
   if (isLoading || !user) {
     return (
-      <div className="flex-1 flex items-center justify-center p-12 bg-slate-900 text-white">
-        <div className="flex items-center gap-3 text-amber-400 font-bold">
-          <RefreshCw className="w-6 h-6 animate-spin" />
+      <div className="flex-1 min-h-screen flex items-center justify-center p-12 bg-slate-50 text-slate-800">
+        <div className="flex items-center gap-3 text-indigo-600 font-bold bg-white px-6 py-4 rounded-2xl shadow-lg border border-slate-100">
+          <Loader2 className="w-6 h-6 animate-spin text-indigo-600" />
           <span>Đang tải đấu trường Vua Từ Vựng SGK...</span>
         </div>
       </div>
@@ -201,23 +203,23 @@ export default function WordScrambleGamePage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 pb-20 relative overflow-hidden select-none">
-      {/* Dynamic Background Glows */}
-      <div className="absolute top-0 left-1/4 w-96 h-96 bg-purple-600/20 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-10 right-1/4 w-96 h-96 bg-amber-500/15 rounded-full blur-3xl pointer-events-none" />
+    <div className="min-h-screen bg-gradient-to-b from-amber-50/60 via-slate-50 to-indigo-50/30 text-slate-800 pb-20 relative select-none">
+      {/* Background Decorative Accents */}
+      <div className="absolute top-0 right-1/4 w-96 h-96 bg-amber-200/30 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-10 left-1/4 w-96 h-96 bg-indigo-200/30 rounded-full blur-3xl pointer-events-none" />
 
       <div className="container mx-auto max-w-4xl px-4 sm:px-6 py-8 space-y-6 relative z-10">
         {/* Top Header Navigation */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-slate-900/80 backdrop-blur-md p-4 rounded-3xl border border-slate-800 shadow-xl">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white/90 backdrop-blur-md p-4 sm:p-5 rounded-3xl border border-slate-200/80 shadow-md shadow-slate-200/50">
           <div className="flex items-center gap-3">
-            <div className="p-3 bg-gradient-to-br from-amber-400 to-amber-600 text-slate-950 rounded-2xl shadow-lg shadow-amber-500/20">
+            <div className="p-3 bg-gradient-to-br from-amber-400 to-amber-500 text-slate-950 rounded-2xl shadow-md shadow-amber-400/20">
               <Crown className="w-7 h-7" />
             </div>
             <div>
-              <div className="inline-flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider text-amber-400">
+              <div className="inline-flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider text-amber-600">
                 <Sparkles className="w-3.5 h-3.5" /> Đấu Trường Tri Thức SGK
               </div>
-              <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+              <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
                 Vua Từ Vựng SGK
               </h1>
             </div>
@@ -228,34 +230,34 @@ export default function WordScrambleGamePage() {
             {/* Diamond Balance */}
             <Link
               href="/student/rewards"
-              className="flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 font-extrabold text-xs hover:bg-amber-500/20 transition shadow-inner"
+              className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 font-extrabold text-xs hover:bg-amber-100/80 transition shadow-sm"
             >
-              <Diamond className="w-4 h-4 text-amber-400 fill-amber-400 animate-pulse" />
+              <Diamond className="w-4 h-4 text-amber-500 fill-amber-500 animate-pulse" />
               <span>{diamondBalance} 💎</span>
             </Link>
 
             {/* Win Streak */}
-            <div className="flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-orange-500/10 border border-orange-500/30 text-orange-400 font-extrabold text-xs shadow-inner" title="Thưởng 1-2 💎 Kim Cương khi đạt 10 câu đúng liên tiếp cho mỗi môn">
+            <div
+              className="flex items-center gap-1.5 px-4 py-2 rounded-2xl bg-orange-50 border border-orange-200 text-orange-700 font-extrabold text-xs shadow-sm"
+              title="Thưởng 1-2 💎 Kim Cương khi đạt 10 câu đúng liên tiếp cho mỗi môn"
+            >
               <Flame className="w-4 h-4 text-orange-500 fill-orange-500" />
               <span>Chuỗi: {streak}/10 🔥</span>
             </div>
-
           </div>
         </div>
 
         {/* Filter Controls (Subject & Grade Selectors) */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* Subject Switcher */}
-          <div className="flex bg-slate-900/90 p-1.5 rounded-2xl border border-slate-800 shadow-inner">
+          <div className="flex bg-slate-200/80 p-1.5 rounded-2xl border border-slate-200 shadow-inner">
             <button
               type="button"
-              onClick={() => {
-                setSubject('Tiếng Việt');
-              }}
+              onClick={() => setSubject('Tiếng Việt')}
               className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-xs transition ${
                 subject === 'Tiếng Việt'
                   ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md'
-                  : 'text-slate-400 hover:text-white'
+                  : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               <BookOpen className="w-4 h-4" />
@@ -263,13 +265,11 @@ export default function WordScrambleGamePage() {
             </button>
             <button
               type="button"
-              onClick={() => {
-                setSubject('Tiếng Anh');
-              }}
+              onClick={() => setSubject('Tiếng Anh')}
               className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-xs transition ${
                 subject === 'Tiếng Anh'
                   ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md'
-                  : 'text-slate-400 hover:text-white'
+                  : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               <GraduationCap className="w-4 h-4" />
@@ -278,11 +278,11 @@ export default function WordScrambleGamePage() {
           </div>
 
           {/* Grade Selector */}
-          <div className="flex items-center justify-between bg-slate-900/90 px-4 py-2 rounded-2xl border border-slate-800">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+          <div className="flex items-center justify-between bg-white px-4 py-2.5 rounded-2xl border border-slate-200/80 shadow-sm shadow-slate-200/40">
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
               Khối lớp SGK:
             </span>
-            <div className="flex gap-1">
+            <div className="flex gap-1.5">
               {[4, 5, 6, 7, 8, 9].map((g) => (
                 <button
                   key={g}
@@ -291,7 +291,7 @@ export default function WordScrambleGamePage() {
                   className={`w-8 h-8 rounded-xl text-xs font-black transition ${
                     grade === g
                       ? 'bg-amber-500 text-slate-950 shadow-md scale-105'
-                      : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
                   }`}
                 >
                   {g}
@@ -302,230 +302,250 @@ export default function WordScrambleGamePage() {
         </div>
 
         {/* Main Game Stage */}
-        <div className="bg-slate-900/90 rounded-3xl border border-slate-800/90 p-6 sm:p-8 shadow-2xl space-y-8 relative">
-          {/* Stage Top Bar: Timer & Actions */}
-          <div className="flex items-center justify-between pb-4 border-b border-slate-800">
-            <div className="flex items-center gap-2 text-xs font-bold text-slate-400">
-              <span className="p-1.5 bg-slate-800 rounded-lg text-amber-400">💡</span>
-              <span>
-                Cần xếp: <strong className="text-amber-400">{question?.letter_count || 0}</strong>{' '}
-                ký tự
-              </span>
+        <div className="bg-white rounded-3xl border border-slate-200/90 p-6 sm:p-8 shadow-xl shadow-slate-200/50 space-y-8 relative">
+          {/* Loading State when fetching new question */}
+          {isFetching || !question ? (
+            <div className="py-16 flex flex-col items-center justify-center space-y-4 text-center">
+              <div className="p-4 bg-amber-50 text-amber-600 rounded-full animate-bounce shadow-md border border-amber-200">
+                <Sparkles className="w-8 h-8" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-base font-extrabold text-slate-900 flex items-center justify-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin text-amber-500" />
+                  <span>Đang khởi tạo từ vựng mới...</span>
+                </h3>
+                <p className="text-xs text-slate-500">
+                  AI đang biên soạn câu hỏi ngẫu nhiên từ SGK Lớp {grade} môn {subject}
+                </p>
+              </div>
             </div>
+          ) : (
+            <>
+              {/* Stage Top Bar: Timer & Actions */}
+              <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+                <div className="flex items-center gap-2 text-xs font-bold text-slate-600">
+                  <span className="p-1.5 bg-amber-50 text-amber-600 rounded-lg border border-amber-200/60">💡</span>
+                  <span>
+                    Cần xếp: <strong className="text-amber-600">{question.letter_count}</strong>{' '}
+                    ký tự
+                  </span>
+                </div>
 
-            {/* Countdown Timer */}
-            <div
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-xl font-mono text-xs font-extrabold border transition ${
-                timerSeconds <= 15
-                  ? 'bg-rose-500/20 text-rose-400 border-rose-500/40 animate-pulse'
-                  : 'bg-slate-800/80 text-amber-300 border-slate-700'
-              }`}
-            >
-              <span>⏱️</span>
-              <span>{timerSeconds}s</span>
-            </div>
-
-            {/* Hint & Audio Prompt Buttons */}
-            <div className="flex items-center gap-2">
-              {subject === 'Tiếng Anh' && question?.english_audio_prompt && (
-                <button
-                  type="button"
-                  onClick={handlePlayAudio}
-                  disabled={isPlayingAudio}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-teal-500/10 text-teal-300 border border-teal-500/30 text-xs font-bold hover:bg-teal-500/20 transition"
+                {/* Countdown Timer */}
+                <div
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-xl font-mono text-xs font-extrabold border transition ${
+                    timerSeconds <= 15
+                      ? 'bg-rose-50 text-rose-600 border-rose-200 animate-pulse'
+                      : 'bg-slate-100 text-amber-700 border-slate-200'
+                  }`}
                 >
-                  <Volume2 className={`w-3.5 h-3.5 ${isPlayingAudio ? 'animate-bounce' : ''}`} />
-                  <span>Nghe Mẫu</span>
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={() => setShowHintModal(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 text-amber-300 border border-amber-500/30 text-xs font-bold hover:bg-amber-500/20 transition"
-              >
-                <Lightbulb className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
-                <span>Gợi Ý SGK</span>
-              </button>
-            </div>
-          </div>
+                  <span>⏱️</span>
+                  <span>{timerSeconds}s</span>
+                </div>
 
-          {/* Hint Quick Banner */}
-          {question?.hint_meaning && (
-            <div className="p-4 rounded-2xl bg-slate-800/60 border border-slate-700/80 text-xs font-medium text-slate-300 leading-relaxed text-center shadow-inner">
-              <strong className="text-amber-400">💡 Gợi Ý Định Nghĩa SGK:</strong>{' '}
-              {question.hint_meaning}
-            </div>
-          )}
-
-          {/* ANSWER TRAY AREA */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-xs font-bold text-slate-400 px-1">
-              <span>Khay Đáp Án Của Bạn:</span>
-              {selectedTiles.length > 0 && !result && (
-                <button
-                  type="button"
-                  onClick={handleResetTray}
-                  className="inline-flex items-center gap-1 text-rose-400 hover:text-rose-300 transition text-[11px]"
-                >
-                  <RotateCcw className="w-3 h-3" /> Đặt lại
-                </button>
-              )}
-            </div>
-
-            <div className="min-h-[72px] p-3 rounded-2xl bg-slate-950/80 border-2 border-dashed border-slate-800 flex flex-wrap items-center justify-center gap-2 transition">
-              {selectedTiles.length === 0 ? (
-                <span className="text-xs font-semibold text-slate-600 italic">
-                  Bấm vào các ô chữ cái phía dưới theo thứ tự để chọn...
-                </span>
-              ) : (
-                selectedTiles.map((tile, idx) => (
+                {/* Hint & Audio Prompt Buttons */}
+                <div className="flex items-center gap-2">
+                  {subject === 'Tiếng Anh' && question.english_audio_prompt && (
+                    <button
+                      type="button"
+                      onClick={handlePlayAudio}
+                      disabled={isPlayingAudio}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-teal-50 text-teal-700 border border-teal-200 text-xs font-bold hover:bg-teal-100 transition shadow-xs"
+                    >
+                      <Volume2 className={`w-3.5 h-3.5 ${isPlayingAudio ? 'animate-bounce' : ''}`} />
+                      <span>Nghe Mẫu</span>
+                    </button>
+                  )}
                   <button
-                    key={`${tile.index}-${idx}`}
                     type="button"
-                    onClick={() => handleRemoveTrayTile(idx)}
-                    className="h-12 min-w-[48px] px-3 rounded-xl bg-gradient-to-b from-amber-400 to-amber-500 text-slate-950 font-black text-lg shadow-lg shadow-amber-500/20 hover:scale-105 active:scale-95 transition flex items-center justify-center border-t border-amber-200"
+                    onClick={() => setShowHintModal(true)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 text-amber-700 border border-amber-200 text-xs font-bold hover:bg-amber-100 transition shadow-xs"
                   >
-                    {tile.letter === ' ' ? '␣' : tile.letter}
+                    <Lightbulb className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+                    <span>Gợi Ý SGK</span>
                   </button>
-                ))
-              )}
-            </div>
-          </div>
-
-          {/* SCRAMBLED TILES SELECTION GRID */}
-          <div className="space-y-2 pt-2">
-            <div className="text-xs font-bold text-slate-400 px-1">
-              Các Ký Tự Đảo Lộn (Bấm Để Chọn):
-            </div>
-
-            <div className="flex flex-wrap items-center justify-center gap-3 py-2">
-              {scrambledList.map((letter, index) => {
-                const isSelected = selectedTiles.some((t) => t.index === index);
-                return (
-                  <button
-                    key={`scrambled-${index}`}
-                    type="button"
-                    disabled={isSelected || !!result}
-                    onClick={() => handleTileClick(index, letter)}
-                    className={`h-14 min-w-[54px] px-3.5 rounded-2xl font-black text-xl shadow-md transition flex items-center justify-center border-b-4 ${
-                      isSelected
-                        ? 'opacity-20 scale-90 border-transparent bg-slate-800 text-slate-500 cursor-not-allowed'
-                        : 'bg-gradient-to-b from-blue-500 to-indigo-600 hover:from-blue-400 hover:to-indigo-500 border-indigo-900 text-white shadow-indigo-500/25 hover:scale-110 active:scale-95'
-                    }`}
-                  >
-                    {letter === ' ' ? '␣' : letter}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Submit Action Button */}
-          {!result && (
-            <div className="pt-4 flex items-center justify-center">
-              <button
-                type="button"
-                onClick={handleSubmitAnswer}
-                disabled={selectedTiles.length === 0 || isVerifying}
-                className="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-extrabold text-sm shadow-xl shadow-amber-500/20 disabled:opacity-40 transition flex items-center justify-center gap-2 active:scale-95"
-              >
-                {isVerifying ? (
-                  <RefreshCw className="w-5 h-5 animate-spin" />
-                ) : (
-                  <>
-                    <Zap className="w-5 h-5 fill-slate-950" />
-                    <span>Nộp Đáp Án</span>
-                  </>
-                )}
-              </button>
-            </div>
-          )}
-
-          {/* VERIFICATION RESULT FEEDBACK BOX */}
-          {result && (
-            <div
-              className={`p-6 rounded-3xl border space-y-4 animate-in fade-in zoom-in-95 duration-200 ${
-                result.is_correct
-                  ? 'bg-emerald-950/80 border-emerald-500/50 text-emerald-100'
-                  : 'bg-rose-950/80 border-rose-500/50 text-rose-100'
-              }`}
-            >
-              <div className="flex items-start gap-4">
-                {result.is_correct ? (
-                  <div className="p-3 bg-emerald-500 text-slate-950 rounded-2xl shadow-lg">
-                    <CheckCircle2 className="w-8 h-8" />
-                  </div>
-                ) : (
-                  <div className="p-3 bg-rose-500 text-white rounded-2xl shadow-lg">
-                    <XCircle className="w-8 h-8" />
-                  </div>
-                )}
-
-                <div className="flex-1 space-y-1">
-                  <div className="text-base font-black flex items-center gap-2">
-                    <span>{result.is_correct ? '🎉 CHÍNH XÁC 100%!' : '❌ CHƯA CHÍNH XÁC'}</span>
-                    {result.earned_diamonds > 0 && (
-                      <span className="inline-flex items-center gap-1 text-xs px-2.5 py-0.5 rounded-full bg-amber-400 text-slate-950 font-extrabold animate-bounce">
-                        <Award className="w-3.5 h-3.5" /> +{result.earned_diamonds} 💎 Thưởng Streak!
-                      </span>
-                    )}
-                  </div>
-
-                  <p className="text-xs font-medium leading-relaxed opacity-90">
-                    {result.explanation}
-                  </p>
                 </div>
               </div>
 
-              {/* Next Question Action */}
-              <div className="flex justify-end pt-2 border-t border-white/10">
-                <button
-                  type="button"
-                  onClick={() => fetchNextQuestion(subject, grade)}
-                  className="px-6 py-2.5 rounded-xl bg-white text-slate-950 font-extrabold text-xs shadow-md hover:bg-slate-100 transition flex items-center gap-2"
-                >
-                  <span>Từ Tiếp Theo</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
+              {/* Hint Quick Banner */}
+              {question.hint_meaning && (
+                <div className="p-4 rounded-2xl bg-amber-50/80 border border-amber-200/80 text-xs font-medium text-amber-900 leading-relaxed text-center shadow-xs">
+                  <strong className="text-amber-700 font-extrabold">💡 Gợi Ý Định Nghĩa SGK:</strong>{' '}
+                  {question.hint_meaning}
+                </div>
+              )}
+
+              {/* ANSWER TRAY AREA */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs font-bold text-slate-500 px-1">
+                  <span>Khay Đáp Án Của Bạn:</span>
+                  {selectedTiles.length > 0 && !result && (
+                    <button
+                      type="button"
+                      onClick={handleResetTray}
+                      className="inline-flex items-center gap-1 text-rose-500 hover:text-rose-600 transition text-[11px] font-bold"
+                    >
+                      <RotateCcw className="w-3 h-3" /> Đặt lại
+                    </button>
+                  )}
+                </div>
+
+                <div className="min-h-[76px] p-3 rounded-2xl bg-slate-50 border-2 border-dashed border-slate-200 flex flex-wrap items-center justify-center gap-2 transition">
+                  {selectedTiles.length === 0 ? (
+                    <span className="text-xs font-medium text-slate-400 italic">
+                      Bấm vào các ô chữ cái phía dưới theo thứ tự để chọn...
+                    </span>
+                  ) : (
+                    selectedTiles.map((tile, idx) => (
+                      <button
+                        key={`${tile.index}-${idx}`}
+                        type="button"
+                        onClick={() => handleRemoveTrayTile(idx)}
+                        className="h-12 min-w-[48px] px-3 rounded-xl bg-gradient-to-b from-amber-400 to-amber-500 text-slate-950 font-black text-lg shadow-md shadow-amber-200 hover:scale-105 active:scale-95 transition flex items-center justify-center border-b-2 border-amber-600"
+                      >
+                        {tile.letter === ' ' ? '␣' : tile.letter}
+                      </button>
+                    ))
+                  )}
+                </div>
               </div>
-            </div>
+
+              {/* SCRAMBLED TILES SELECTION GRID */}
+              <div className="space-y-2 pt-2">
+                <div className="text-xs font-bold text-slate-500 px-1">
+                  Các Ký Tự Đảo Lộn (Bấm Để Chọn):
+                </div>
+
+                <div className="flex flex-wrap items-center justify-center gap-3 py-2">
+                  {scrambledList.map((letter, index) => {
+                    const isSelected = selectedTiles.some((t) => t.index === index);
+                    return (
+                      <button
+                        key={`scrambled-${index}`}
+                        type="button"
+                        disabled={isSelected || !!result}
+                        onClick={() => handleTileClick(index, letter)}
+                        className={`h-14 min-w-[54px] px-3.5 rounded-2xl font-black text-xl shadow-md transition flex items-center justify-center border-b-4 ${
+                          isSelected
+                            ? 'opacity-25 scale-90 border-transparent bg-slate-200 text-slate-400 cursor-not-allowed'
+                            : 'bg-gradient-to-b from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 border-indigo-800 text-white shadow-indigo-200 hover:scale-110 active:scale-95'
+                        }`}
+                      >
+                        {letter === ' ' ? '␣' : letter}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Submit Action Button */}
+              {!result && (
+                <div className="pt-4 flex items-center justify-center">
+                  <button
+                    type="button"
+                    onClick={handleSubmitAnswer}
+                    disabled={selectedTiles.length === 0 || isVerifying}
+                    className="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-sm shadow-lg shadow-amber-200/80 disabled:opacity-40 transition flex items-center justify-center gap-2 active:scale-95"
+                  >
+                    {isVerifying ? (
+                      <RefreshCw className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <>
+                        <Zap className="w-5 h-5 fill-slate-950" />
+                        <span>Nộp Đáp Án</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
+
+              {/* VERIFICATION RESULT FEEDBACK BOX */}
+              {result && (
+                <div
+                  className={`p-6 rounded-3xl border space-y-4 animate-in fade-in zoom-in-95 duration-200 ${
+                    result.is_correct
+                      ? 'bg-emerald-50 border-emerald-200 text-emerald-950 shadow-md shadow-emerald-100'
+                      : 'bg-rose-50 border-rose-200 text-rose-950 shadow-md shadow-rose-100'
+                  }`}
+                >
+                  <div className="flex items-start gap-4">
+                    {result.is_correct ? (
+                      <div className="p-3 bg-emerald-500 text-white rounded-2xl shadow-md">
+                        <CheckCircle2 className="w-7 h-7" />
+                      </div>
+                    ) : (
+                      <div className="p-3 bg-rose-500 text-white rounded-2xl shadow-md">
+                        <XCircle className="w-7 h-7" />
+                      </div>
+                    )}
+
+                    <div className="flex-1 space-y-1">
+                      <div className="text-base font-black flex items-center gap-2 text-slate-900">
+                        <span>{result.is_correct ? '🎉 CHÍNH XÁC 100%!' : '❌ CHƯA CHÍNH XÁC'}</span>
+                        {result.earned_diamonds > 0 && (
+                          <span className="inline-flex items-center gap-1 text-xs px-2.5 py-0.5 rounded-full bg-amber-400 text-slate-950 font-extrabold animate-bounce">
+                            <Award className="w-3.5 h-3.5" /> +{result.earned_diamonds} 💎 Thưởng Streak!
+                          </span>
+                        )}
+                      </div>
+
+                      <p className="text-xs font-medium leading-relaxed text-slate-700">
+                        {result.explanation}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Next Question Action */}
+                  <div className="flex justify-end pt-2 border-t border-slate-200/60">
+                    <button
+                      type="button"
+                      onClick={() => fetchNextQuestion(subject, grade)}
+                      className="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs shadow-md shadow-indigo-200 transition flex items-center gap-2"
+                    >
+                      <span>Từ Tiếp Theo</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
 
       {/* SGK HINT MODAL */}
-      {showHintModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 animate-in fade-in duration-150">
-          <div className="w-full max-w-md bg-slate-900 border border-slate-700 rounded-3xl p-6 space-y-5 shadow-2xl relative">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <div className="flex items-center gap-2 text-amber-400 font-bold text-sm">
-                <Lightbulb className="w-5 h-5 fill-amber-400" />
+      {showHintModal && question && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-in fade-in duration-150">
+          <div className="w-full max-w-md bg-white border border-slate-200 rounded-3xl p-6 space-y-5 shadow-2xl relative">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2 text-amber-600 font-extrabold text-sm">
+                <Lightbulb className="w-5 h-5 fill-amber-500 text-amber-500" />
                 <span>Gợi Ý Tri Thức SGK</span>
               </div>
               <button
                 type="button"
                 onClick={() => setShowHintModal(false)}
-                className="text-slate-400 hover:text-white text-sm font-bold p-1 rounded-lg hover:bg-slate-800 transition"
+                className="text-slate-400 hover:text-slate-700 text-sm font-bold p-1 rounded-lg hover:bg-slate-100 transition"
               >
                 ✕
               </button>
             </div>
 
             <div className="space-y-3 text-xs leading-relaxed">
-              <div className="p-3 bg-slate-800/80 rounded-2xl border border-slate-700">
-                <span className="font-bold text-slate-400 block mb-1">📖 Bài học SGK:</span>
-                <span className="text-slate-200 font-semibold">{question?.hint_sgk_lesson || 'Chương trình GDPT Lớp 4-9'}</span>
+              <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80">
+                <span className="font-bold text-slate-500 block mb-1">📖 Bài học SGK:</span>
+                <span className="text-slate-800 font-semibold">{question.hint_sgk_lesson || 'Chương trình GDPT Lớp 4-9'}</span>
               </div>
 
-              <div className="p-3 bg-slate-800/80 rounded-2xl border border-slate-700">
-                <span className="font-bold text-slate-400 block mb-1">💡 Nghĩa của từ / Cụm từ:</span>
-                <span className="text-amber-300 font-semibold">{question?.hint_meaning}</span>
+              <div className="p-3.5 bg-amber-50/80 rounded-2xl border border-amber-200/80">
+                <span className="font-bold text-amber-700 block mb-1">💡 Nghĩa của từ / Cụm từ:</span>
+                <span className="text-amber-900 font-semibold">{question.hint_meaning}</span>
               </div>
 
-              {question?.first_letter_hint && (
-                <div className="p-3 bg-amber-500/10 rounded-2xl border border-amber-500/30">
-                  <span className="font-bold text-amber-400 block mb-1">🔤 Ký tự đầu tiên:</span>
-                  <span className="text-amber-200 font-extrabold text-sm uppercase">
+              {question.first_letter_hint && (
+                <div className="p-3.5 bg-indigo-50 rounded-2xl border border-indigo-200">
+                  <span className="font-bold text-indigo-600 block mb-1">🔤 Ký tự đầu tiên:</span>
+                  <span className="text-indigo-900 font-extrabold text-sm uppercase">
                     "{question.first_letter_hint}"...
                   </span>
                 </div>
@@ -535,7 +555,7 @@ export default function WordScrambleGamePage() {
             <button
               type="button"
               onClick={() => setShowHintModal(false)}
-              className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition"
+              className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition shadow-md"
             >
               Đã Hiểu, Quay Lại Trò Chơi
             </button>
