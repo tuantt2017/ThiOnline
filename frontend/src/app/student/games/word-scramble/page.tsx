@@ -235,10 +235,11 @@ export default function WordScrambleGamePage() {
             </Link>
 
             {/* Win Streak */}
-            <div className="flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-orange-500/10 border border-orange-500/30 text-orange-400 font-extrabold text-xs shadow-inner">
+            <div className="flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-orange-500/10 border border-orange-500/30 text-orange-400 font-extrabold text-xs shadow-inner" title="Thưởng 1-2 💎 Kim Cương khi đạt 10 câu đúng liên tiếp cho mỗi môn">
               <Flame className="w-4 h-4 text-orange-500 fill-orange-500" />
-              <span>Chuỗi: {streak} 🔥</span>
+              <span>Chuỗi: {streak}/10 🔥</span>
             </div>
+
           </div>
         </div>
 

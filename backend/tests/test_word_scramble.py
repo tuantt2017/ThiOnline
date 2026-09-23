@@ -1,6 +1,6 @@
 import pytest
 from fastapi.testclient import TestClient
-from app.services.word_scramble_service import WordScrambleService
+from app.services.word_scramble_service import WordScrambleService, GAME_SESSIONS
 
 
 def test_get_next_word_scramble_question_service(db, student_user):
@@ -20,24 +20,30 @@ def test_get_next_word_scramble_question_service(db, student_user):
     assert q_en.english_audio_prompt is not None
 
 
-def test_verify_word_scramble_answer(db, student_user):
-    """Test verifying answer, streak progression, and diamond reward."""
+def test_verify_word_scramble_10_streak_reward_rule(db, student_user):
+    """Test 10-streak reward rule: Only award diamonds at multiples of 10 consecutive correct answers."""
     q = WordScrambleService.get_next_question(db, student_user, subject="Tiếng Việt", grade=4)
-    
-    # Verify with correct target word from GAME_SESSIONS
-    from app.services.word_scramble_service import GAME_SESSIONS
     target_word = GAME_SESSIONS[q.game_id]["target_word"]
 
-    res_correct = WordScrambleService.verify_answer(
+    # Streak 5 does NOT award diamonds anymore
+    res_streak5 = WordScrambleService.verify_answer(
         db, student_user, game_id=q.game_id, user_answer=target_word, streak_count=4
     )
-    assert res_correct.is_correct is True
-    assert res_correct.current_streak == 5
-    assert res_correct.earned_diamonds >= 1
+    assert res_streak5.is_correct is True
+    assert res_streak5.current_streak == 5
+    assert res_streak5.earned_diamonds == 0
 
-    # Verify wrong answer resets streak
+    # Streak 10 DOES award 1-2 diamonds
+    res_streak10 = WordScrambleService.verify_answer(
+        db, student_user, game_id=q.game_id, user_answer=target_word, streak_count=9
+    )
+    assert res_streak10.is_correct is True
+    assert res_streak10.current_streak == 10
+    assert res_streak10.earned_diamonds >= 1
+
+    # Verify wrong answer resets streak to 0
     res_wrong = WordScrambleService.verify_answer(
-        db, student_user, game_id=q.game_id, user_answer="SAIHOANTOAN", streak_count=5
+        db, student_user, game_id=q.game_id, user_answer="SAIHOANTOAN", streak_count=10
     )
     assert res_wrong.is_correct is False
     assert res_wrong.current_streak == 0
