@@ -567,12 +567,16 @@ YÊU CẦU ĐẦU RA JSON CHÍNH XÁC:
         new_balance = student.diamond_balance or 0
         new_streak = streak_count + 1 if is_correct else 0
 
-        # RULE UPDATE: Award 1-2 Diamonds only on every 10 consecutive correct streak milestone per subject
+        # RULE UPDATE: Award 1 Diamond only on every 10 consecutive correct streak milestone per subject
+        # DAILY CAP: Maximum 2 diamonds per day from Word Scramble game
         if is_correct and new_streak > 0 and new_streak % 10 == 0:
-            reward_res = RewardService.award_ai_practice_diamonds(
-                db, student.id, unit_id=f"word_scramble_streak_{target_subject}_{new_streak}"
+            reward_res = RewardService.award_word_scramble_diamonds(
+                db,
+                student.id,
+                reference_id=f"streak_{target_subject}_{new_streak}",
+                max_daily_diamonds=2,
             )
-            earned_diamonds = reward_res.get("awarded", 1)
+            earned_diamonds = reward_res.get("awarded", 0)
             new_balance = reward_res.get("new_balance", new_balance)
 
         explanation = (
@@ -582,6 +586,10 @@ YÊU CẦU ĐẦU RA JSON CHÍNH XÁC:
             else f"❌ Chưa chính xác! Đáp án đúng là '{target}'. "
             f"Nghĩa từ: {session['hint_meaning']}."
         )
+
+        if is_correct and new_streak > 0 and new_streak % 10 == 0 and earned_diamonds == 0:
+            explanation += " (ℹ️ Bạn đã đạt hạn mức nhận tối đa 2 💎 Kim Cương/ngày từ trò chơi Vua Từ Vựng. Hãy quay lại thử sức vào ngày mai nhé!)"
+
 
         return WordScrambleVerifyResponse(
             is_correct=is_correct,

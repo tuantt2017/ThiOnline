@@ -128,6 +128,73 @@ class RewardService:
         return {"awarded": 1, "new_balance": user.diamond_balance}
 
     @staticmethod
+    def award_word_scramble_diamonds(
+        db: Session, user_id: int, reference_id: str, max_daily_diamonds: int = 2
+    ) -> dict:
+        """
+        Awards 1 diamond for Word Scramble streak milestone, enforcing a strict daily cap of 2 diamonds.
+        """
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            return {"awarded": 0, "daily_capped": False}
+
+        from datetime import datetime, timezone
+        today_start = datetime.now(timezone.utc).replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
+
+        # Sum diamonds awarded today for word scramble
+        today_awarded_sum = (
+            db.query(func.sum(DiamondTransaction.amount))
+            .filter(
+                DiamondTransaction.user_id == user_id,
+                DiamondTransaction.transaction_type == TransactionType.AI_PRACTICE_REWARD,
+                DiamondTransaction.reference_id.like("word_scramble_%"),
+                DiamondTransaction.created_at >= today_start,
+            )
+            .scalar()
+            or 0
+        )
+
+        today_earned = int(today_awarded_sum)
+        if today_earned >= max_daily_diamonds:
+            return {
+                "awarded": 0,
+                "daily_capped": True,
+                "today_earned": today_earned,
+                "new_balance": user.diamond_balance or 0,
+            }
+
+        award_amount = min(1, max_daily_diamonds - today_earned)
+        if award_amount <= 0:
+            return {
+                "awarded": 0,
+                "daily_capped": True,
+                "today_earned": today_earned,
+                "new_balance": user.diamond_balance or 0,
+            }
+
+        user.diamond_balance = (user.diamond_balance or 0) + award_amount
+        tx = DiamondTransaction(
+            user_id=user_id,
+            amount=award_amount,
+            transaction_type=TransactionType.AI_PRACTICE_REWARD,
+            description=f"Thưởng {award_amount} 💎 - Chuỗi 10 câu đúng trò chơi Vua Từ Vựng SGK",
+            reference_id=f"word_scramble_{reference_id}",
+        )
+        db.add(tx)
+        db.commit()
+        db.refresh(user)
+
+        return {
+            "awarded": award_amount,
+            "daily_capped": False,
+            "today_earned": today_earned + award_amount,
+            "new_balance": user.diamond_balance,
+        }
+
+
+    @staticmethod
     def get_active_reward_items(db: Session) -> List[RewardItem]:
         return (
             db.query(RewardItem)
