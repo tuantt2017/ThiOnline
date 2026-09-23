@@ -1,6 +1,6 @@
 import pytest
 from fastapi.testclient import TestClient
-from app.services.word_scramble_service import WordScrambleService, GAME_SESSIONS
+from app.services.word_scramble_service import WordScrambleService, GAME_SESSIONS, ENGLISH_BLACKLIST_WORDS
 
 
 def test_get_next_word_scramble_question_service(db, student_user):
@@ -18,6 +18,35 @@ def test_get_next_word_scramble_question_service(db, student_user):
     assert q_en.subject == "Tiếng Anh"
     assert q_en.grade == 5
     assert q_en.english_audio_prompt is not None
+
+
+def test_word_scramble_language_isolation(db, student_user):
+    """Test strict separation: English questions MUST be pure English, Vietnamese questions MUST NOT be pure English words."""
+    # Test 10 consecutive Vietnamese questions
+    for _ in range(10):
+        q = WordScrambleService.get_next_question(db, student_user, subject="Tiếng Việt", grade=5)
+        target = GAME_SESSIONS[q.game_id]["target_word"]
+        # Must not be an English blacklist word
+        assert target not in ENGLISH_BLACKLIST_WORDS
+
+    # Test 10 consecutive English questions
+    for _ in range(10):
+        q = WordScrambleService.get_next_question(db, student_user, subject="Tiếng Anh", grade=5)
+        target = GAME_SESSIONS[q.game_id]["target_word"]
+        # Must be valid English ASCII
+        assert WordScrambleService._is_valid_english_word(target) is True
+
+
+def test_word_scramble_non_repetition(db, student_user):
+    """Test that consecutive question requests do not repeat the exact same target word."""
+    served_words = []
+    for _ in range(8):
+        q = WordScrambleService.get_next_question(db, student_user, subject="Tiếng Việt", grade=4)
+        target = GAME_SESSIONS[q.game_id]["target_word"]
+        served_words.append(target)
+
+    # In 8 consecutive calls, all 8 words should be distinct
+    assert len(set(served_words)) == 8
 
 
 def test_verify_word_scramble_10_streak_reward_rule(db, student_user):
