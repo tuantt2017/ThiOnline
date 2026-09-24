@@ -805,6 +805,9 @@ export interface WordScrambleQuestion {
   game_id: string;
   subject: string;
   grade: number;
+  mode?: 'word' | 'sentence';
+  stage?: number;
+  total_stages?: number;
   scrambled_letters: string[];
   letter_count: number;
   hint_meaning: string;

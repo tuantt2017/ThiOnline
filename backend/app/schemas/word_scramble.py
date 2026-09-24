@@ -6,13 +6,16 @@ class WordScrambleQuestionResponse(BaseModel):
     game_id: str = Field(..., description="ID phiên câu hỏi")
     subject: str = Field(..., description="Môn học (Tiếng Việt / Tiếng Anh)")
     grade: int = Field(..., description="Khối lớp (4-9)")
+    mode: str = Field("word", description="Chế độ xếp: 'word' (xếp chữ cái, tối đa 2 tiếng) hoặc 'sentence' (xếp từ/tiếng thành câu)")
+    stage: int = Field(1, description="Chặng hiện tại (1-15)")
+    total_stages: int = Field(15, description="Tổng số chặng trong hành trình (15)")
     scrambled_letters: List[str] = Field(..., description="Danh sách các ký tự / tiếng đảo lộn")
     letter_count: int = Field(..., description="Số lượng ký tự / tiếng")
     hint_meaning: str = Field(..., description="Gợi ý nghĩa của từ / ngữ cảnh")
     hint_sgk_lesson: Optional[str] = Field(None, description="Vị trí bài học SGK GDPT 2018")
     first_letter_hint: Optional[str] = Field(None, description="Gợi ý ký tự đầu tiên")
     english_audio_prompt: Optional[str] = Field(None, description="Văn bản phát âm chuẩn Tiếng Anh (nếu là môn Tiếng Anh)")
-    reward_diamonds: int = Field(default=1, description="Số kim cương thưởng khi đạt streak 5 câu đúng")
+    reward_diamonds: int = Field(default=1, description="Số kim cương thưởng khi đạt mốc streak 10 câu đúng")
 
 
 class WordScrambleVerifyRequest(BaseModel):

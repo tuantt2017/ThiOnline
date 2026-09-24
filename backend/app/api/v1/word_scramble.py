@@ -18,17 +18,19 @@ router = APIRouter(prefix="/games/word-scramble", tags=["word-scramble-game"])
 def get_next_word_scramble_question(
     subject: Optional[str] = Query("Tiếng Việt", description="Môn học (Tiếng Việt hoặc Tiếng Anh)"),
     grade: Optional[int] = Query(None, ge=4, le=9, description="Khối lớp (4-9)"),
+    stage: Optional[int] = Query(1, ge=1, le=15, description="Chặng hiện tại (1-15)"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     """
-    Get next scrambled word question from SGK curriculum (Grade 4-9).
+    Get next scrambled word/sentence question from SGK curriculum (Grade 4-9) for stage 1-15.
     """
     return WordScrambleService.get_next_question(
         db=db,
         student=current_user,
         subject=subject,
         grade=grade,
+        stage=stage or 1,
     )
 
 

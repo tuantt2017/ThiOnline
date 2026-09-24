@@ -50,6 +50,12 @@ VIETNAMESE_SGK_WORDS: List[Dict[str, Any]] = [
     {"word": "HIẾU THẢO", "grade": 4, "hint": "Lòng biết ơn và sự chăm sóc kính trọng cha mẹ, ông bà.", "lesson": "SGK Tiếng Việt 4 - Bài 'Mẹ vắng nhà'"},
     {"word": "TỰ TRỌNG", "grade": 4, "hint": "Coi trọng và giữ gìn nhân cách, phẩm giá của chính mình.", "lesson": "SGK Tiếng Việt 4 - Luyện từ và câu"},
     {"word": "THÀNH THẬT", "grade": 4, "hint": "Thành thật, không dối trá, luôn nói đúng sự thật.", "lesson": "SGK Tiếng Việt 4 - Bài học Đạo đức"},
+    {"word": "CẦN CÙ", "grade": 4, "hint": "Chịu khó làm việc một cách thường xuyên, đều đặn.", "lesson": "SGK Tiếng Việt 4"},
+    {"word": "THƯƠNG NGHÈO", "grade": 4, "hint": "Tấm lòng nhân ái, sẵn sàng giúp đỡ người gặp khó khăn.", "lesson": "SGK Tiếng Việt 4"},
+    {"word": "LỄ PHÉP", "grade": 4, "hint": "Thái độ kính trọng, đúng mực đối với người lớn tuổi.", "lesson": "SGK Tiếng Việt 4"},
+    {"word": "HỌC HỎI", "grade": 4, "hint": "Tìm tòi, tiếp thu kiến thức mới từ sách vở và mọi người.", "lesson": "SGK Tiếng Việt 4"},
+    {"word": "GIÚP ĐỠ", "grade": 4, "hint": "Hành động san sẻ công sức để người khác vượt qua khó khăn.", "lesson": "SGK Tiếng Việt 4"},
+    {"word": "CHAN HÒA", "grade": 4, "hint": "Sống cởi mở, thân thiện và gắn bó với tập thể.", "lesson": "SGK Tiếng Việt 4"},
 
     # Lớp 5
     {"word": "THIÊN NHIÊN", "grade": 5, "hint": "Tất cả những gì tồn tại xung quanh con người không do con người tạo ra.", "lesson": "SGK Tiếng Việt 5 - Chủ điểm 'Mẹ Thiên Nhiên'"},
@@ -178,26 +184,50 @@ class WordScrambleService:
         return True
 
     @staticmethod
-    def _scramble_letters(word: str) -> List[str]:
-        """Scrambles characters in a word while preserving spaces."""
+    def _scramble_items(word: str) -> Dict[str, Any]:
+        """
+        Scrambles items based on word count:
+        - 1-2 words: Mode 'word' (scrambles individual letters).
+        - 3+ words: Mode 'sentence' (scrambles whole word tokens).
+        """
         clean_word = word.strip().upper()
-        chars = [c for c in clean_word if c != " "]
+        words = clean_word.split()
 
-        shuffled = chars.copy()
-        if len(shuffled) > 1:
-            for _ in range(12):
-                random.shuffle(shuffled)
-                if "".join(shuffled) != "".join(chars):
-                    break
-        return shuffled
+        if len(words) >= 3:
+            # Sentence / Phrase Scramble mode: scramble whole word tokens
+            shuffled = words.copy()
+            if len(shuffled) > 1:
+                for _ in range(12):
+                    random.shuffle(shuffled)
+                    if shuffled != words:
+                        break
+            return {
+                "mode": "sentence",
+                "items": shuffled,
+                "count": len(words),
+            }
+        else:
+            # Word Scramble mode: scramble individual letters
+            chars = [c for c in clean_word if c != " "]
+            shuffled = chars.copy()
+            if len(shuffled) > 1:
+                for _ in range(12):
+                    random.shuffle(shuffled)
+                    if "".join(shuffled) != "".join(chars):
+                        break
+            return {
+                "mode": "word",
+                "items": shuffled,
+                "count": len(chars),
+            }
 
     @classmethod
     def _generate_word_with_gemini(
-        cls, subject: str, grade: int, recent_words: Optional[List[str]] = None
+        cls, subject: str, grade: int, stage: int = 1, recent_words: Optional[List[str]] = None
     ) -> Optional[Dict[str, Any]]:
         """
         Calls Google Gemini AI to dynamically generate a fresh SGK word/phrase item
-        with strict language prompts and non-repetition rules.
+        tailored to Chặng (Stage 1-15) difficulty.
         """
         if not GeminiKnowledgeService.is_gemini_configured():
             return None
@@ -210,36 +240,43 @@ class WordScrambleService:
         sub_name = "Tiếng Anh" if is_english else "Tiếng Việt"
         recent_str = ", ".join(recent_words[-15:]) if recent_words else "Không có"
 
+        if stage <= 5:
+            req_type = "từ ghép hoặc từ vựng ngắn TỐI ĐA 2 TIẾNG (Ví dụ: 'TRUNG THỰC', 'YÊU THƯƠNG', 'TEACHER', 'FAMILY')"
+        elif stage <= 10:
+            req_type = "từ ghép 2 tiếng hoặc cụm từ 3 tiếng (Ví dụ: 'BẢO VỆ MÔI TRƯỜNG', 'COMMUNITY', 'TÔN SƯ TRỌNG ĐẠO')"
+        else:
+            req_type = "câu thành ngữ, tục ngữ dài hoặc câu nói hay SGK 3-5 tiếng (Ví dụ: 'UỐNG NƯỚC NHỚ NGUỒN', 'ĂN QUẢ NHỚ KẺ TRỒNG CÂY', 'PROTECT THE ENVIRONMENT')"
+
         if is_english:
-            prompt = f"""Bạn là giáo viên Tiếng Anh biên soạn từ vựng SGK Tiếng Anh Lớp {grade} (GDPT 2018).
-Hãy sinh ngẫu nhiên 01 từ vựng hoặc cụm từ TIẾNG ANH (English Vocabulary) thuộc bài học Lớp {grade}.
+            prompt = f"""Bạn là giáo viên Tiếng Anh biên soạn từ vựng SGK Tiếng Anh Lớp {grade} (GDPT 2018) cho Chặng {stage}/15.
+Hãy sinh ngẫu nhiên 01 {req_type} thuộc bài học Lớp {grade}.
 
 YÊU CẦU BẮT BUỘC:
-1. Trường `word` BẮT BUỘC phải là TỪ TIẾNG ANH viết IN HOA, chỉ gồm ký tự chữ cái A-Z (Ví dụ: 'ENVIRONMENT', 'BEAUTIFUL', 'COMMUNITY', 'TECHNOLOGY', 'FRIENDSHIP', 'DELICIOUS').
+1. Trường `word` BẮT BUỘC phải là TIẾNG ANH viết IN HOA, chỉ gồm ký tự chữ cái A-Z.
 2. KHÔNG ĐƯỢC sinh từ Tiếng Việt trong trường `word`.
 3. Trường `hint` giải thích nghĩa bằng Tiếng Việt hoặc Tiếng Anh ngắn gọn 1 câu cho học sinh Lớp {grade}.
 4. TUYỆT ĐỐI KHÔNG TRÙNG VỚI CÁC TỪ SAU: {recent_str}.
 
 YÊU CẦU ĐẦU RA JSON CHÍNH XÁC:
 {{
-  "word": "ENGLISH_WORD",
+  "word": "ENGLISH_WORD_OR_PHRASE",
   "hint": "Short definition...",
   "lesson": "English Grade {grade} - Unit X"
 }}
 """
         else:
-            prompt = f"""Bạn là giáo viên Ngữ Văn / Tiếng Việt biên soạn chương trình SGK Tiếng Việt / Ngữ Văn Lớp {grade} (GDPT 2018).
-Hãy sinh ngẫu nhiên 01 từ ghép, từ láy hoặc thành ngữ TIẾNG VIỆT có nghĩa thuộc bài học Lớp {grade}.
+            prompt = f"""Bạn là giáo viên Ngữ Văn / Tiếng Việt biên soạn SGK Tiếng Việt Lớp {grade} (GDPT 2018) cho Chặng {stage}/15.
+Hãy sinh ngẫu nhiên 01 {req_type} thuộc bài học Lớp {grade}.
 
 YÊU CẦU BẮT BUỘC:
-1. Trường `word` BẮT BUỘC phải là từ hoặc cụm từ TIẾNG VIỆT có nghĩa (2-4 tiếng, viết IN HOA). Ví dụ: 'TRUNG THỰC', 'YÊU THƯƠNG', 'BẢO VỆ MÔI TRƯỜNG', 'UỐNG NƯỚC NHỚ NGUỒN', 'DŨNG CẢM'.
-2. TUYỆT ĐỐI KHÔNG sinh từ Tiếng Anh (như ENVIRONMENT, BEAUTIFUL, COMMUNITY, TECHNOLOGY...).
+1. Trường `word` BẮT BUỘC phải là từ ghép/thành ngữ TIẾNG VIỆT có nghĩa (viết IN HOA).
+2. TUYỆT ĐỐI KHÔNG sinh từ Tiếng Anh.
 3. Trường `hint` giải thích nghĩa bằng Tiếng Việt ngắn gọn 1 câu dễ hiểu cho học sinh Lớp {grade}.
 4. TUYỆT ĐỐI KHÔNG TRÙNG VỚI CÁC TỪ SAU: {recent_str}.
 
 YÊU CẦU ĐẦU RA JSON CHÍNH XÁC:
 {{
-  "word": "TỪ_TIẾNG_VIỆT_IN_HOA",
+  "word": "TỪ_HOẶC_CÂU_TIẾNG_VIỆT_IN_HOA",
   "hint": "Định nghĩa ngắn gọn 1 câu...",
   "lesson": "SGK Tiếng Việt / Ngữ Văn {grade} - Tên bài học"
 }}
@@ -280,13 +317,10 @@ YÊU CẦU ĐẦU RA JSON CHÍNH XÁC:
                             lesson_val = str(parsed.get("lesson", "")).strip()
 
                             if word_val and hint_val:
-                                # Strict Language Validation
                                 if is_english and not cls._is_valid_english_word(word_val):
                                     continue
                                 if not is_english and not cls._is_valid_vietnamese_word(word_val):
                                     continue
-
-                                # Check recent words
                                 if recent_words and word_val in recent_words:
                                     continue
 
@@ -296,7 +330,6 @@ YÊU CẦU ĐẦU RA JSON CHÍNH XÁC:
                                     "hint": hint_val,
                                     "lesson": lesson_val or f"SGK {sub_name} Lớp {grade}",
                                 }
-                                # Cache valid generated item into memory bank so pool grows dynamically
                                 target_bank = ENGLISH_SGK_WORDS if is_english else VIETNAMESE_SGK_WORDS
                                 if not any(x["word"] == word_val for x in target_bank):
                                     target_bank.append(item)
@@ -313,37 +346,49 @@ YÊU CẦU ĐẦU RA JSON CHÍNH XÁC:
         student: User,
         subject: str = "Tiếng Việt",
         grade: Optional[int] = None,
+        stage: int = 1,
     ) -> WordScrambleQuestionResponse:
         """
-        Generates a word scramble game session tailored to student grade & subject.
-        Guarantees strict language separation and zero word repetition per user.
-        Applies trial guard enforcement for demo accounts.
+        Generates a word scramble game session tailored to student grade, subject & stage (Chặng 1-15).
+        Automatically classifies mode:
+        - 1-2 words: 'word' mode (scrambles letters).
+        - 3+ words: 'sentence' mode (scrambles whole words).
         """
         TrialGuardService.check_and_increment_trial_usage(db, student, "game_vua_tu_vung")
 
         applied_grade = grade or student.grade or 5
         target_subject = "Tiếng Anh" if "anh" in subject.lower() or "english" in subject.lower() else "Tiếng Việt"
+        current_stage = max(1, min(15, stage))
 
         user_id = student.id
         recent_words = USER_RECENT_WORDS.get(user_id, [])
 
-        # Try generating a fresh word with Gemini AI first
-        selected_item = cls._generate_word_with_gemini(target_subject, applied_grade, recent_words=recent_words)
+        # Try generating a fresh word with Gemini AI tailored to Stage
+        selected_item = cls._generate_word_with_gemini(target_subject, applied_grade, stage=current_stage, recent_words=recent_words)
 
-        # Fallback to expanded clean curated bank if Gemini unavailable or skipped
+        # Fallback to expanded clean curated bank
         if not selected_item:
             source_bank = ENGLISH_SGK_WORDS if target_subject == "Tiếng Anh" else VIETNAMESE_SGK_WORDS
-            # 1. Try matching grade & NOT in recent words
-            filtered = [item for item in source_bank if item["grade"] == applied_grade and item["word"] not in recent_words]
+
+            # Filter by stage requirements
+            if current_stage <= 5:
+                stage_pool = [x for x in source_bank if len(x["word"].split()) <= 2]
+            elif current_stage >= 11:
+                stage_pool = [x for x in source_bank if len(x["word"].split()) >= 3]
+            else:
+                stage_pool = source_bank
+
+            if not stage_pool:
+                stage_pool = source_bank
+
+            filtered = [item for item in stage_pool if item["grade"] == applied_grade and item["word"] not in recent_words]
             if not filtered:
-                # 2. Try any grade in source bank NOT in recent words
-                filtered = [item for item in source_bank if item["word"] not in recent_words]
+                filtered = [item for item in stage_pool if item["word"] not in recent_words]
             if not filtered:
-                # 3. If all items were used recently, exclude only last 5 used words
                 last_5 = recent_words[-5:] if len(recent_words) >= 5 else recent_words
-                filtered = [item for item in source_bank if item["word"] not in last_5]
+                filtered = [item for item in stage_pool if item["word"] not in last_5]
             if not filtered:
-                filtered = source_bank
+                filtered = stage_pool
 
             selected_item = random.choice(filtered)
 
@@ -357,7 +402,7 @@ YÊU CẦU ĐẦU RA JSON CHÍNH XÁC:
         if len(USER_RECENT_WORDS[user_id]) > 35:
             USER_RECENT_WORDS[user_id] = USER_RECENT_WORDS[user_id][-35:]
 
-        scrambled = cls._scramble_letters(target_word)
+        scrambled_data = cls._scramble_items(target_word)
         game_id = f"wsg_{uuid.uuid4().hex[:12]}"
 
         # Save session data
@@ -367,23 +412,26 @@ YÊU CẦU ĐẦU RA JSON CHÍNH XÁC:
             "target_word": target_word,
             "subject": target_subject,
             "grade": applied_grade,
+            "stage": current_stage,
+            "mode": scrambled_data["mode"],
             "hint_meaning": selected_item["hint"],
             "hint_sgk_lesson": selected_item["lesson"],
         }
 
-        # First letter hint (ignoring spaces)
-        clean_target = target_word.replace(" ", "")
-        first_letter = clean_target[0] if clean_target else ""
+        first_item = target_word.split()[0] if scrambled_data["mode"] == "sentence" else target_word.replace(" ", "")[0]
 
         return WordScrambleQuestionResponse(
             game_id=game_id,
             subject=target_subject,
             grade=applied_grade,
-            scrambled_letters=scrambled,
-            letter_count=len(clean_target),
+            mode=scrambled_data["mode"],
+            stage=current_stage,
+            total_stages=15,
+            scrambled_letters=scrambled_data["items"],
+            letter_count=scrambled_data["count"],
             hint_meaning=selected_item["hint"],
             hint_sgk_lesson=selected_item["lesson"],
-            first_letter_hint=first_letter,
+            first_letter_hint=first_item,
             english_audio_prompt=target_word if target_subject == "Tiếng Anh" else None,
             reward_diamonds=1,
         )
