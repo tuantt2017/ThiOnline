@@ -343,58 +343,60 @@ YÊU CẦU ĐẦU RA JSON CHÍNH XÁC:
 
         models_to_try = [
             settings.GEMINI_MODEL,
-            "gemini-3.8-flash",
-            "gemini-3.5-flash",
             "gemini-2.5-flash",
-            "gemini-flash-latest",
+            "gemini-1.5-flash",
+            "gemini-2.0-flash",
         ]
         models_to_try = list(dict.fromkeys([m.strip() for m in models_to_try if m and m.strip()]))
 
-        with httpx.Client(timeout=8.0) as client:
-            for model_name in models_to_try:
-                url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
-                payload = {
-                    "contents": [{"parts": [{"text": prompt}]}],
-                    "generationConfig": {
-                        "temperature": 0.9,
-                        "responseMimeType": "application/json",
-                    },
-                }
-                try:
-                    resp = client.post(url, json=payload)
-                    if resp.status_code == 200:
-                        data = resp.json()
-                        candidates = data.get("candidates", [])
-                        if candidates:
-                            text_content = candidates[0]["content"]["parts"][0]["text"]
-                            cleaned = re.sub(r"^```(?:json)?\s*", "", text_content.strip())
-                            cleaned = re.sub(r"\s*```$", "", cleaned.strip())
-                            parsed = json.loads(cleaned)
+        try:
+            with httpx.Client(timeout=2.5) as client:
+                for model_name in models_to_try:
+                    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
+                    payload = {
+                        "contents": [{"parts": [{"text": prompt}]}],
+                        "generationConfig": {
+                            "temperature": 0.9,
+                            "responseMimeType": "application/json",
+                        },
+                    }
+                    try:
+                        resp = client.post(url, json=payload)
+                        if resp.status_code == 200:
+                            data = resp.json()
+                            candidates = data.get("candidates", [])
+                            if candidates:
+                                text_content = candidates[0]["content"]["parts"][0]["text"]
+                                cleaned = re.sub(r"^```(?:json)?\s*", "", text_content.strip())
+                                cleaned = re.sub(r"\s*```$", "", cleaned.strip())
+                                parsed = json.loads(cleaned)
 
-                            word_val = str(parsed.get("word", "")).strip().upper()
-                            hint_val = str(parsed.get("hint", "")).strip()
-                            lesson_val = str(parsed.get("lesson", "")).strip()
+                                word_val = str(parsed.get("word", "")).strip().upper()
+                                hint_val = str(parsed.get("hint", "")).strip()
+                                lesson_val = str(parsed.get("lesson", "")).strip()
 
-                            if word_val and hint_val:
-                                if is_english and not cls._is_valid_english_word(word_val):
-                                    continue
-                                if not is_english and not cls._is_valid_vietnamese_word(word_val):
-                                    continue
-                                if recent_words and word_val in recent_words:
-                                    continue
+                                if word_val and hint_val:
+                                    if is_english and not cls._is_valid_english_word(word_val):
+                                        continue
+                                    if not is_english and not cls._is_valid_vietnamese_word(word_val):
+                                        continue
+                                    if recent_words and word_val in recent_words:
+                                        continue
 
-                                item = {
-                                    "word": word_val,
-                                    "grade": grade,
-                                    "hint": hint_val,
-                                    "lesson": lesson_val or f"SGK {sub_name} Lớp {grade}",
-                                }
-                                target_bank = ENGLISH_SGK_WORDS if is_english else VIETNAMESE_SGK_WORDS
-                                if not any(x["word"] == word_val for x in target_bank):
-                                    target_bank.append(item)
-                                return item
-                except Exception as exc:
-                    logger.warning(f"Mô hình AI Gemini {model_name} khi tạo từ vựng gặp lỗi: {exc}")
+                                    item = {
+                                        "word": word_val,
+                                        "grade": grade,
+                                        "hint": hint_val,
+                                        "lesson": lesson_val or f"SGK {sub_name} Lớp {grade}",
+                                    }
+                                    target_bank = ENGLISH_SGK_WORDS if is_english else VIETNAMESE_SGK_WORDS
+                                    if not any(x["word"] == word_val for x in target_bank):
+                                        target_bank.append(item)
+                                    return item
+                    except Exception as exc:
+                        logger.warning(f"Mô hình AI Gemini {model_name} khi tạo từ vựng gặp lỗi: {exc}")
+        except Exception as main_exc:
+            logger.warning(f"Lỗi kết nối Gemini AI: {main_exc}")
 
         return None
 
