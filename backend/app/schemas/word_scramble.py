@@ -9,6 +9,8 @@ class WordScrambleQuestionResponse(BaseModel):
     mode: str = Field("word", description="Chế độ xếp: 'word' (xếp chữ cái, tối đa 2 tiếng) hoặc 'sentence' (xếp từ/tiếng thành câu)")
     stage: int = Field(1, description="Chặng hiện tại (1-15)")
     total_stages: int = Field(15, description="Tổng số chặng trong hành trình (15)")
+    question_index: int = Field(1, description="Thứ tự câu hỏi trong chặng (1-10)")
+    total_questions_per_stage: int = Field(10, description="Tổng số câu hỏi mỗi chặng (10)")
     scrambled_letters: List[str] = Field(..., description="Danh sách các ký tự / tiếng đảo lộn")
     letter_count: int = Field(..., description="Số lượng ký tự / tiếng")
     hint_meaning: str = Field(..., description="Gợi ý nghĩa của từ / ngữ cảnh")

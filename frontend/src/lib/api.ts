@@ -693,11 +693,12 @@ export const api = {
   },
 
   // Word Scramble Game Endpoints
-  getWordScrambleQuestion: async (subject?: string, grade?: number, stage?: number): Promise<WordScrambleQuestion> => {
+  getWordScrambleQuestion: async (subject?: string, grade?: number, stage?: number, questionIndex?: number): Promise<WordScrambleQuestion> => {
     const query = new URLSearchParams();
     if (subject) query.append('subject', subject);
     if (grade) query.append('grade', grade.toString());
     if (stage) query.append('stage', stage.toString());
+    if (questionIndex) query.append('question_index', questionIndex.toString());
     const queryString = query.toString() ? `?${query.toString()}` : '';
     return request<WordScrambleQuestion>(`/api/v1/games/word-scramble/next${queryString}`, {
       method: 'GET',

@@ -44,6 +44,7 @@ export default function WordScrambleGamePage() {
   const [subject, setSubject] = useState<'Tiếng Việt' | 'Tiếng Anh'>('Tiếng Việt');
   const [grade, setGrade] = useState<number>(5);
   const [stage, setStage] = useState<number>(1); // Stage 1 to 15
+  const [questionIndex, setQuestionIndex] = useState<number>(1); // Question 1 to 10 per stage
 
   // Game state
   const [question, setQuestion] = useState<WordScrambleQuestion | null>(null);
@@ -82,11 +83,12 @@ export default function WordScrambleGamePage() {
     }
   }, [user]);
 
-  // Fetch question for specific subject, grade and stage (1-15)
+  // Fetch question for specific subject, grade, stage (1-15) and question_index (1-10)
   const fetchNextQuestion = async (
     targetSub = subject,
     targetGrade = grade,
-    targetStage = stage
+    targetStage = stage,
+    targetQuestionIndex = questionIndex
   ) => {
     setIsFetching(true);
     setQuestion(null); // Clear old question immediately
@@ -98,7 +100,7 @@ export default function WordScrambleGamePage() {
     setTimerSeconds(90); // 90 Seconds Countdown
 
     try {
-      const q = await api.getWordScrambleQuestion(targetSub, targetGrade, targetStage);
+      const q = await api.getWordScrambleQuestion(targetSub, targetGrade, targetStage, targetQuestionIndex);
       setQuestion(q);
       setScrambledList(q.scrambled_letters);
 
@@ -118,7 +120,7 @@ export default function WordScrambleGamePage() {
       }
       setSelectedTiles(initial);
     } catch (err: any) {
-      alert(`Lỗi khi tải câu hỏi Chặng ${targetStage}: ${err.message}`);
+      alert(`Lỗi khi tải câu hỏi Chặng ${targetStage} (Câu ${targetQuestionIndex}/10): ${err.message}`);
     } finally {
       setIsFetching(false);
     }
@@ -126,9 +128,9 @@ export default function WordScrambleGamePage() {
 
   useEffect(() => {
     if (user) {
-      fetchNextQuestion(subject, grade, stage);
+      fetchNextQuestion(subject, grade, stage, questionIndex);
     }
-  }, [user, subject, grade, stage]);
+  }, [user, subject, grade, stage, questionIndex]);
 
   // Timer Countdown (90s)
   useEffect(() => {
@@ -230,8 +232,8 @@ export default function WordScrambleGamePage() {
         setDiamondBalance(res.new_diamond_balance);
       }
 
-      // Check if student reached Stage 15 Victory
-      if (res.is_correct && stage === 15) {
+      // Check if student reached Stage 15 Question 10 Victory
+      if (res.is_correct && stage === 15 && questionIndex === 10) {
         setTimeout(() => {
           setShowVictoryModal(true);
         }, 1200);
@@ -243,18 +245,23 @@ export default function WordScrambleGamePage() {
     }
   };
 
-  // Action for advancing to next stage or replaying
-  const handleNextStage = () => {
-    if (stage < 15) {
+  // Action for advancing to next question / stage or replaying
+  const handleNextQuestion = () => {
+    if (questionIndex < 10) {
+      setQuestionIndex((prev) => prev + 1);
+    } else if (stage < 15) {
       setStage((prev) => prev + 1);
+      setQuestionIndex(1);
     } else {
       setStage(1);
+      setQuestionIndex(1);
     }
   };
 
   const handleRestartJourney = () => {
     setStage(1);
-    fetchNextQuestion(subject, grade, 1);
+    setQuestionIndex(1);
+    fetchNextQuestion(subject, grade, 1, 1);
   };
 
   if (isLoading || !user) {
@@ -269,6 +276,7 @@ export default function WordScrambleGamePage() {
   }
 
   const isSentenceMode = question?.mode === 'sentence';
+  const overallProgressPercent = Math.round((((stage - 1) * 10 + questionIndex) / 150) * 100);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-amber-50/60 via-slate-50 to-indigo-50/30 text-slate-800 pb-20 relative select-none">
@@ -285,7 +293,7 @@ export default function WordScrambleGamePage() {
             </div>
             <div>
               <div className="inline-flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider text-amber-600">
-                <Sparkles className="w-3.5 h-3.5" /> Chinh Phục 15 Chặng Tri Thức SGK
+                <Sparkles className="w-3.5 h-3.5" /> Chinh Phục 15 Chặng Tri Thức SGK (10 Câu/Chặng)
               </div>
               <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
                 Vua Từ Vựng SGK
@@ -295,10 +303,10 @@ export default function WordScrambleGamePage() {
 
           {/* Stats Badges */}
           <div className="flex items-center gap-3">
-            {/* Stage Counter */}
+            {/* Stage & Question Counter */}
             <div className="flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-indigo-50 border border-indigo-200 text-indigo-700 font-extrabold text-xs shadow-sm">
               <Flag className="w-4 h-4 text-indigo-600" />
-              <span>Chặng {stage}/15</span>
+              <span>Chặng {stage}/15 • Câu {questionIndex}/10</span>
             </div>
 
             {/* Diamond Balance */}
@@ -321,22 +329,28 @@ export default function WordScrambleGamePage() {
           </div>
         </div>
 
-        {/* Stage Progress Stepper (1-15) */}
+        {/* Stage Progress Stepper (1-15 & 1-10) */}
         <div className="bg-white p-4 rounded-3xl border border-slate-200/80 shadow-sm space-y-2">
           <div className="flex items-center justify-between text-xs font-bold text-slate-600">
             <span className="flex items-center gap-1.5 text-indigo-600">
               <Trophy className="w-4 h-4 text-amber-500" />
-              <span>Tiến Độ Chặng: <strong>Chặng {stage} / 15</strong></span>
+              <span>
+                Tiến Độ: <strong>Chặng {stage}/15</strong> (Câu {questionIndex}/10)
+              </span>
             </span>
             <span className="text-slate-500 font-semibold">
-              {stage <= 5 ? '⭐ Cấp Độ Cơ Bản (Từ ghép 2 tiếng)' : stage <= 10 ? '🔥🔥 Cấp Độ Trung Bình' : '👑 Cấp Độ Thách Thức (Thành ngữ)'}
+              {stage <= 5
+                ? '⭐ Cấp Độ Cơ Bản (Từ ghép 2 tiếng)'
+                : stage <= 10
+                ? '🔥🔥 Cấp Độ Trung Bình (Cụm từ 2-3 tiếng)'
+                : '👑 Cấp Độ Thách Thức (Thành ngữ / Câu nói SGK)'}
             </span>
           </div>
           {/* Progress Bar */}
           <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden p-0.5 border border-slate-200">
             <div
               className="h-full bg-gradient-to-r from-amber-400 via-orange-500 to-indigo-600 rounded-full transition-all duration-500"
-              style={{ width: `${(stage / 15) * 100}%` }}
+              style={{ width: `${overallProgressPercent}%` }}
             />
           </div>
         </div>
@@ -350,6 +364,7 @@ export default function WordScrambleGamePage() {
               onClick={() => {
                 setSubject('Tiếng Việt');
                 setStage(1);
+                setQuestionIndex(1);
               }}
               className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-xs transition ${
                 subject === 'Tiếng Việt'
@@ -365,6 +380,7 @@ export default function WordScrambleGamePage() {
               onClick={() => {
                 setSubject('Tiếng Anh');
                 setStage(1);
+                setQuestionIndex(1);
               }}
               className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-xs transition ${
                 subject === 'Tiếng Anh'
@@ -390,6 +406,7 @@ export default function WordScrambleGamePage() {
                   onClick={() => {
                     setGrade(g);
                     setStage(1);
+                    setQuestionIndex(1);
                   }}
                   className={`w-8 h-8 rounded-xl text-xs font-black transition ${
                     grade === g
@@ -415,10 +432,10 @@ export default function WordScrambleGamePage() {
               <div className="space-y-1">
                 <h3 className="text-base font-extrabold text-slate-900 flex items-center justify-center gap-2">
                   <Loader2 className="w-4 h-4 animate-spin text-amber-500" />
-                  <span>Đang khởi tạo Chặng {stage}/15...</span>
+                  <span>Đang tải Chặng {stage}/15 - Câu {questionIndex}/10...</span>
                 </h3>
                 <p className="text-xs text-slate-500">
-                  AI đang biên soạn câu hỏi SGK Lớp {grade} môn {subject} cho Chặng {stage}
+                  AI đang biên soạn từ vựng SGK Lớp {grade} môn {subject} không trùng lặp cho học sinh
                 </p>
               </div>
             </div>
@@ -622,7 +639,7 @@ export default function WordScrambleGamePage() {
                     ) : (
                       <>
                         <Zap className="w-5 h-5 fill-slate-950" />
-                        <span>Nộp Đáp Án Chặng {stage}</span>
+                        <span>Nộp Đáp Án Câu {questionIndex}/10 (Chặng {stage})</span>
                       </>
                     )}
                   </button>
@@ -653,8 +670,8 @@ export default function WordScrambleGamePage() {
                       <div className="text-base font-black flex items-center gap-2 text-slate-900">
                         <span>
                           {result.is_correct
-                            ? `🎉 CHÍNH XÁC 100%! HOÀN THÀNH CHẶNG ${stage}/15`
-                            : `❌ CHƯA CHÍNH XÁC CHẶNG ${stage}`}
+                            ? `🎉 CHÍNH XÁC! HOÀN THÀNH CÂU ${questionIndex}/10 (CHẶNG ${stage})`
+                            : `❌ CHƯA CHÍNH XÁC (CÂU ${questionIndex}/10)`}
                         </span>
                         {result.earned_diamonds > 0 && (
                           <span className="inline-flex items-center gap-1 text-xs px-2.5 py-0.5 rounded-full bg-amber-400 text-slate-950 font-extrabold animate-bounce">
@@ -669,16 +686,25 @@ export default function WordScrambleGamePage() {
                     </div>
                   </div>
 
-                  {/* Next Question Action */}
+                  {/* Next Question / Stage Action */}
                   <div className="flex justify-end pt-2 border-t border-slate-200/60">
                     {result.is_correct ? (
-                      stage < 15 ? (
+                      questionIndex < 10 ? (
                         <button
                           type="button"
-                          onClick={handleNextStage}
+                          onClick={handleNextQuestion}
                           className="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs shadow-md shadow-indigo-200 transition flex items-center gap-2"
                         >
-                          <span>Tiến Vào Chặng {stage + 1}</span>
+                          <span>Sang Câu Tiếp Theo (Câu {questionIndex + 1}/10)</span>
+                          <ChevronRight className="w-4 h-4" />
+                        </button>
+                      ) : stage < 15 ? (
+                        <button
+                          type="button"
+                          onClick={handleNextQuestion}
+                          className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs shadow-md shadow-amber-200 transition flex items-center gap-2"
+                        >
+                          <span>🚀 Hoàn Thành Chặng {stage} &rarr; Tiến Vào Chặng {stage + 1}</span>
                           <ChevronRight className="w-4 h-4" />
                         </button>
                       ) : (
@@ -688,17 +714,17 @@ export default function WordScrambleGamePage() {
                           className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-black text-xs shadow-md shadow-amber-200 transition flex items-center gap-2"
                         >
                           <Trophy className="w-4 h-4" />
-                          <span>Xem Vinh Danh Hoàn Thành 15 Chặng</span>
+                          <span>Xem Vinh Danh Hoàn Thành Xuất Sắc 15 Chặng</span>
                         </button>
                       )
                     ) : (
                       <button
                         type="button"
-                        onClick={() => fetchNextQuestion(subject, grade, stage)}
+                        onClick={() => fetchNextQuestion(subject, grade, stage, questionIndex)}
                         className="px-6 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-black text-xs shadow-md transition flex items-center gap-2"
                       >
                         <RotateCcw className="w-4 h-4" />
-                        <span>Thử Lại Chặng {stage}</span>
+                        <span>Thử Lại Câu {questionIndex}/10</span>
                       </button>
                     )}
                   </div>

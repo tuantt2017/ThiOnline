@@ -104,6 +104,8 @@ def test_word_scramble_api_endpoints(client: TestClient, student_headers):
     assert "game_id" in data
     assert "scrambled_letters" in data
     assert "hint_meaning" in data
+    assert data["question_index"] == 1
+    assert data["total_questions_per_stage"] == 10
 
     # Verify endpoint
     res_verify = client.post(

@@ -808,6 +808,8 @@ export interface WordScrambleQuestion {
   mode?: 'word' | 'sentence';
   stage?: number;
   total_stages?: number;
+  question_index?: number;
+  total_questions_per_stage?: number;
   scrambled_letters: string[];
   letter_count: number;
   hint_meaning: string;

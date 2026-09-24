@@ -19,6 +19,7 @@ def get_next_word_scramble_question(
     subject: Optional[str] = Query("Tiếng Việt", description="Môn học (Tiếng Việt hoặc Tiếng Anh)"),
     grade: Optional[int] = Query(None, ge=4, le=9, description="Khối lớp (4-9)"),
     stage: Optional[int] = Query(1, ge=1, le=15, description="Chặng hiện tại (1-15)"),
+    question_index: Optional[int] = Query(1, ge=1, le=10, description="Thứ tự câu hỏi trong chặng (1-10)"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -31,6 +32,7 @@ def get_next_word_scramble_question(
         subject=subject,
         grade=grade,
         stage=stage or 1,
+        question_index=question_index or 1,
     )
 
 

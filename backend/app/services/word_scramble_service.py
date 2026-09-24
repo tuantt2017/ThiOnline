@@ -38,7 +38,7 @@ ENGLISH_BLACKLIST_WORDS = {
 
 # Expanded & Clean Curated SGK Curriculum Word Bank (GDPT Lớp 4 - 9)
 VIETNAMESE_SGK_WORDS: List[Dict[str, Any]] = [
-    # Lớp 4
+    # --- Chặng 1-5 / Lớp 4 & Lớp 5 (Từ ghép 1-2 tiếng) ---
     {"word": "YÊU THƯƠNG", "grade": 4, "hint": "Tình cảm gắn bó, quan tâm sâu sắc giữa con người với con người.", "lesson": "SGK Tiếng Việt 4 - Chủ điểm 'Chắp cánh ước mơ'"},
     {"word": "ĐOÀN KẾT", "grade": 4, "hint": "Sự kết hợp tập thể thành một khối thống nhất vì mục tiêu chung.", "lesson": "SGK Tiếng Việt 4 - Bài tập đọc 'Măng mọc thẳng'"},
     {"word": "TRUNG THỰC", "grade": 4, "hint": "Tôn trọng sự thật, không dối trá, thành thật với bản thân và người khác.", "lesson": "SGK Tiếng Việt 4 - Luyện từ và câu 'Tính trung thực'"},
@@ -56,47 +56,74 @@ VIETNAMESE_SGK_WORDS: List[Dict[str, Any]] = [
     {"word": "HỌC HỎI", "grade": 4, "hint": "Tìm tòi, tiếp thu kiến thức mới từ sách vở và mọi người.", "lesson": "SGK Tiếng Việt 4"},
     {"word": "GIÚP ĐỠ", "grade": 4, "hint": "Hành động san sẻ công sức để người khác vượt qua khó khăn.", "lesson": "SGK Tiếng Việt 4"},
     {"word": "CHAN HÒA", "grade": 4, "hint": "Sống cởi mở, thân thiện và gắn bó với tập thể.", "lesson": "SGK Tiếng Việt 4"},
+    {"word": "BẠN BÈ", "grade": 4, "hint": "Những người cùng lứa tuổi, gắn bó và thân thiết với nhau.", "lesson": "SGK Tiếng Việt 4 - Chủ điểm Mái trường"},
+    {"word": "LỚP HỌC", "grade": 4, "hint": "Nơi tập hợp học sinh để cùng thầy cô học tập tri thức.", "lesson": "SGK Tiếng Việt 4"},
+    {"word": "THẦY CÔ", "grade": 4, "hint": "Người truyền dạy tri thức và nâng đỡ ước mơ cho học sinh.", "lesson": "SGK Tiếng Việt 4"},
+    {"word": "TRƯỜNG LỚP", "grade": 4, "hint": "Môi trường giáo dục thân thương của học sinh.", "lesson": "SGK Tiếng Việt 4"},
+    {"word": "GIA ĐÌNH", "grade": 4, "hint": "Tổ ấm thương yêu gắn kết cha mẹ và con cái.", "lesson": "SGK Tiếng Việt 4"},
+    {"word": "TỔ QUỐC", "grade": 4, "hint": "Đất nước thân yêu thiêng liêng của chúng ta.", "lesson": "SGK Tiếng Việt 4"},
+    {"word": "ĐẤT NƯỚC", "grade": 4, "hint": "Quê hương giang sơn gấm vóc ngàn năm văn hiến.", "lesson": "SGK Tiếng Việt 4"},
+    {"word": "ĐẠO ĐỨC", "grade": 4, "hint": "Những chuẩn mực phẩm giá tốt đẹp của con người.", "lesson": "SGK Tiếng Việt 4"},
+    {"word": "SÁCH VỞ", "grade": 4, "hint": "Dụng cụ học tập ghi chép kiến thức bổ ích hàng ngày.", "lesson": "SGK Tiếng Việt 4"},
+    {"word": "BÚT MỰC", "grade": 4, "hint": "Vật dụng nhỏ bé viết nên từng dòng chữ nết người.", "lesson": "SGK Tiếng Việt 4"},
+    {"word": "TRI THỨC", "grade": 4, "hint": "Hiểu biết và kiến thức thu nhận được qua học tập.", "lesson": "SGK Tiếng Việt 4"},
+    {"word": "THỜI GIAN", "grade": 4, "hint": "Tài sản quý giá không gì mua được của mỗi con người.", "lesson": "SGK Tiếng Việt 4"},
+    {"word": "SỨC KHỎE", "grade": 4, "hint": "Vốn quý nhất của con người giúp sống vui tươi học tốt.", "lesson": "SGK Tiếng Việt 4"},
+    {"word": "NIỀM VUI", "grade": 4, "hint": "Cảm giác hân hoan hạnh phúc trong tâm hồn.", "lesson": "SGK Tiếng Việt 4"},
+    {"word": "ƯỚC MƠ", "grade": 4, "hint": "Mong muốn tươi đẹp hướng về tương lai rực rỡ.", "lesson": "SGK Tiếng Việt 4"},
+    {"word": "HY VỌNG", "grade": 4, "hint": "Niềm tin tưởng vào những điều tốt đẹp sắp tới.", "lesson": "SGK Tiếng Việt 4"},
+    {"word": "LÒNG TỐT", "grade": 4, "hint": "Sự nhân ái sẵn lòng làm điều hay giúp đỡ mọi người.", "lesson": "SGK Tiếng Việt 4"},
+    {"word": "NHÂN ÁI", "grade": 4, "hint": "Lòng yêu thương con người biết đồng cảm san sẻ.", "lesson": "SGK Tiếng Việt 4"},
+    {"word": "KÍNH TRỌNG", "grade": 4, "hint": "Thái độ tôn kính đối với người có công lao lớn.", "lesson": "SGK Tiếng Việt 4"},
+    {"word": "BIẾT ƠN", "grade": 4, "hint": "Ghi nhớ tình nghĩa và công ơn người khác giúp đỡ.", "lesson": "SGK Tiếng Việt 4"},
 
-    # Lớp 5
+    # --- Chặng 6-10 / Lớp 5 - 7 (Từ ghép 2-3 tiếng, cụm từ) ---
     {"word": "THIÊN NHIÊN", "grade": 5, "hint": "Tất cả những gì tồn tại xung quanh con người không do con người tạo ra.", "lesson": "SGK Tiếng Việt 5 - Chủ điểm 'Mẹ Thiên Nhiên'"},
-    {"word": "UỐNG NƯỚC NHỚ NGUỒN", "grade": 5, "hint": "Thành ngữ thể hiện lòng biết ơn sâu sắc đối với thế hệ đi trước.", "lesson": "SGK Tiếng Việt 5 - Bài 'Người công dân số một'"},
     {"word": "AN TOÀN GIAO THÔNG", "grade": 5, "hint": "Ý thức chấp hành luật pháp khi tham gia di chuyển trên đường phố.", "lesson": "SGK Tiếng Việt 5 - Hoạt động trải nghiệm GDPT"},
     {"word": "TÌNH LÀNG NGHĨA XÓM", "grade": 5, "hint": "Sự gắn kết, yêu thương, giúp đỡ lẫn nhau giữa các gia đình hàng xóm.", "lesson": "SGK Tiếng Việt 5 - Tập đọc 'Chuỗi ngọc xanh'"},
     {"word": "BẢO VỆ MÔI TRƯỜNG", "grade": 5, "hint": "Hành động giữ gìn không khí, nguồn nước và cây xanh sạch đẹp.", "lesson": "SGK Tiếng Việt 5 - Bài 'Hành tinh xanh của chúng ta'"},
     {"word": "TÔN SƯ TRỌNG ĐẠO", "grade": 5, "hint": "Thành ngữ dạy học sinh kính trọng thầy cô và coi trọng đạo học.", "lesson": "SGK Tiếng Việt 5 - Chủ điểm 'Nghĩa thầy trò'"},
     {"word": "HỌC ĐI ĐÔI VỚI HÀNH", "grade": 5, "hint": "Quy tắc học tập: vừa tiếp thu lý thuyết vừa áp dụng thực hành.", "lesson": "SGK Tiếng Việt 5 - Luyện từ và câu"},
     {"word": "GIANG SƠN CẨM VÓC", "grade": 5, "hint": "Hình ảnh ẩn dụ vẻ đẹp tươi đẹp, hùng vĩ của đất nước Việt Nam.", "lesson": "SGK Tiếng Việt 5 - Tập đọc 'Đất nước'"},
-    {"word": "ĂN QUẢ NHỚ KẺ TRỒNG CÂY", "grade": 5, "hint": "Thành ngữ ghi nhớ công ơn người tạo ra thành quả cho mình hưởng.", "lesson": "SGK Tiếng Việt 5 - Bài đọc truyền thống"},
     {"word": "Ý THỨC CỘNG ĐỒNG", "grade": 5, "hint": "Tinh thần tự giác vì lợi ích chung của tập thể và xã hội.", "lesson": "SGK Tiếng Việt 5 - Bài tập làm văn"},
-
-    # Lớp 6
     {"word": "TỰ DO ĐỘC LẬP", "grade": 6, "hint": "Quyền chủ quyền thiêng liêng của một dân tộc, không bị phụ thuộc.", "lesson": "SGK Ngữ Văn 6 - Văn bản 'Tuyên ngôn Độc lập'"},
     {"word": "TRUYỀN THỐNG", "grade": 6, "hint": "Những giá trị văn hóa, tinh thần tốt đẹp được truyền từ đời này sang đời khác.", "lesson": "SGK Ngữ Văn 6 - Văn học dân gian Việt Nam"},
     {"word": "VĂN HÓA DÂN TỘC", "grade": 6, "hint": "Bản sắc tinh thần, phong tục tập quán đặc trưng của đất nước.", "lesson": "SGK Ngữ Văn 6 - Bài 'Thánh Gióng & Sơn Tinh Thủy Tinh'"},
     {"word": "LÒNG TỰ HÀO", "grade": 6, "hint": "Cảm xúc hãnh diện về lịch sử dựng nước và giữ nước anh hùng.", "lesson": "SGK Ngữ Văn 6 - Truyền thuyết Lạc Long Quân"},
     {"word": "DỰNG NƯỚC GIỮ NƯỚC", "grade": 6, "hint": "Sứ mệnh lịch sử vẻ vang của các thế hệ người Việt Nam.", "lesson": "SGK Ngữ Văn 6 - Chủ đề Lịch sử dân tộc"},
     {"word": "TÍNH TỰ LẬP", "grade": 6, "hint": "Khả năng tự mình làm lấy công việc mà không dựa dẫm người khác.", "lesson": "SGK Ngữ Văn 6 - Kỹ năng sống"},
-
-    # Lớp 7
     {"word": "SÁNG TẠO TRI THỨC", "grade": 7, "hint": "Hành động phát minh, làm mới kiến thức khoa học và đời sống.", "lesson": "SGK Ngữ Văn 7 - Đọc hiểu văn bản thông tin"},
     {"word": "BẢO TỒN DI SẢN", "grade": 7, "hint": "Hoạt động gìn giữ danh lam thắng cảnh và di tích lịch sử.", "lesson": "SGK Ngữ Văn 7 - Văn bản 'Ca Huế trên sông Hương'"},
     {"word": "TINH THẦN YÊU NƯỚC", "grade": 7, "hint": "Lòng nồng nàn yêu quê hương, đất nước của nhân dân ta.", "lesson": "SGK Ngữ Văn 7 - Văn bản 'Tinh thần yêu nước của nhân dân ta'"},
     {"word": "VĂN HÓA DÂN GIAN", "grade": 7, "hint": "Kho tàng ca dao, dân ca, tục ngữ đúc kết trí tuệ ông cha.", "lesson": "SGK Ngữ Văn 7 - Bài Ca dao tục ngữ Việt Nam"},
     {"word": "BẢO VỆ CHỦ QUYỀN", "grade": 7, "hint": "Nhiệm vụ thiêng liêng giữ vững lãnh thổ, biển đảo quê hương.", "lesson": "SGK Ngữ Văn 7 - Văn bản 'Nam quốc sơn hà'"},
-
-    # Lớp 8
     {"word": "TRÍ TUỆ NHÂN TẠO", "grade": 8, "hint": "Công nghệ máy tính thông minh mô phỏng khả năng tư duy con người.", "lesson": "SGK Ngữ Văn & Tin học 8 - Bài đọc mở rộng"},
     {"word": "TRÁCH NHIỆM XÃ HỘI", "grade": 8, "hint": "Ý thức đóng góp công sức xây dựng cộng đồng văn minh, giàu đẹp.", "lesson": "SGK Ngữ Văn 8 - Văn bản nghị luận"},
     {"word": "ĐỔI MỚI SÁNG TẠO", "grade": 8, "hint": "Tinh thần suy nghĩ khác biệt, ứng dụng công nghệ hiện đại vào thực tiễn.", "lesson": "SGK Ngữ Văn 8 - Chủ điểm 'Thế giới tương lai'"},
     {"word": "PHÁT TRIỂN BỀN VỮNG", "grade": 8, "hint": "Tăng trưởng kinh tế gắn liền bảo vệ thiên nhiên và công bằng xã hội.", "lesson": "SGK Ngữ Văn 8 - Bài đọc Văn bản thông tin"},
     {"word": "CHUYỂN ĐỔI SỐ", "grade": 8, "hint": "Quá trình thay đổi phương thức làm việc bằng công nghệ kỹ thuật số.", "lesson": "SGK Tin học & Ngữ Văn 8"},
-
-    # Lớp 9
     {"word": "TRI ÂN THẦY CÔ", "grade": 9, "hint": "Tấm lòng ghi nhớ và kính trọng công ơn dạy dỗ của thầy cô giáo.", "lesson": "SGK Ngữ Văn 9 - Văn bản biểu cảm"},
     {"word": "KHẢO THÍ TRỰC TUYẾN", "grade": 9, "hint": "Phương pháp kiểm tra, đánh giá năng lực học sinh trên nền tảng kỹ thuật số.", "lesson": "SGK Ngữ Văn & Tin học 9 - Ứng dụng số hóa"},
     {"word": "HỘI NHẬP QUỐC TẾ", "grade": 9, "hint": "Mở rộng giao lưu văn hóa, kinh tế và khoa học với các quốc gia trên thế giới.", "lesson": "SGK Ngữ Văn 9 - Văn bản 'Bàn về đọc sách & Hội nhập'"},
     {"word": "CHỦ QUYỀN BIỂN ĐẢO", "grade": 9, "hint": "Quyền thiêng liêng đối với vùng biển, thềm lục địa và các quần đảo của Tổ quốc.", "lesson": "SGK Ngữ Văn 9 - Văn bản 'Đoàn thuyền đánh cá'"},
     {"word": "KHÁT VỌNG CỐNG HIẾN", "grade": 9, "hint": "Mong muốn đem hết tài năng và sức lực phụng sự cho quê hương đất nước.", "lesson": "SGK Ngữ Văn 9 - Văn bản 'Lặng lẽ Sa Pa'"},
+
+    # --- Chặng 11-15 / Lớp 5 - 9 (Thành ngữ, tục ngữ, câu nói hay SGK) ---
+    {"word": "UỐNG NƯỚC NHỚ NGUỒN", "grade": 5, "hint": "Thành ngữ thể hiện lòng biết ơn sâu sắc đối với thế hệ đi trước.", "lesson": "SGK Tiếng Việt 5 - Bài 'Người công dân số một'"},
+    {"word": "ĂN QUẢ NHỚ KẺ TRỒNG CÂY", "grade": 5, "hint": "Thành ngữ ghi nhớ công ơn người tạo ra thành quả cho mình hưởng.", "lesson": "SGK Tiếng Việt 5 - Bài đọc truyền thống"},
+    {"word": "LÁ LÀNH ĐÙM LÁ RÁCH", "grade": 5, "hint": "Tục ngữ khuyên nhủ con người biết cưu mang giúp đỡ người khó khăn hơn.", "lesson": "SGK Tiếng Việt 5 - Luyện từ và câu"},
+    {"word": "MỘT CÂY LÀM CHẲNG NÊN NON", "grade": 5, "hint": "Câu tục ngữ nhắc nhở sức mạnh vô song của tinh thần đoàn kết.", "lesson": "SGK Tiếng Việt 5"},
+    {"word": "THẦY CÔ LÀ NGƯỜI LÁI ĐÒ", "grade": 5, "hint": "Hình ảnh ẩn dụ cao quý dành cho công ơn dạy dỗ của người thầy.", "lesson": "SGK Tiếng Việt 5"},
+    {"word": "HỌC HỌC NỮA HỌC MÃI", "grade": 6, "hint": "Lời khuyên học tập suốt đời nổi tiếng của Lênin.", "lesson": "SGK Ngữ Văn 6"},
+    {"word": "TIÊN HỌC LỄ HẬU HỌC VĂN", "grade": 6, "hint": "Đạo lý học đường: Học lễ nghĩa trước rồi mới học tri thức văn hóa.", "lesson": "SGK Ngữ Văn 6"},
+    {"word": "CÓ CÔNG MÀI SẮT CÓ NGÀY NÊN KIM", "grade": 6, "hint": "Tục ngữ dạy bài học kiên trì nhẫn nại vượt qua mọi gian khó.", "lesson": "SGK Ngữ Văn 6"},
+    {"word": "THẤT BẠI LÀ MẸ THÀNH CÔNG", "grade": 7, "hint": "Bài học rút ra kinh nghiệm quý báu từ những lần vấp ngã.", "lesson": "SGK Ngữ Văn 7"},
+    {"word": "ĐI MỘT NGÀY ĐÀNG HỌC MỘT SÀNG KHÔN", "grade": 7, "hint": "Tục ngữ khuyên mở rộng vốn sống và trải nghiệm thực tế.", "lesson": "SGK Ngữ Văn 7"},
+    {"word": "BẦU ƠI THƯƠNG LẤY BÍ CÙNG", "grade": 7, "hint": "Lời ca dao tình nghĩa đùm bọc giữa đồng bào cùng một đất nước.", "lesson": "SGK Ngữ Văn 7"},
+    {"word": "HỌC THẦY KHÔNG BẰNG HỌC BẠN", "grade": 8, "hint": "Lời khuyên tích cực giao lưu học hỏi lẫn nhau giữa bạn bè.", "lesson": "SGK Ngữ Văn 8"},
+    {"word": "NHẤT TỰ VI SƯ BÁN TỰ VI SƯ", "grade": 8, "hint": "Đạo lý tôn kính thầy cô: Một chữ cũng là thầy nửa chữ cũng là thầy.", "lesson": "SGK Ngữ Văn 8"},
+    {"word": "THỜI GIAN LÀ VÀNG BẠC", "grade": 8, "hint": "Lời nhắc nhở trân trọng từng phút giây quý giá của cuộc đời.", "lesson": "SGK Ngữ Văn 8"},
+    {"word": "ĐẠI ĐOÀN KẾT DÂN TỘC", "grade": 9, "hint": "Sức mạnh bệ phóng giúp đất nước vượt qua khó khăn vươn xa.", "lesson": "SGK Ngữ Văn 9"},
 ]
 
 ENGLISH_SGK_WORDS: List[Dict[str, Any]] = [
@@ -111,6 +138,10 @@ ENGLISH_SGK_WORDS: List[Dict[str, Any]] = [
     {"word": "FOOTBALL", "grade": 4, "hint": "A popular game played with a spherical ball between two teams.", "lesson": "English Grade 4 - Unit 4: Sports and Games"},
     {"word": "BREAKFAST", "grade": 4, "hint": "The first meal of the day, usually eaten in the morning.", "lesson": "English Grade 4 - Unit 6: Daily Routines"},
     {"word": "LIBRARY", "grade": 4, "hint": "A building or room containing collections of books for reading.", "lesson": "English Grade 4 - Unit 3: My School Building"},
+    {"word": "WEATHER", "grade": 4, "hint": "The state of the atmosphere at a place and time regarding heat, rain, etc.", "lesson": "English Grade 4 - Unit 8: Weather Today"},
+    {"word": "HOSPITAL", "grade": 4, "hint": "An institution providing medical and surgical treatment to sick people.", "lesson": "English Grade 4 - Unit 5: Places in Town"},
+    {"word": "ANIMALS", "grade": 4, "hint": "Living creatures such as dogs, cats, lions, and elephants.", "lesson": "English Grade 4 - Unit 7: At the Zoo"},
+    {"word": "GARDEN", "grade": 4, "hint": "A piece of ground adjoining a house used for growing flowers or fruit.", "lesson": "English Grade 4 - Unit 2: My Lovely Home"},
 
     # Grade 5
     {"word": "SUMMER", "grade": 5, "hint": "The warmest season of the year, between spring and autumn.", "lesson": "English Grade 5 - Unit 3: My Summer Holiday"},
@@ -122,6 +153,8 @@ ENGLISH_SGK_WORDS: List[Dict[str, Any]] = [
     {"word": "PROTECT", "grade": 5, "hint": "Keep safe from harm or injury; preserve environment.", "lesson": "English Grade 5 - Unit 9: Save the Animals"},
     {"word": "TOGETHER", "grade": 5, "hint": "With or in proximity to another person or group.", "lesson": "English Grade 5 - Unit 7: Working Together"},
     {"word": "COUNTRYSIDE", "grade": 5, "hint": "The land and scenery of a rural area outside towns and cities.", "lesson": "English Grade 5 - Unit 4: My Hometown"},
+    {"word": "PRACTICE MAKES PERFECT", "grade": 5, "hint": "A famous proverb encouraging continuous effort and learning.", "lesson": "English Grade 5 - Unit 10: Life Skills"},
+    {"word": "KNOWLEDGE IS POWER", "grade": 5, "hint": "A proverb emphasizing that education empowers people.", "lesson": "English Grade 5 - Unit 10: Reading Books"},
 
     # Grade 6
     {"word": "TECHNOLOGY", "grade": 6, "hint": "Machinery and equipment developed from scientific knowledge.", "lesson": "English Grade 6 - Unit 10: Our Houses in the Future"},
@@ -130,6 +163,7 @@ ENGLISH_SGK_WORDS: List[Dict[str, Any]] = [
     {"word": "GARDENING", "grade": 6, "hint": "The activity of tending and cultivating a garden.", "lesson": "English Grade 6 - Unit 1: My Hobbies"},
     {"word": "EQUIPMENT", "grade": 6, "hint": "The necessary items for a particular purpose or activity.", "lesson": "English Grade 6 - Unit 8: Sports and Games"},
     {"word": "COMPUTER", "grade": 6, "hint": "An electronic device for storing and processing data.", "lesson": "English Grade 6 - Unit 10: Modern Appliances"},
+    {"word": "LEARNING NEVER STOPS", "grade": 6, "hint": "A motto encouraging lifelong study and self-improvement.", "lesson": "English Grade 6 - Unit 1: School Habits"},
 
     # Grade 7
     {"word": "TRADITIONAL", "grade": 7, "hint": "Existing in or as part of a tradition; long-established.", "lesson": "English Grade 7 - Unit 5: Food and Drink"},
@@ -138,6 +172,7 @@ ENGLISH_SGK_WORDS: List[Dict[str, Any]] = [
     {"word": "FESTIVAL", "grade": 7, "hint": "A day or period of celebration, typically a cultural one.", "lesson": "English Grade 7 - Unit 9: World Festivals"},
     {"word": "DELICIOUS", "grade": 7, "hint": "Highly pleasant to the taste or smell.", "lesson": "English Grade 7 - Unit 5: Vietnamese Food"},
     {"word": "EXPERIENCE", "grade": 7, "hint": "Practical contact with and observation of facts or events.", "lesson": "English Grade 7 - Unit 4: Music and Arts"},
+    {"word": "SAVE THE EARTH TODAY", "grade": 7, "hint": "A slogan urging everyone to protect nature and environment.", "lesson": "English Grade 7 - Unit 7: Green Community"},
 
     # Grade 8
     {"word": "EDUCATION", "grade": 8, "hint": "The process of receiving or giving systematic instruction.", "lesson": "English Grade 8 - Unit 8: Shopping and Learning"},
@@ -145,6 +180,7 @@ ENGLISH_SGK_WORDS: List[Dict[str, Any]] = [
     {"word": "GENERATION", "grade": 8, "hint": "All of the people born and living at about the same time.", "lesson": "English Grade 8 - Unit 4: Custom and Tradition"},
     {"word": "POLLUTION", "grade": 8, "hint": "The presence in or introduction into the environment of harmful substances.", "lesson": "English Grade 8 - Unit 7: Environmental Protection"},
     {"word": "RECYCLING", "grade": 8, "hint": "Convert waste into reusable material to protect the earth.", "lesson": "English Grade 8 - Unit 7: Green Lifestyle"},
+    {"word": "PROTECT GREEN ENVIRONMENT", "grade": 8, "hint": "An action phrase about preserving trees and clean air.", "lesson": "English Grade 8 - Unit 7: Environmental Science"},
 
     # Grade 9
     {"word": "INTELLIGENCE", "grade": 9, "hint": "The ability to acquire and apply knowledge and skills.", "lesson": "English Grade 9 - Unit 11: Electronic Devices"},
@@ -152,6 +188,7 @@ ENGLISH_SGK_WORDS: List[Dict[str, Any]] = [
     {"word": "VOCABULARY", "grade": 9, "hint": "A body of words used in a particular language or study.", "lesson": "English Grade 9 - Unit 9: English in the World"},
     {"word": "OPPORTUNITY", "grade": 9, "hint": "A set of circumstances that makes it possible to do something.", "lesson": "English Grade 9 - Unit 12: My Future Career"},
     {"word": "ACHIEVEMENT", "grade": 9, "hint": "A thing done successfully with effort, skill, or courage.", "lesson": "English Grade 9 - Unit 9: Life Skills"},
+    {"word": "PRESERVE NATURAL RESOURCES", "grade": 9, "hint": "A phrase encouraging sustainable development for future generations.", "lesson": "English Grade 9 - Unit 8: Planet Earth"},
 ]
 
 
@@ -408,9 +445,10 @@ YÊU CẦU ĐẦU RA JSON CHÍNH XÁC:
         subject: str = "Tiếng Việt",
         grade: Optional[int] = None,
         stage: int = 1,
+        question_index: int = 1,
     ) -> WordScrambleQuestionResponse:
         """
-        Generates a word scramble game session tailored to student grade, subject & stage (Chặng 1-15).
+        Generates a word scramble game session tailored to student grade, subject & stage (Chặng 1-15, Câu 1-10/Chặng).
         Automatically classifies mode:
         - 1-2 words: 'word' mode (scrambles letters).
         - 3+ words: 'sentence' mode (scrambles whole words).
@@ -420,6 +458,7 @@ YÊU CẦU ĐẦU RA JSON CHÍNH XÁC:
         applied_grade = grade or student.grade or 5
         target_subject = "Tiếng Anh" if "anh" in subject.lower() or "english" in subject.lower() else "Tiếng Việt"
         current_stage = max(1, min(15, stage))
+        curr_q_index = max(1, min(10, question_index))
 
         user_id = student.id
         recent_words = USER_RECENT_WORDS.get(user_id, [])
@@ -446,8 +485,8 @@ YÊU CẦU ĐẦU RA JSON CHÍNH XÁC:
             if not filtered:
                 filtered = [item for item in stage_pool if item["word"] not in recent_words]
             if not filtered:
-                last_5 = recent_words[-5:] if len(recent_words) >= 5 else recent_words
-                filtered = [item for item in stage_pool if item["word"] not in last_5]
+                last_10 = recent_words[-10:] if len(recent_words) >= 10 else recent_words
+                filtered = [item for item in stage_pool if item["word"] not in last_10]
             if not filtered:
                 filtered = stage_pool
 
@@ -455,13 +494,13 @@ YÊU CẦU ĐẦU RA JSON CHÍNH XÁC:
 
         target_word = selected_item["word"].upper()
 
-        # Update user recent words memory
+        # Update user recent words memory (up to 300 words history)
         if user_id not in USER_RECENT_WORDS:
             USER_RECENT_WORDS[user_id] = []
         if target_word not in USER_RECENT_WORDS[user_id]:
             USER_RECENT_WORDS[user_id].append(target_word)
-        if len(USER_RECENT_WORDS[user_id]) > 35:
-            USER_RECENT_WORDS[user_id] = USER_RECENT_WORDS[user_id][-35:]
+        if len(USER_RECENT_WORDS[user_id]) > 300:
+            USER_RECENT_WORDS[user_id] = USER_RECENT_WORDS[user_id][-300:]
 
         scrambled_data = cls._scramble_items(target_word)
         game_id = f"wsg_{uuid.uuid4().hex[:12]}"
@@ -474,6 +513,7 @@ YÊU CẦU ĐẦU RA JSON CHÍNH XÁC:
             "subject": target_subject,
             "grade": applied_grade,
             "stage": current_stage,
+            "question_index": curr_q_index,
             "mode": scrambled_data["mode"],
             "hint_meaning": selected_item["hint"],
             "hint_sgk_lesson": selected_item["lesson"],
@@ -488,6 +528,8 @@ YÊU CẦU ĐẦU RA JSON CHÍNH XÁC:
             mode=scrambled_data["mode"],
             stage=current_stage,
             total_stages=15,
+            question_index=curr_q_index,
+            total_questions_per_stage=10,
             scrambled_letters=scrambled_data["items"],
             letter_count=scrambled_data["count"],
             hint_meaning=selected_item["hint"],
