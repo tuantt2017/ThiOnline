@@ -115,3 +115,21 @@ def test_word_scramble_api_endpoints(client: TestClient, student_headers):
     verify_data = res_verify.json()
     assert "is_correct" in verify_data
     assert "explanation" in verify_data
+
+
+def test_pre_filled_hints_generation():
+    """Test _generate_pre_filled_hints method."""
+    target_items = ["UỐNG", "NƯỚC", "NHỚ", "NGUỒN"]
+    scrambled_items = ["NGUỒN", "UỐNG", "NHỚ", "NƯỚC"]
+
+    # Generate hints multiple times to test structure
+    for _ in range(20):
+        hints = WordScrambleService._generate_pre_filled_hints(target_items, scrambled_items)
+        if hints:
+            for h in hints:
+                assert "target_index" in h
+                assert "scrambled_index" in h
+                assert "letter" in h
+                assert target_items[h["target_index"]] == h["letter"]
+                assert scrambled_items[h["scrambled_index"]] == h["letter"]
+

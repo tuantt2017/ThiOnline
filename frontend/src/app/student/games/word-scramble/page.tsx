@@ -32,6 +32,8 @@ import {
 interface SelectedTile {
   index: number;
   letter: string;
+  isHint?: boolean;
+  targetIndex?: number;
 }
 
 export default function WordScrambleGamePage() {
@@ -46,7 +48,7 @@ export default function WordScrambleGamePage() {
   // Game state
   const [question, setQuestion] = useState<WordScrambleQuestion | null>(null);
   const [scrambledList, setScrambledList] = useState<string[]>([]);
-  const [selectedTiles, setSelectedTiles] = useState<SelectedTile[]>([]);
+  const [selectedTiles, setSelectedTiles] = useState<(SelectedTile | null)[]>([]);
   const [streak, setStreak] = useState<number>(0);
   const [diamondBalance, setDiamondBalance] = useState<number>(0);
 
@@ -99,6 +101,22 @@ export default function WordScrambleGamePage() {
       const q = await api.getWordScrambleQuestion(targetSub, targetGrade, targetStage);
       setQuestion(q);
       setScrambledList(q.scrambled_letters);
+
+      // Pre-fill answer tray with hint tiles if present
+      const initial: (SelectedTile | null)[] = Array(q.letter_count).fill(null);
+      if (q.pre_filled_hints && q.pre_filled_hints.length > 0) {
+        q.pre_filled_hints.forEach((hint) => {
+          if (hint.target_index >= 0 && hint.target_index < q.letter_count) {
+            initial[hint.target_index] = {
+              index: hint.scrambled_index,
+              letter: hint.letter,
+              isHint: true,
+              targetIndex: hint.target_index,
+            };
+          }
+        });
+      }
+      setSelectedTiles(initial);
     } catch (err: any) {
       alert(`Lỗi khi tải câu hỏi Chặng ${targetStage}: ${err.message}`);
     } finally {
@@ -131,10 +149,11 @@ export default function WordScrambleGamePage() {
 
   const handleTimeOut = () => {
     if (!question || result) return;
+    const activeTiles = selectedTiles.filter((t): t is SelectedTile => t !== null);
     setResult({
       is_correct: false,
       target_word: 'HẾT GIỜ',
-      user_answer: selectedTiles.map((t) => t.letter).join(question.mode === 'sentence' ? ' ' : ''),
+      user_answer: activeTiles.map((t) => t.letter).join(question.mode === 'sentence' ? ' ' : ''),
       explanation: '⏰ Đã hết thời gian 90 giây! Hãy thử lại Chặng này để tiếp tục hành trình nhé.',
       current_streak: 0,
       earned_diamonds: 0,
@@ -146,21 +165,34 @@ export default function WordScrambleGamePage() {
   // Handle Tile Click in Scrambled Grid
   const handleTileClick = (index: number, letter: string) => {
     if (result || isVerifying || isFetching) return;
-    if (selectedTiles.some((t) => t.index === index)) return;
+    if (selectedTiles.some((t) => t?.index === index)) return;
 
-    setSelectedTiles((prev) => [...prev, { index, letter }]);
+    const firstEmptyIndex = selectedTiles.findIndex((t) => t === null);
+    if (firstEmptyIndex === -1) return;
+
+    setSelectedTiles((prev) => {
+      const next = [...prev];
+      next[firstEmptyIndex] = { index, letter };
+      return next;
+    });
   };
 
   // Handle Remove Tile from Answer Tray
   const handleRemoveTrayTile = (trayIndex: number) => {
     if (result || isVerifying || isFetching) return;
-    setSelectedTiles((prev) => prev.filter((_, idx) => idx !== trayIndex));
+    if (selectedTiles[trayIndex]?.isHint) return; // Hint tiles are locked
+
+    setSelectedTiles((prev) => {
+      const next = [...prev];
+      next[trayIndex] = null;
+      return next;
+    });
   };
 
-  // Reset entire answer tray
+  // Reset entire answer tray (preserves hints)
   const handleResetTray = () => {
     if (result || isVerifying || isFetching) return;
-    setSelectedTiles([]);
+    setSelectedTiles((prev) => prev.map((t) => (t?.isHint ? t : null)));
   };
 
   // Audio TTS for English prompt
@@ -182,10 +214,11 @@ export default function WordScrambleGamePage() {
 
   // Verify built answer
   const handleSubmitAnswer = async () => {
-    if (!question || selectedTiles.length === 0 || isVerifying) return;
+    const activeTiles = selectedTiles.filter((t): t is SelectedTile => t !== null);
+    if (!question || activeTiles.length === 0 || isVerifying) return;
 
     const isSentenceMode = question.mode === 'sentence';
-    const builtAnswer = selectedTiles.map((t) => t.letter).join(isSentenceMode ? ' ' : '');
+    const builtAnswer = activeTiles.map((t) => t.letter).join(isSentenceMode ? ' ' : '');
     setIsVerifying(true);
 
     try {
@@ -439,13 +472,25 @@ export default function WordScrambleGamePage() {
                 </div>
               </div>
 
-              {/* Hint Quick Banner */}
-              {question.hint_meaning && (
-                <div className="p-4 rounded-2xl bg-amber-50/80 border border-amber-200/80 text-xs font-medium text-amber-900 leading-relaxed text-center shadow-xs">
-                  <strong className="text-amber-700 font-extrabold">💡 Gợi Ý Định Nghĩa SGK:</strong>{' '}
-                  {question.hint_meaning}
-                </div>
-              )}
+              {/* Hint Quick Banner & Pre-filled Hint Badge */}
+              <div className="space-y-2">
+                {question.pre_filled_hints && question.pre_filled_hints.length > 0 && (
+                  <div className="flex items-center justify-center gap-2 py-2 px-4 rounded-2xl bg-gradient-to-r from-amber-100 via-amber-50 to-orange-100 border border-amber-300 text-amber-900 text-xs font-bold shadow-xs">
+                    <Sparkles className="w-4 h-4 text-amber-600 animate-spin" />
+                    <span>
+                      💡 Thử thách điền từ: Đã gợi ý sẵn <strong>{question.pre_filled_hints.length}</strong>{' '}
+                      {isSentenceMode ? 'từ/tiếng' : 'chữ cái'} trong khay đáp án!
+                    </span>
+                  </div>
+                )}
+
+                {question.hint_meaning && (
+                  <div className="p-4 rounded-2xl bg-amber-50/80 border border-amber-200/80 text-xs font-medium text-amber-900 leading-relaxed text-center shadow-xs">
+                    <strong className="text-amber-700 font-extrabold">💡 Gợi Ý Định Nghĩa SGK:</strong>{' '}
+                    {question.hint_meaning}
+                  </div>
+                )}
+              </div>
 
               {/* ANSWER TRAY AREA */}
               <div className="space-y-2">
@@ -454,7 +499,7 @@ export default function WordScrambleGamePage() {
                     Khay Đáp Án Của Bạn{' '}
                     {isSentenceMode ? '(Sắp xếp các tiếng thành câu)' : '(Sắp xếp chữ cái)'}:
                   </span>
-                  {selectedTiles.length > 0 && !result && (
+                  {selectedTiles.some((t) => t !== null && !t.isHint) && !result && (
                     <button
                       type="button"
                       onClick={handleResetTray}
@@ -465,7 +510,7 @@ export default function WordScrambleGamePage() {
                   )}
                 </div>
 
-                <div className="min-h-[80px] p-3 rounded-2xl bg-slate-50 border-2 border-dashed border-slate-200 flex flex-wrap items-center justify-center gap-2 transition">
+                <div className="min-h-[84px] p-3.5 rounded-2xl bg-slate-50 border-2 border-dashed border-slate-200 flex flex-wrap items-center justify-center gap-2.5 transition">
                   {selectedTiles.length === 0 ? (
                     <span className="text-xs font-medium text-slate-400 italic">
                       {isSentenceMode
@@ -473,20 +518,54 @@ export default function WordScrambleGamePage() {
                         : 'Bấm vào các ô chữ cái phía dưới theo thứ tự để ghép từ...'}
                     </span>
                   ) : (
-                    selectedTiles.map((tile, idx) => (
-                      <button
-                        key={`${tile.index}-${idx}`}
-                        type="button"
-                        onClick={() => handleRemoveTrayTile(idx)}
-                        className={`${
-                          isSentenceMode
-                            ? 'h-11 px-4 text-sm tracking-wide rounded-xl font-extrabold shadow-sm bg-gradient-to-b from-indigo-500 to-indigo-600 text-white border-b-2 border-indigo-800'
-                            : 'h-12 min-w-[48px] px-3 rounded-xl bg-gradient-to-b from-amber-400 to-amber-500 text-slate-950 font-black text-lg border-b-2 border-amber-600 shadow-md shadow-amber-200'
-                        } hover:scale-105 active:scale-95 transition flex items-center justify-center`}
-                      >
-                        {tile.letter === ' ' ? '␣' : tile.letter}
-                      </button>
-                    ))
+                    selectedTiles.map((tile, idx) => {
+                      if (!tile) {
+                        return (
+                          <div
+                            key={`empty-slot-${idx}`}
+                            className={`flex items-center justify-center border-2 border-dashed border-slate-300/80 bg-slate-100/50 rounded-xl text-slate-400 font-bold transition select-none ${
+                              isSentenceMode ? 'h-11 min-w-[70px] px-3 text-xs' : 'h-12 min-w-[48px] px-3 text-sm'
+                            }`}
+                          >
+                            _
+                          </div>
+                        );
+                      }
+
+                      if (tile.isHint) {
+                        return (
+                          <div
+                            key={`hint-slot-${tile.index}-${idx}`}
+                            className={`relative flex items-center justify-center font-black rounded-xl border-2 shadow-md transition ${
+                              isSentenceMode
+                                ? 'h-11 px-4 text-sm tracking-wide bg-gradient-to-r from-emerald-500 to-teal-600 text-white border-emerald-300 shadow-emerald-200/50'
+                                : 'h-12 min-w-[48px] px-3.5 text-lg bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 text-slate-950 border-amber-300 shadow-amber-200'
+                            }`}
+                            title="Chữ gợi ý sẵn (được khóa cố định)"
+                          >
+                            <span className="absolute -top-2 -right-1 bg-amber-400 text-slate-950 text-[9px] font-black px-1.5 py-0.5 rounded-full shadow-xs border border-white flex items-center gap-0.5">
+                              💡
+                            </span>
+                            {tile.letter === ' ' ? '␣' : tile.letter}
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <button
+                          key={`user-slot-${tile.index}-${idx}`}
+                          type="button"
+                          onClick={() => handleRemoveTrayTile(idx)}
+                          className={`${
+                            isSentenceMode
+                              ? 'h-11 px-4 text-sm tracking-wide rounded-xl font-extrabold shadow-sm bg-gradient-to-b from-indigo-500 to-indigo-600 text-white border-b-2 border-indigo-800'
+                              : 'h-12 min-w-[48px] px-3 rounded-xl bg-gradient-to-b from-amber-400 to-amber-500 text-slate-950 font-black text-lg border-b-2 border-amber-600 shadow-md shadow-amber-200'
+                          } hover:scale-105 active:scale-95 transition flex items-center justify-center`}
+                        >
+                          {tile.letter === ' ' ? '␣' : tile.letter}
+                        </button>
+                      );
+                    })
                   )}
                 </div>
               </div>
@@ -501,7 +580,7 @@ export default function WordScrambleGamePage() {
 
                 <div className="flex flex-wrap items-center justify-center gap-3 py-2">
                   {scrambledList.map((letter, index) => {
-                    const isSelected = selectedTiles.some((t) => t.index === index);
+                    const isSelected = selectedTiles.some((t) => t?.index === index);
                     return (
                       <button
                         key={`scrambled-${index}`}
@@ -535,7 +614,7 @@ export default function WordScrambleGamePage() {
                   <button
                     type="button"
                     onClick={handleSubmitAnswer}
-                    disabled={selectedTiles.length === 0 || isVerifying}
+                    disabled={!selectedTiles.some((t) => t !== null) || isVerifying}
                     className="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-sm shadow-lg shadow-amber-200/80 disabled:opacity-40 transition flex items-center justify-center gap-2 active:scale-95"
                   >
                     {isVerifying ? (

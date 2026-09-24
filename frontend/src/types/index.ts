@@ -815,6 +815,11 @@ export interface WordScrambleQuestion {
   first_letter_hint?: string | null;
   english_audio_prompt?: string | null;
   reward_diamonds: number;
+  pre_filled_hints?: {
+    target_index: number;
+    scrambled_index: number;
+    letter: string;
+  }[];
 }
 
 export interface WordScrambleVerifyRequest {

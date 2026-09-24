@@ -184,41 +184,100 @@ class WordScrambleService:
         return True
 
     @staticmethod
-    def _scramble_items(word: str) -> Dict[str, Any]:
+    def _generate_pre_filled_hints(target_items: List[str], scrambled_items: List[str]) -> List[Dict[str, Any]]:
+        """
+        Generates 1-2 pre-filled hint tiles for ~35-40% of questions.
+        """
+        count = len(target_items)
+        if count < 3:
+            return []
+
+        if random.random() > 0.40:
+            return []
+
+        num_hints = 1 if count <= 5 else random.choice([1, 2])
+
+        candidate_target_indices = list(range(count))
+        chosen_t_indices = []
+
+        # 70% chance to include the 1st letter/word as a hint
+        if random.random() < 0.70 and 0 in candidate_target_indices:
+            chosen_t_indices.append(0)
+            candidate_target_indices.remove(0)
+
+        while len(chosen_t_indices) < num_hints and candidate_target_indices:
+            t_idx = random.choice(candidate_target_indices)
+            chosen_t_indices.append(t_idx)
+            candidate_target_indices.remove(t_idx)
+
+        chosen_t_indices.sort()
+
+        used_s_indices = set()
+        hints = []
+
+        for t_idx in chosen_t_indices:
+            val = target_items[t_idx]
+            matching_s_indices = [
+                i for i, item in enumerate(scrambled_items)
+                if item == val and i not in used_s_indices
+            ]
+            if matching_s_indices:
+                s_idx = matching_s_indices[0]
+                used_s_indices.add(s_idx)
+                hints.append({
+                    "target_index": t_idx,
+                    "scrambled_index": s_idx,
+                    "letter": val,
+                })
+
+        return hints
+
+    @classmethod
+    def _scramble_items(cls, word: str) -> Dict[str, Any]:
         """
         Scrambles items based on word count:
         - 1-2 words: Mode 'word' (scrambles individual letters).
         - 3+ words: Mode 'sentence' (scrambles whole word tokens).
+        Also generates pre-filled hint tiles for ~40% of questions.
         """
         clean_word = word.strip().upper()
         words = clean_word.split()
 
         if len(words) >= 3:
             # Sentence / Phrase Scramble mode: scramble whole word tokens
-            shuffled = words.copy()
+            target_items = words
+            shuffled = target_items.copy()
             if len(shuffled) > 1:
                 for _ in range(12):
                     random.shuffle(shuffled)
-                    if shuffled != words:
+                    if shuffled != target_items:
                         break
+
+            hints = cls._generate_pre_filled_hints(target_items, shuffled)
+
             return {
                 "mode": "sentence",
                 "items": shuffled,
                 "count": len(words),
+                "pre_filled_hints": hints,
             }
         else:
             # Word Scramble mode: scramble individual letters
-            chars = [c for c in clean_word if c != " "]
-            shuffled = chars.copy()
+            target_items = [c for c in clean_word if c != " "]
+            shuffled = target_items.copy()
             if len(shuffled) > 1:
                 for _ in range(12):
                     random.shuffle(shuffled)
-                    if "".join(shuffled) != "".join(chars):
+                    if "".join(shuffled) != "".join(target_items):
                         break
+
+            hints = cls._generate_pre_filled_hints(target_items, shuffled)
+
             return {
                 "mode": "word",
                 "items": shuffled,
-                "count": len(chars),
+                "count": len(target_items),
+                "pre_filled_hints": hints,
             }
 
     @classmethod
@@ -434,6 +493,7 @@ YÊU CẦU ĐẦU RA JSON CHÍNH XÁC:
             first_letter_hint=first_item,
             english_audio_prompt=target_word if target_subject == "Tiếng Anh" else None,
             reward_diamonds=1,
+            pre_filled_hints=scrambled_data.get("pre_filled_hints", []),
         )
 
     @classmethod
