@@ -25,13 +25,28 @@ export default function LoginPage() {
   const [showDemoModal, setShowDemoModal] = useState(false);
   const [isDemoSubmitting, setIsDemoSubmitting] = useState(false);
 
+  const [isSlowConnecting, setIsSlowConnecting] = useState(false);
+
   const { login, demoLogin } = useAuth();
   const router = useRouter();
 
+  // Pre-warm backend on login page mount
+  React.useEffect(() => {
+    import('@/lib/api').then(({ api }) => {
+      api.getHealth().catch(() => {});
+    });
+  }, []);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
     setError(null);
     setIsSubmitting(true);
+    setIsSlowConnecting(false);
+
+    const slowTimer = setTimeout(() => {
+      setIsSlowConnecting(true);
+    }, 2500);
 
     try {
       const user = await login(email, password);
@@ -43,13 +58,22 @@ export default function LoginPage() {
     } catch (err: any) {
       setError(err.message || 'Đăng nhập không thành công. Vui lòng thử lại.');
     } finally {
+      clearTimeout(slowTimer);
       setIsSubmitting(false);
+      setIsSlowConnecting(false);
     }
   };
 
   const handleDemoSelect = async (role: string) => {
+    if (isDemoSubmitting) return;
     setError(null);
     setIsDemoSubmitting(true);
+    setIsSlowConnecting(false);
+
+    const slowTimer = setTimeout(() => {
+      setIsSlowConnecting(true);
+    }, 2500);
+
     try {
       const user = await demoLogin(role);
       setShowDemoModal(false);
@@ -61,7 +85,9 @@ export default function LoginPage() {
     } catch (err: any) {
       setError(err.message || 'Không thể tạo phiên dùng thử demo.');
     } finally {
+      clearTimeout(slowTimer);
       setIsDemoSubmitting(false);
+      setIsSlowConnecting(false);
     }
   };
 
@@ -86,6 +112,13 @@ export default function LoginPage() {
             <div className="flex items-center gap-2 rounded-xl bg-rose-50 border border-rose-200 p-3.5 text-sm text-rose-800 font-semibold shadow-sm">
               <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
               <span>{error}</span>
+            </div>
+          )}
+
+          {isSlowConnecting && (
+            <div className="flex items-center gap-2.5 rounded-xl bg-amber-50 border border-amber-300 p-3 text-xs text-amber-900 font-extrabold shadow-xs animate-pulse">
+              <Sparkles className="w-4 h-4 text-amber-600 animate-spin shrink-0" />
+              <span>⚡ Máy chủ AI đang kết nối & khởi động... Vui lòng đợi vài giây!</span>
             </div>
           )}
 
@@ -125,11 +158,14 @@ export default function LoginPage() {
 
           <button
             type="submit"
-            disabled={isSubmitting}
+            disabled={isSubmitting || isDemoSubmitting}
             className="w-full flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white shadow-md shadow-blue-500/20 hover:bg-blue-700 focus:outline-none disabled:opacity-50 transition"
           >
             {isSubmitting ? (
-              <span className="inline-block animate-spin">⏳</span>
+              <span className="flex items-center gap-2">
+                <span className="inline-block animate-spin">⏳</span>
+                <span>Đang xử lý đăng nhập...</span>
+              </span>
             ) : (
               <>
                 <span>Đăng nhập</span>

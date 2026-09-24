@@ -107,12 +107,22 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     }
   }
 
+  // AbortController timeout to prevent infinite browser hangs
+  let signal = options.signal;
+  let controller: AbortController | null = null;
+  if (!signal && typeof AbortController !== 'undefined') {
+    controller = new AbortController();
+    signal = controller.signal;
+    setTimeout(() => controller?.abort(), 20000);
+  }
+
   try {
     let response!: Response;
     try {
       response = await fetch(url, {
         ...options,
         headers,
+        signal,
       });
     } catch (netError: any) {
       // Retry using alternative host targets (127.0.0.1 <-> localhost or direct backend server port 8000)
@@ -135,10 +145,14 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
       for (const altBase of candidateBases) {
         try {
           const altUrl = `${altBase}${endpoint}`;
+          const altController = typeof AbortController !== 'undefined' ? new AbortController() : null;
+          const altTimer = altController ? setTimeout(() => altController.abort(), 4000) : null;
           response = await fetch(altUrl, {
             ...options,
             headers,
+            signal: altController ? altController.signal : undefined,
           });
+          if (altTimer) clearTimeout(altTimer);
           succeeded = true;
           break;
         } catch {
@@ -175,6 +189,7 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     const isNetworkError =
       !error?.status ||
       error?.name === 'TypeError' ||
+      error?.name === 'AbortError' ||
       typeof error?.message !== 'string' ||
       error?.message?.includes('Failed to fetch') ||
       error?.message?.includes('NetworkError') ||
@@ -182,7 +197,7 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
       error?.message?.includes('Load failed');
 
     const cleanMsg = isNetworkError
-      ? `Không thể kết nối đến máy chủ Backend (Target: ${url}). Vui lòng kiểm tra lại dịch vụ Backend, CORS hoặc HTTPS/Mixed Content.`
+      ? `Không thể kết nối đến máy chủ Backend (Target: ${url}). Vui lòng kiểm tra lại dịch vụ Backend hoặc chờ máy chủ khởi động.`
       : error?.message || 'Lỗi không xác định khi kết nối API';
 
     throw new ApiError(cleanMsg, isNetworkError ? 503 : 500);
