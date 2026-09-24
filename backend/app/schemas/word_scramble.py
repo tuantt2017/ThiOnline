@@ -19,6 +19,7 @@ class WordScrambleQuestionResponse(BaseModel):
     english_audio_prompt: Optional[str] = Field(None, description="Văn bản phát âm chuẩn Tiếng Anh (nếu là môn Tiếng Anh)")
     reward_diamonds: int = Field(default=1, description="Số kim cương thưởng khi đạt mốc streak 7 câu đúng")
     pre_filled_hints: List[Dict[str, Any]] = Field(default_factory=list, description="Danh sách ô gợi ý điền sẵn [{target_index, scrambled_index, letter}]")
+    target_word: Optional[str] = Field(None, description="Từ / câu đáp án mục tiêu (dùng cho gợi ý nháy sáng)")
 
 
 class WordScrambleVerifyRequest(BaseModel):

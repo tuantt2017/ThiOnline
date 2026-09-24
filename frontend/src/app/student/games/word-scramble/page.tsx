@@ -62,7 +62,13 @@ export default function WordScrambleGamePage() {
   const [timerSeconds, setTimerSeconds] = useState<number>(90); // 90 Seconds Timer
   const [isPlayingAudio, setIsPlayingAudio] = useState<boolean>(false);
 
+  // Flash Hint States
+  const [flashingTileIndex, setFlashingTileIndex] = useState<number | null>(null);
+  const [flashingTrayIndex, setFlashingTrayIndex] = useState<number | null>(null);
+  const [flashHintMessage, setFlashHintMessage] = useState<string | null>(null);
+
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const flashTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Authenticate user
   useEffect(() => {
@@ -98,6 +104,10 @@ export default function WordScrambleGamePage() {
     setShowHintModal(false);
     setShowVictoryModal(false);
     setTimerSeconds(90); // 90 Seconds Countdown
+    setFlashingTileIndex(null);
+    setFlashingTrayIndex(null);
+    setFlashHintMessage(null);
+    if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
 
     try {
       const q = await api.getWordScrambleQuestion(targetSub, targetGrade, targetStage, targetQuestionIndex);
@@ -169,6 +179,10 @@ export default function WordScrambleGamePage() {
     if (result || isVerifying || isFetching) return;
     if (selectedTiles.some((t) => t?.index === index)) return;
 
+    setFlashingTileIndex(null);
+    setFlashingTrayIndex(null);
+    setFlashHintMessage(null);
+
     const firstEmptyIndex = selectedTiles.findIndex((t) => t === null);
     if (firstEmptyIndex === -1) return;
 
@@ -184,6 +198,10 @@ export default function WordScrambleGamePage() {
     if (result || isVerifying || isFetching) return;
     if (selectedTiles[trayIndex]?.isHint) return; // Hint tiles are locked
 
+    setFlashingTileIndex(null);
+    setFlashingTrayIndex(null);
+    setFlashHintMessage(null);
+
     setSelectedTiles((prev) => {
       const next = [...prev];
       next[trayIndex] = null;
@@ -194,7 +212,52 @@ export default function WordScrambleGamePage() {
   // Reset entire answer tray (preserves hints)
   const handleResetTray = () => {
     if (result || isVerifying || isFetching) return;
+    setFlashingTileIndex(null);
+    setFlashingTrayIndex(null);
+    setFlashHintMessage(null);
     setSelectedTiles((prev) => prev.map((t) => (t?.isHint ? t : null)));
+  };
+
+  // Flash Next Letter Hint Handler (Works for both Tiếng Việt and Tiếng Anh)
+  const handleFlashNextLetterHint = () => {
+    if (!question || !question.target_word || result || isVerifying || isFetching) return;
+
+    const rawTarget = question.target_word.trim().toUpperCase();
+    let targetArray: string[] = [];
+    if (question.mode === 'sentence') {
+      targetArray = rawTarget.split(/\s+/);
+    } else {
+      targetArray = rawTarget.replace(/\s+/g, '').split('');
+    }
+
+    const emptyIdx = selectedTiles.findIndex((t) => t === null);
+    if (emptyIdx === -1) {
+      setFlashHintMessage('⚠️ Bạn đã chọn đủ tất cả các ô trên khay đáp án!');
+      return;
+    }
+
+    const expectedItem = targetArray[emptyIdx];
+    if (!expectedItem) return;
+
+    const matchingSIndex = scrambledList.findIndex((letter, sIdx) => {
+      const isSelectedInTray = selectedTiles.some((t) => t?.index === sIdx);
+      return !isSelectedInTray && letter.toUpperCase() === expectedItem.toUpperCase();
+    });
+
+    if (matchingSIndex !== -1) {
+      setFlashingTileIndex(matchingSIndex);
+      setFlashingTrayIndex(emptyIdx);
+      setFlashHintMessage(`💡 Gợi ý: Chọn ô "${expectedItem === ' ' ? 'Space' : expectedItem}" đang nháy sáng bên dưới!`);
+
+      if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
+      flashTimerRef.current = setTimeout(() => {
+        setFlashingTileIndex(null);
+        setFlashingTrayIndex(null);
+        setFlashHintMessage(null);
+      }, 4000);
+    } else {
+      setFlashHintMessage('💡 Không tìm thấy ô tự do khớp vị trí này. Thử bấm "Đặt lại" khay đáp án nhé!');
+    }
   };
 
   // Audio TTS for English prompt
@@ -467,6 +530,16 @@ export default function WordScrambleGamePage() {
                   </div>
 
                   {/* Hint & Audio Prompt Buttons */}
+                  <button
+                    type="button"
+                    onClick={handleFlashNextLetterHint}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-400 text-slate-950 font-black text-xs hover:brightness-105 active:scale-95 transition shadow-sm border border-amber-300 animate-pulse"
+                    title="Nhấp để làm nháy sáng ô chữ/tiếng tiếp theo cần chọn"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 fill-slate-950 animate-spin" />
+                    <span>Gợi Ý Chữ Nháy Sáng</span>
+                  </button>
+
                   {subject === 'Tiếng Anh' && question.english_audio_prompt && (
                     <button
                       type="button"
@@ -491,6 +564,12 @@ export default function WordScrambleGamePage() {
 
               {/* Hint Quick Banner & Pre-filled Hint Badge */}
               <div className="space-y-2">
+                {flashHintMessage && (
+                  <div className="p-3 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-400 text-slate-950 font-black text-xs text-center shadow-md animate-bounce border border-amber-300">
+                    {flashHintMessage}
+                  </div>
+                )}
+
                 {question.pre_filled_hints && question.pre_filled_hints.length > 0 && (
                   <div className="flex items-center justify-center gap-2 py-2 px-4 rounded-2xl bg-gradient-to-r from-amber-100 via-amber-50 to-orange-100 border border-amber-300 text-amber-900 text-xs font-bold shadow-xs">
                     <Sparkles className="w-4 h-4 text-amber-600 animate-spin" />
@@ -537,12 +616,15 @@ export default function WordScrambleGamePage() {
                   ) : (
                     selectedTiles.map((tile, idx) => {
                       if (!tile) {
+                        const isTrayFlashing = idx === flashingTrayIndex;
                         return (
                           <div
                             key={`empty-slot-${idx}`}
-                            className={`flex items-center justify-center border-2 border-dashed border-slate-300/80 bg-slate-100/50 rounded-xl text-slate-400 font-bold transition select-none ${
-                              isSentenceMode ? 'h-11 min-w-[70px] px-3 text-xs' : 'h-12 min-w-[48px] px-3 text-sm'
-                            }`}
+                            className={`flex items-center justify-center border-2 rounded-xl font-extrabold transition select-none ${
+                              isTrayFlashing
+                                ? 'border-amber-500 bg-amber-200/90 text-amber-950 ring-4 ring-amber-300 animate-pulse scale-105'
+                                : 'border-dashed border-slate-300/80 bg-slate-100/50 text-slate-400'
+                            } ${isSentenceMode ? 'h-11 min-w-[70px] px-3 text-xs' : 'h-12 min-w-[48px] px-3 text-sm'}`}
                           >
                             _
                           </div>
@@ -598,6 +680,7 @@ export default function WordScrambleGamePage() {
                 <div className="flex flex-wrap items-center justify-center gap-3 py-2">
                   {scrambledList.map((letter, index) => {
                     const isSelected = selectedTiles.some((t) => t?.index === index);
+                    const isFlashing = index === flashingTileIndex;
                     return (
                       <button
                         key={`scrambled-${index}`}
@@ -606,16 +689,16 @@ export default function WordScrambleGamePage() {
                         onClick={() => handleTileClick(index, letter)}
                         className={`transition flex items-center justify-center shadow-md ${
                           isSentenceMode
-                            ? `h-12 px-4 rounded-2xl font-black text-sm border-b-4 ${
-                                isSelected
-                                  ? 'opacity-25 scale-90 border-transparent bg-slate-200 text-slate-400 cursor-not-allowed'
-                                  : 'bg-gradient-to-b from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 border-amber-600 text-slate-950 shadow-amber-200 hover:scale-105 active:scale-95'
-                              }`
-                            : `h-14 min-w-[54px] px-3.5 rounded-2xl font-black text-xl border-b-4 ${
-                                isSelected
-                                  ? 'opacity-25 scale-90 border-transparent bg-slate-200 text-slate-400 cursor-not-allowed'
-                                  : 'bg-gradient-to-b from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 border-indigo-800 text-white shadow-indigo-200 hover:scale-110 active:scale-95'
-                              }`
+                            ? 'h-12 px-4 rounded-2xl font-black text-sm border-b-4'
+                            : 'h-14 min-w-[54px] px-3.5 rounded-2xl font-black text-xl border-b-4'
+                        } ${
+                          isFlashing
+                            ? 'ring-4 ring-amber-400 ring-offset-2 animate-bounce bg-gradient-to-b from-amber-300 via-amber-400 to-yellow-500 border-amber-300 text-slate-950 font-black scale-110 shadow-xl shadow-amber-400/80 z-20'
+                            : isSelected
+                            ? 'opacity-25 scale-90 border-transparent bg-slate-200 text-slate-400 cursor-not-allowed'
+                            : isSentenceMode
+                            ? 'bg-gradient-to-b from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 border-amber-600 text-slate-950 shadow-amber-200 hover:scale-105 active:scale-95'
+                            : 'bg-gradient-to-b from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 border-indigo-800 text-white shadow-indigo-200 hover:scale-110 active:scale-95'
                         }`}
                       >
                         {letter === ' ' ? '␣' : letter}

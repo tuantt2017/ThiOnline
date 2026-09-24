@@ -817,6 +817,7 @@ export interface WordScrambleQuestion {
   first_letter_hint?: string | null;
   english_audio_prompt?: string | null;
   reward_diamonds: number;
+  target_word?: string;
   pre_filled_hints?: {
     target_index: number;
     scrambled_index: number;

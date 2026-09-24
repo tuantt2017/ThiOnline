@@ -538,6 +538,7 @@ YÊU CẦU ĐẦU RA JSON CHÍNH XÁC:
             english_audio_prompt=target_word if target_subject == "Tiếng Anh" else None,
             reward_diamonds=1,
             pre_filled_hints=scrambled_data.get("pre_filled_hints", []),
+            target_word=target_word,
         )
 
     @classmethod
