@@ -17,7 +17,7 @@ class WordScrambleQuestionResponse(BaseModel):
     hint_sgk_lesson: Optional[str] = Field(None, description="Vị trí bài học SGK GDPT 2018")
     first_letter_hint: Optional[str] = Field(None, description="Gợi ý ký tự đầu tiên")
     english_audio_prompt: Optional[str] = Field(None, description="Văn bản phát âm chuẩn Tiếng Anh (nếu là môn Tiếng Anh)")
-    reward_diamonds: int = Field(default=1, description="Số kim cương thưởng khi đạt mốc streak 10 câu đúng")
+    reward_diamonds: int = Field(default=1, description="Số kim cương thưởng khi đạt mốc streak 7 câu đúng")
     pre_filled_hints: List[Dict[str, Any]] = Field(default_factory=list, description="Danh sách ô gợi ý điền sẵn [{target_index, scrambled_index, letter}]")
 
 

@@ -72,7 +72,7 @@ export default function StudentDashboardPage() {
               Đấu Trường "Vua Từ Vựng SGK"
             </h2>
             <p className="text-xs font-semibold text-slate-900 leading-relaxed">
-              Giải trí cực vui cùng trò chơi xếp từ đảo lộn môn <strong>Tiếng Việt</strong> (từ ghép, thành ngữ) & <strong>Tiếng Anh</strong> (vựng SGK Lớp 4–9). Nhận ngay <strong>1–2 💎 Kim Cương</strong> khi đạt chuỗi <strong>10 câu đúng liên tiếp</strong> cho mỗi môn!
+              Giải trí cực vui cùng trò chơi xếp từ đảo lộn môn <strong>Tiếng Việt</strong> (từ ghép, thành ngữ) & <strong>Tiếng Anh</strong> (vựng SGK Lớp 4–9). Nhận ngay <strong>1 💎 Kim Cương</strong> khi đạt chuỗi <strong>7 câu đúng liên tiếp</strong> (tối đa 2 💎/ngày)!
             </p>
 
           </div>

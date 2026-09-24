@@ -179,7 +179,7 @@ class RewardService:
             user_id=user_id,
             amount=award_amount,
             transaction_type=TransactionType.AI_PRACTICE_REWARD,
-            description=f"Thưởng {award_amount} 💎 - Chuỗi 10 câu đúng trò chơi Vua Từ Vựng SGK",
+            description=f"Thưởng {award_amount} 💎 - Chuỗi 7 câu đúng trò chơi Vua Từ Vựng SGK",
             reference_id=f"word_scramble_{reference_id}",
         )
         db.add(tx)

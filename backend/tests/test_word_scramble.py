@@ -49,12 +49,12 @@ def test_word_scramble_non_repetition(db, student_user):
     assert len(set(served_words)) == 8
 
 
-def test_verify_word_scramble_10_streak_reward_rule(db, student_user):
-    """Test 10-streak reward rule: Only award diamonds at multiples of 10 consecutive correct answers."""
+def test_verify_word_scramble_7_streak_reward_rule(db, student_user):
+    """Test 7-streak reward rule: Only award diamonds at multiples of 7 consecutive correct answers."""
     q = WordScrambleService.get_next_question(db, student_user, subject="Tiếng Việt", grade=4)
     target_word = GAME_SESSIONS[q.game_id]["target_word"]
 
-    # Streak 5 does NOT award diamonds anymore
+    # Streak 5 does NOT award diamonds
     res_streak5 = WordScrambleService.verify_answer(
         db, student_user, game_id=q.game_id, user_answer=target_word, streak_count=4
     )
@@ -62,16 +62,17 @@ def test_verify_word_scramble_10_streak_reward_rule(db, student_user):
     assert res_streak5.current_streak == 5
     assert res_streak5.earned_diamonds == 0
 
-    # Streak 10 DOES award diamonds
-    res_streak10 = WordScrambleService.verify_answer(
-        db, student_user, game_id=q.game_id, user_answer=target_word, streak_count=9
+    # Streak 7 DOES award diamonds
+    res_streak7 = WordScrambleService.verify_answer(
+        db, student_user, game_id=q.game_id, user_answer=target_word, streak_count=6
     )
-    assert res_streak10.is_correct is True
-    assert res_streak10.current_streak == 10
+    assert res_streak7.is_correct is True
+    assert res_streak7.current_streak == 7
+    assert res_streak7.earned_diamonds == 1
 
     # Verify wrong answer resets streak to 0
     res_wrong = WordScrambleService.verify_answer(
-        db, student_user, game_id=q.game_id, user_answer="SAIHOANTOAN", streak_count=10
+        db, student_user, game_id=q.game_id, user_answer="SAIHOANTOAN", streak_count=7
     )
     assert res_wrong.is_correct is False
     assert res_wrong.current_streak == 0
@@ -82,16 +83,16 @@ def test_word_scramble_daily_cap_2_diamonds(db, student_user):
     q = WordScrambleService.get_next_question(db, student_user, subject="Tiếng Việt", grade=4)
     target_word = GAME_SESSIONS[q.game_id]["target_word"]
 
-    # 1st 10-streak milestone: awards 1 diamond
-    r1 = WordScrambleService.verify_answer(db, student_user, game_id=q.game_id, user_answer=target_word, streak_count=9)
+    # 1st 7-streak milestone: awards 1 diamond
+    r1 = WordScrambleService.verify_answer(db, student_user, game_id=q.game_id, user_answer=target_word, streak_count=6)
     assert r1.earned_diamonds == 1
 
-    # 2nd 10-streak milestone: awards 1 diamond (total = 2)
-    r2 = WordScrambleService.verify_answer(db, student_user, game_id=q.game_id, user_answer=target_word, streak_count=19)
+    # 2nd 7-streak milestone: awards 1 diamond (total = 2)
+    r2 = WordScrambleService.verify_answer(db, student_user, game_id=q.game_id, user_answer=target_word, streak_count=13)
     assert r2.earned_diamonds == 1
 
-    # 3rd 10-streak milestone on same day: awards 0 diamonds due to daily cap 2
-    r3 = WordScrambleService.verify_answer(db, student_user, game_id=q.game_id, user_answer=target_word, streak_count=29)
+    # 3rd 7-streak milestone on same day: awards 0 diamonds due to daily cap 2
+    r3 = WordScrambleService.verify_answer(db, student_user, game_id=q.game_id, user_answer=target_word, streak_count=20)
     assert r3.earned_diamonds == 0
     assert "hạn mức nhận tối đa 2 💎" in r3.explanation
 
