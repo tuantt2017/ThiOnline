@@ -42,6 +42,8 @@ import {
   RewardBalance,
   WordScrambleQuestion,
   WordScrambleVerifyResponse,
+  WordScrambleProgressResponse,
+  WordScrambleProgressSaveRequest,
 } from '@/types';
 
 
@@ -750,6 +752,23 @@ export const api = {
     return request<WordScrambleVerifyResponse>('/api/v1/games/word-scramble/verify', {
       method: 'POST',
       body: JSON.stringify({ game_id: gameId, user_answer: userAnswer, streak_count: streakCount }),
+    });
+  },
+
+  getWordScrambleProgress: async (subject?: string, grade?: number): Promise<WordScrambleProgressResponse> => {
+    const query = new URLSearchParams();
+    if (subject) query.append('subject', subject);
+    if (grade) query.append('grade', grade.toString());
+    const queryString = query.toString() ? `?${query.toString()}` : '';
+    return request<WordScrambleProgressResponse>(`/api/v1/games/word-scramble/progress${queryString}`, {
+      method: 'GET',
+    });
+  },
+
+  saveWordScrambleProgress: async (data: WordScrambleProgressSaveRequest): Promise<WordScrambleProgressResponse> => {
+    return request<WordScrambleProgressResponse>('/api/v1/games/word-scramble/progress', {
+      method: 'POST',
+      body: JSON.stringify(data),
     });
   },
 };

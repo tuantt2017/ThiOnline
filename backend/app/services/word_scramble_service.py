@@ -25,6 +25,9 @@ GAME_SESSIONS: Dict[str, Dict[str, Any]] = {}
 # In-Memory User Recent Words Registry (prevents repeating words per user)
 USER_RECENT_WORDS: Dict[int, List[str]] = {}
 
+# In-Memory User Stage & Question Progress Registry (persists stage across sessions)
+USER_STAGE_PROGRESS: Dict[int, Dict[str, Dict[str, Any]]] = {}
+
 ENGLISH_BLACKLIST_WORDS = {
     "ENVIRONMENT", "BEAUTIFUL", "COMMUNITY", "TECHNOLOGY", "FRIENDSHIP",
     "FAMILY", "SCHOOL", "DOCTOR", "TEACHER", "PLAYGROUND", "STUDENT",
@@ -589,6 +592,27 @@ YÊU CẦU ĐẦU RA JSON CHÍNH XÁC:
             earned_diamonds = reward_res.get("awarded", 0)
             new_balance = reward_res.get("new_balance", new_balance)
 
+        # Auto-update persistent stage & question progress on correct answer
+        if is_correct:
+            curr_stage = session.get("stage", 1)
+            curr_q_index = session.get("question_index", 1)
+
+            if curr_q_index < 10:
+                next_stage = curr_stage
+                next_q_index = curr_q_index + 1
+            else:
+                next_stage = min(15, curr_stage + 1)
+                next_q_index = 1
+
+            cls.save_user_progress(
+                student=student,
+                subject=target_subject,
+                grade=session.get("grade", 5),
+                stage=next_stage,
+                question_index=next_q_index,
+                streak=new_streak,
+            )
+
         explanation = (
             f"🎉 Chính xác! Từ ghép chuẩn SGK: '{target}'. "
             f"Ghi nhớ: {session['hint_meaning']} ({session['hint_sgk_lesson']})."
@@ -609,3 +633,49 @@ YÊU CẦU ĐẦU RA JSON CHÍNH XÁC:
             earned_diamonds=earned_diamonds,
             new_diamond_balance=new_balance,
         )
+
+    @classmethod
+    def get_user_progress(cls, student: User, subject: str = "Tiếng Việt", grade: int = 5) -> Dict[str, Any]:
+        """Retrieves persistent game progress for student by subject & grade."""
+        target_subject = "Tiếng Anh" if "anh" in subject.lower() or "english" in subject.lower() else "Tiếng Việt"
+        user_id = student.id
+        user_dict = USER_STAGE_PROGRESS.get(user_id, {})
+        sub_progress = user_dict.get(target_subject)
+        if not sub_progress:
+            sub_progress = {
+                "subject": target_subject,
+                "grade": grade,
+                "stage": 1,
+                "question_index": 1,
+                "streak": 0,
+            }
+        return sub_progress
+
+    @classmethod
+    def save_user_progress(
+        cls,
+        student: User,
+        subject: str,
+        grade: int,
+        stage: int,
+        question_index: int,
+        streak: int = 0,
+    ) -> Dict[str, Any]:
+        """Saves persistent game progress for student by subject & grade."""
+        target_subject = "Tiếng Anh" if "anh" in subject.lower() or "english" in subject.lower() else "Tiếng Việt"
+        user_id = student.id
+        if user_id not in USER_STAGE_PROGRESS:
+            USER_STAGE_PROGRESS[user_id] = {}
+
+        bounded_stage = max(1, min(15, stage))
+        bounded_q_idx = max(1, min(10, question_index))
+
+        saved_data = {
+            "subject": target_subject,
+            "grade": grade,
+            "stage": bounded_stage,
+            "question_index": bounded_q_idx,
+            "streak": max(0, streak),
+        }
+        USER_STAGE_PROGRESS[user_id][target_subject] = saved_data
+        return saved_data

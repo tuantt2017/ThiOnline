@@ -36,3 +36,19 @@ class WordScrambleVerifyResponse(BaseModel):
     current_streak: int = Field(..., description="Chuỗi câu trả lời đúng liên tiếp mới")
     earned_diamonds: int = Field(default=0, description="Số kim cương được thưởng lượt này (nếu có)")
     new_diamond_balance: Optional[int] = Field(None, description="Số dư kim cương mới nhất")
+
+
+class WordScrambleProgressResponse(BaseModel):
+    subject: str = Field("Tiếng Việt", description="Môn học")
+    grade: int = Field(5, description="Khối lớp")
+    stage: int = Field(1, description="Chặng hiện tại (1-15)")
+    question_index: int = Field(1, description="Câu hỏi hiện tại trong chặng (1-10)")
+    streak: int = Field(0, description="Chuỗi thắng hiện tại")
+
+
+class WordScrambleProgressSaveRequest(BaseModel):
+    subject: str = Field(..., description="Môn học (Tiếng Việt / Tiếng Anh)")
+    grade: int = Field(..., description="Khối lớp (4-9)")
+    stage: int = Field(..., description="Chặng (1-15)")
+    question_index: int = Field(..., description="Câu hỏi (1-10)")
+    streak: Optional[int] = Field(0, description="Chuỗi thắng hiện tại")

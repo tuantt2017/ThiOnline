@@ -136,11 +136,67 @@ export default function WordScrambleGamePage() {
     }
   };
 
+  // Load and sync user stage progress per subject & grade
   useEffect(() => {
-    if (user) {
-      fetchNextQuestion(subject, grade, stage, questionIndex);
-    }
-  }, [user, subject, grade, stage, questionIndex]);
+    let isMounted = true;
+    if (!user) return;
+
+    const loadAndFetch = async () => {
+      const key = `word_scramble_progress_${user.id}_${subject}_${grade}`;
+      let s = 1;
+      let q = 1;
+      let st = streak;
+
+      // 1. Try reading from LocalStorage for instant UI feedback
+      try {
+        const cached = localStorage.getItem(key);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed.stage) s = parsed.stage;
+          if (parsed.questionIndex) q = parsed.questionIndex;
+          if (parsed.streak !== undefined) st = parsed.streak;
+        }
+      } catch {}
+
+      if (isMounted) {
+        setStage(s);
+        setQuestionIndex(q);
+        setStreak(st);
+      }
+
+      // 2. Sync with backend API
+      try {
+        const res = await api.getWordScrambleProgress(subject, grade);
+        if (res && res.stage) {
+          s = res.stage;
+          q = res.question_index;
+          st = res.streak;
+
+          if (isMounted) {
+            setStage(s);
+            setQuestionIndex(q);
+            setStreak(st);
+          }
+
+          try {
+            localStorage.setItem(key, JSON.stringify({ stage: s, questionIndex: q, streak: st }));
+          } catch {}
+        }
+      } catch (err) {
+        console.error('Failed to sync progress with backend:', err);
+      }
+
+      if (isMounted) {
+        fetchNextQuestion(subject, grade, s, q);
+      }
+    };
+
+    loadAndFetch();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user, subject, grade]);
 
   // Timer Countdown (90s)
   useEffect(() => {
@@ -310,20 +366,58 @@ export default function WordScrambleGamePage() {
 
   // Action for advancing to next question / stage or replaying
   const handleNextQuestion = () => {
+    let nextStage = stage;
+    let nextQuestionIndex = questionIndex;
+
     if (questionIndex < 10) {
-      setQuestionIndex((prev) => prev + 1);
+      nextQuestionIndex = questionIndex + 1;
     } else if (stage < 15) {
-      setStage((prev) => prev + 1);
-      setQuestionIndex(1);
+      nextStage = stage + 1;
+      nextQuestionIndex = 1;
     } else {
-      setStage(1);
-      setQuestionIndex(1);
+      nextStage = 1;
+      nextQuestionIndex = 1;
     }
+
+    setStage(nextStage);
+    setQuestionIndex(nextQuestionIndex);
+
+    // Save progress to LocalStorage & Backend
+    if (user) {
+      const key = `word_scramble_progress_${user.id}_${subject}_${grade}`;
+      try {
+        localStorage.setItem(key, JSON.stringify({ stage: nextStage, questionIndex: nextQuestionIndex, streak }));
+      } catch {}
+      api.saveWordScrambleProgress({
+        subject,
+        grade,
+        stage: nextStage,
+        question_index: nextQuestionIndex,
+        streak,
+      }).catch(() => {});
+    }
+
+    fetchNextQuestion(subject, grade, nextStage, nextQuestionIndex);
   };
 
   const handleRestartJourney = () => {
     setStage(1);
     setQuestionIndex(1);
+
+    if (user) {
+      const key = `word_scramble_progress_${user.id}_${subject}_${grade}`;
+      try {
+        localStorage.setItem(key, JSON.stringify({ stage: 1, questionIndex: 1, streak: 0 }));
+      } catch {}
+      api.saveWordScrambleProgress({
+        subject,
+        grade,
+        stage: 1,
+        question_index: 1,
+        streak: 0,
+      }).catch(() => {});
+    }
+
     fetchNextQuestion(subject, grade, 1, 1);
   };
 
@@ -424,11 +518,7 @@ export default function WordScrambleGamePage() {
           <div className="flex bg-slate-200/80 p-1.5 rounded-2xl border border-slate-200 shadow-inner">
             <button
               type="button"
-              onClick={() => {
-                setSubject('Tiếng Việt');
-                setStage(1);
-                setQuestionIndex(1);
-              }}
+              onClick={() => setSubject('Tiếng Việt')}
               className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-xs transition ${
                 subject === 'Tiếng Việt'
                   ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md'
@@ -440,11 +530,7 @@ export default function WordScrambleGamePage() {
             </button>
             <button
               type="button"
-              onClick={() => {
-                setSubject('Tiếng Anh');
-                setStage(1);
-                setQuestionIndex(1);
-              }}
+              onClick={() => setSubject('Tiếng Anh')}
               className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-xs transition ${
                 subject === 'Tiếng Anh'
                   ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md'
@@ -466,11 +552,7 @@ export default function WordScrambleGamePage() {
                 <button
                   key={g}
                   type="button"
-                  onClick={() => {
-                    setGrade(g);
-                    setStage(1);
-                    setQuestionIndex(1);
-                  }}
+                  onClick={() => setGrade(g)}
                   className={`w-8 h-8 rounded-xl text-xs font-black transition ${
                     grade === g
                       ? 'bg-amber-500 text-slate-950 shadow-md scale-105'
@@ -931,7 +1013,6 @@ export default function WordScrambleGamePage() {
                   setShowVictoryModal(false);
                   const nextSub = subject === 'Tiếng Việt' ? 'Tiếng Anh' : 'Tiếng Việt';
                   setSubject(nextSub);
-                  setStage(1);
                 }}
                 className="w-full py-3.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-extrabold text-xs transition"
               >

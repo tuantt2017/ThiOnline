@@ -8,6 +8,8 @@ from app.schemas.word_scramble import (
     WordScrambleQuestionResponse,
     WordScrambleVerifyRequest,
     WordScrambleVerifyResponse,
+    WordScrambleProgressResponse,
+    WordScrambleProgressSaveRequest,
 )
 from app.services.word_scramble_service import WordScrambleService
 
@@ -52,3 +54,39 @@ def verify_word_scramble_answer(
         user_answer=req.user_answer,
         streak_count=req.streak_count,
     )
+
+
+@router.get("/progress", response_model=WordScrambleProgressResponse)
+def get_word_scramble_progress(
+    subject: Optional[str] = Query("Tiếng Việt", description="Môn học (Tiếng Việt / Tiếng Anh)"),
+    grade: Optional[int] = Query(5, ge=4, le=9, description="Khối lớp (4-9)"),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Retrieves student's persistent game stage & question progress by subject & grade.
+    """
+    res = WordScrambleService.get_user_progress(
+        student=current_user,
+        subject=subject or "Tiếng Việt",
+        grade=grade or 5,
+    )
+    return WordScrambleProgressResponse(**res)
+
+
+@router.post("/progress", response_model=WordScrambleProgressResponse)
+def save_word_scramble_progress(
+    req: WordScrambleProgressSaveRequest,
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Saves student's persistent game stage & question progress.
+    """
+    res = WordScrambleService.save_user_progress(
+        student=current_user,
+        subject=req.subject,
+        grade=req.grade,
+        stage=req.stage,
+        question_index=req.question_index,
+        streak=req.streak or 0,
+    )
+    return WordScrambleProgressResponse(**res)

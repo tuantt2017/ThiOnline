@@ -841,6 +841,22 @@ export interface WordScrambleVerifyResponse {
   new_diamond_balance?: number | null;
 }
 
+export interface WordScrambleProgressResponse {
+  subject: string;
+  grade: number;
+  stage: number;
+  question_index: number;
+  streak: number;
+}
+
+export interface WordScrambleProgressSaveRequest {
+  subject: string;
+  grade: number;
+  stage: number;
+  question_index: number;
+  streak?: number;
+}
+
 
 export interface RewardBalance {
   diamond_balance: number;
