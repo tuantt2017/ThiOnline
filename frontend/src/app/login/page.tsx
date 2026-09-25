@@ -26,15 +26,36 @@ export default function LoginPage() {
   const [isDemoSubmitting, setIsDemoSubmitting] = useState(false);
 
   const [isSlowConnecting, setIsSlowConnecting] = useState(false);
+  const [isServerReady, setIsServerReady] = useState(false);
 
   const { login, demoLogin } = useAuth();
   const router = useRouter();
 
-  // Pre-warm backend on login page mount
+  // Active Pre-warm backend on login page mount (polls until online)
   React.useEffect(() => {
-    import('@/lib/api').then(({ api }) => {
-      api.getHealth().catch(() => {});
-    });
+    let isMounted = true;
+    let pollInterval: NodeJS.Timeout | null = null;
+
+    const checkServer = async () => {
+      try {
+        const { api } = await import('@/lib/api');
+        await api.getHealth();
+        if (isMounted) {
+          setIsServerReady(true);
+          if (pollInterval) clearInterval(pollInterval);
+        }
+      } catch {
+        // Keep polling until server wakes up
+      }
+    };
+
+    checkServer();
+    pollInterval = setInterval(checkServer, 3500);
+
+    return () => {
+      isMounted = false;
+      if (pollInterval) clearInterval(pollInterval);
+    };
   }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -116,9 +137,14 @@ export default function LoginPage() {
           )}
 
           {isSlowConnecting && (
-            <div className="flex items-center gap-2.5 rounded-xl bg-amber-50 border border-amber-300 p-3 text-xs text-amber-900 font-extrabold shadow-xs animate-pulse">
-              <Sparkles className="w-4 h-4 text-amber-600 animate-spin shrink-0" />
-              <span>⚡ Máy chủ AI đang kết nối & khởi động... Vui lòng đợi vài giây!</span>
+            <div className="flex items-center gap-2.5 rounded-xl bg-amber-50 border border-amber-300 p-3.5 text-xs text-amber-900 font-extrabold shadow-xs animate-pulse">
+              <Sparkles className="w-4.5 h-4.5 text-amber-600 animate-spin shrink-0" />
+              <div>
+                <span className="block font-black text-amber-950">⚡ Máy chủ AI đang khởi động (Cold Start)...</span>
+                <span className="text-[11px] font-semibold text-amber-800 leading-tight block mt-0.5">
+                  Vui lòng giữ nguyên màn hình, đăng nhập sẽ tự động hoàn tất trong vài giây!
+                </span>
+              </div>
             </div>
           )}
 

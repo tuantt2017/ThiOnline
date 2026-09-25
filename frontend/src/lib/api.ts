@@ -107,13 +107,13 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     }
   }
 
-  // AbortController timeout to prevent infinite browser hangs
+  // AbortController timeout to accommodate cloud cold starts (65s)
   let signal = options.signal;
   let controller: AbortController | null = null;
   if (!signal && typeof AbortController !== 'undefined') {
     controller = new AbortController();
     signal = controller.signal;
-    setTimeout(() => controller?.abort(), 20000);
+    setTimeout(() => controller?.abort(), 65000);
   }
 
   try {
@@ -205,19 +205,45 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
 }
 
 export const api = {
-  // Auth endpoints
+  // Auth endpoints (with auto-retry for Render cloud cold-starts)
   login: async (email: string, password: string): Promise<AuthResponse> => {
-    return request<AuthResponse>('/api/v1/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ email, password }),
-    });
+    let lastErr: any;
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        return await request<AuthResponse>('/api/v1/auth/login', {
+          method: 'POST',
+          body: JSON.stringify({ email, password }),
+        });
+      } catch (err: any) {
+        lastErr = err;
+        if (attempt < 2 && (err?.status === 503 || err?.status === 500 || err?.name === 'ApiError' || err?.message?.includes('Backend'))) {
+          await new Promise((resolve) => setTimeout(resolve, 2500));
+          continue;
+        }
+        throw err;
+      }
+    }
+    throw lastErr;
   },
 
   demoLogin: async (role: string): Promise<AuthResponse> => {
-    return request<AuthResponse>('/api/v1/auth/demo-login', {
-      method: 'POST',
-      body: JSON.stringify({ role }),
-    });
+    let lastErr: any;
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        return await request<AuthResponse>('/api/v1/auth/demo-login', {
+          method: 'POST',
+          body: JSON.stringify({ role }),
+        });
+      } catch (err: any) {
+        lastErr = err;
+        if (attempt < 2 && (err?.status === 503 || err?.status === 500 || err?.name === 'ApiError' || err?.message?.includes('Backend'))) {
+          await new Promise((resolve) => setTimeout(resolve, 2500));
+          continue;
+        }
+        throw err;
+      }
+    }
+    throw lastErr;
   },
 
   register: async (email: string, full_name: string, password: string, grade?: number): Promise<User> => {
