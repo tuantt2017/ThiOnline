@@ -18,6 +18,8 @@ import {
   User as UserIcon,
   BookMarked,
   CheckCircle2,
+  Clock,
+  Trash2,
 } from 'lucide-react';
 
 const SUBJECTS = [
@@ -30,13 +32,59 @@ const SUBJECTS = [
 ];
 
 const GRADES = [4, 5, 6, 7, 8, 9];
+const RETENTION_MS = 3 * 24 * 60 * 60 * 1000; // 3 Days in milliseconds
 
 interface ExtendedMessage extends ChatMessageItem {
   id: string;
+  subject?: string;
+  grade?: number;
   citations?: SgkCitation[];
   suggested_followups?: string[];
   timestamp: string;
+  createdAtISO?: string;
 }
+
+const formatMessageTime = (isoStr?: string, fallbackTime?: string) => {
+  if (!isoStr) return fallbackTime || 'Vừa xong';
+  try {
+    const date = new Date(isoStr);
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const msgDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const diffDays = Math.round((today.getTime() - msgDay.getTime()) / (24 * 60 * 60 * 1000));
+
+    const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    if (diffDays <= 0) {
+      return `Hôm nay ${timeStr}`;
+    } else if (diffDays === 1) {
+      return `Hôm qua ${timeStr}`;
+    } else {
+      const dayMonth = date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+      return `${dayMonth} ${timeStr}`;
+    }
+  } catch {
+    return fallbackTime || 'Vừa xong';
+  }
+};
+
+const createWelcomeMessage = (subject: string, grade: number, userName?: string): ExtendedMessage => {
+  const now = new Date();
+  return {
+    id: `welcome-${subject}-${grade}-${now.getTime()}`,
+    role: 'assistant',
+    subject,
+    grade,
+    content: `Xin chào **${userName || 'học sinh'}**! Thầy/Cô là **Trợ Lý Học Tập AI 1-on-1**.\n\nEm đang tìm hiểu kiến thức nào trong Sách Giáo Khoa môn **${subject} Lớp ${grade}**? Hãy đặt câu hỏi, AI sẽ giải thích từng bước sinh động kèm ví dụ trực quan và trích dẫn chuẩn SGK nhé! 🚀`,
+    timestamp: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    createdAtISO: now.toISOString(),
+    suggested_followups: [
+      `Giải thích giúp em kiến thức trọng tâm môn ${subject} Lớp ${grade}?`,
+      `Cho em xin ví dụ bài tập mẫu và phương pháp giải môn ${subject}?`,
+      `Làm sao để ghi nhớ nhanh các định nghĩa trong bài học môn ${subject}?`,
+    ],
+  };
+};
 
 export default function AiStudyCompanionPage() {
   const { user } = useAuth();
@@ -57,23 +105,37 @@ export default function AiStudyCompanionPage() {
     }
   }, [user]);
 
-  // Initial welcome message
+  // Load and filter 3-day history on mount or subject/grade/user change
   useEffect(() => {
-    setMessages([
-      {
-        id: 'welcome',
-        role: 'assistant',
-        content: `Xin chào **${user?.full_name || 'học sinh'}**! Thầy/Cô là **Trợ Lý Học Tập AI 1-on-1**. 
+    const storageKey = `ai_chat_history_v3_${user?.id || 'guest'}`;
+    let validMessages: ExtendedMessage[] = [];
 
-Em đang tìm hiểu kiến thức nào trong Sách Giáo Khoa môn **${selectedSubject} Lớp ${selectedGrade}**? Hãy đặt câu hỏi, AI sẽ giải thích từng bước sinh động kèm ví dụ trực quan và trích dẫn chuẩn SGK nhé! 🚀`,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        suggested_followups: [
-          `Giải thích giúp em kiến thức trọng tâm môn ${selectedSubject} Lớp ${selectedGrade}?`,
-          `Cho em xin ví dụ bài tập mẫu và phương pháp giải môn ${selectedSubject}?`,
-          `Làm sao để ghi nhớ nhanh các định nghĩa trong bài học môn ${selectedSubject}?`,
-        ],
-      },
-    ]);
+    try {
+      const raw = localStorage.getItem(storageKey);
+      if (raw) {
+        const parsed: ExtendedMessage[] = JSON.parse(raw);
+        const now = Date.now();
+        validMessages = parsed.filter((m) => {
+          if (!m.createdAtISO) return true;
+          const msgTime = new Date(m.createdAtISO).getTime();
+          return now - msgTime <= RETENTION_MS;
+        });
+
+        localStorage.setItem(storageKey, JSON.stringify(validMessages));
+      }
+    } catch (err) {
+      console.error('Error reading chat history from localStorage:', err);
+    }
+
+    if (validMessages.length === 0) {
+      const welcome = createWelcomeMessage(selectedSubject, selectedGrade, user?.full_name);
+      validMessages = [welcome];
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(validMessages));
+      } catch {}
+    }
+
+    setMessages(validMessages);
   }, [selectedSubject, selectedGrade, user]);
 
   const scrollToBottom = () => {
@@ -84,28 +146,57 @@ Em đang tìm hiểu kiến thức nào trong Sách Giáo Khoa môn **${selected
     scrollToBottom();
   }, [messages, loading]);
 
+  const saveHistoryToLocalStorage = (msgs: ExtendedMessage[]) => {
+    if (typeof window === 'undefined') return;
+    const storageKey = `ai_chat_history_v3_${user?.id || 'guest'}`;
+    try {
+      const now = Date.now();
+      const valid = msgs.filter((m) => {
+        if (!m.createdAtISO) return true;
+        return now - new Date(m.createdAtISO).getTime() <= RETENTION_MS;
+      });
+      localStorage.setItem(storageKey, JSON.stringify(valid));
+    } catch (err) {
+      console.error('Lỗi khi lưu lịch sử chat vào localStorage:', err);
+    }
+  };
+
+  const handleClearHistory = () => {
+    if (window.confirm('🗑️ Bạn có chắc chắn muốn xóa toàn bộ lịch sử hỏi đáp với AI trong 3 ngày qua để bắt đầu đoạn chat mới không?')) {
+      const storageKey = `ai_chat_history_v3_${user?.id || 'guest'}`;
+      try {
+        localStorage.removeItem(storageKey);
+      } catch {}
+      const welcome = createWelcomeMessage(selectedSubject, selectedGrade, user?.full_name);
+      setMessages([welcome]);
+    }
+  };
+
   const handleSendMessage = async (textToSend?: string) => {
     const messageText = (textToSend || inputMessage).trim();
     if (!messageText || loading) return;
 
-    const userMsgId = `user-${Date.now()}`;
-    const newHistory: ExtendedMessage[] = [
-      ...messages,
-      {
-        id: userMsgId,
-        role: 'user',
-        content: messageText,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      },
-    ];
+    const now = new Date();
+    const userMsgId = `user-${now.getTime()}`;
+    const userMessage: ExtendedMessage = {
+      id: userMsgId,
+      role: 'user',
+      subject: selectedSubject,
+      grade: selectedGrade,
+      content: messageText,
+      timestamp: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      createdAtISO: now.toISOString(),
+    };
 
-    setMessages(newHistory);
+    const updatedWithUser = [...messages, userMessage];
+    setMessages(updatedWithUser);
     setInputMessage('');
     setLoading(true);
+    saveHistoryToLocalStorage(updatedWithUser);
 
     try {
       // Build conversation history format for API
-      const historyPayload: ChatMessageItem[] = newHistory.map((m) => ({
+      const historyPayload: ChatMessageItem[] = updatedWithUser.map((m) => ({
         role: m.role,
         content: m.content,
       }));
@@ -117,28 +208,42 @@ Em đang tìm hiểu kiến thức nào trong Sách Giáo Khoa môn **${selected
         conversation_history: historyPayload,
       });
 
-      const aiMsgId = `ai-${Date.now()}`;
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: aiMsgId,
-          role: 'assistant',
-          content: response.reply,
-          citations: response.citations,
-          suggested_followups: response.suggested_followups,
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        },
-      ]);
+      const aiNow = new Date();
+      const aiMsgId = `ai-${aiNow.getTime()}`;
+      const aiMessage: ExtendedMessage = {
+        id: aiMsgId,
+        role: 'assistant',
+        subject: selectedSubject,
+        grade: selectedGrade,
+        content: response.reply,
+        citations: response.citations,
+        suggested_followups: response.suggested_followups,
+        timestamp: aiNow.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        createdAtISO: aiNow.toISOString(),
+      };
+
+      setMessages((prev) => {
+        const nextMsgs = [...prev, aiMessage];
+        saveHistoryToLocalStorage(nextMsgs);
+        return nextMsgs;
+      });
     } catch (err: any) {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `err-${Date.now()}`,
-          role: 'assistant',
-          content: `⚠️ **Không thể kết nối với Trợ Lý AI**: ${err.message || 'Đã có lỗi xảy ra'}. Vui lòng thử lại sau giây lát.`,
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        },
-      ]);
+      const errNow = new Date();
+      const errMessage: ExtendedMessage = {
+        id: `err-${errNow.getTime()}`,
+        role: 'assistant',
+        subject: selectedSubject,
+        grade: selectedGrade,
+        content: `⚠️ **Không thể kết nối với Trợ Lý AI**: ${err.message || 'Đã có lỗi xảy ra'}. Vui lòng thử lại sau giây lát.`,
+        timestamp: errNow.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        createdAtISO: errNow.toISOString(),
+      };
+
+      setMessages((prev) => {
+        const nextMsgs = [...prev, errMessage];
+        saveHistoryToLocalStorage(nextMsgs);
+        return nextMsgs;
+      });
     } finally {
       setLoading(false);
     }
@@ -163,7 +268,7 @@ Em đang tìm hiểu kiến thức nào trong Sách Giáo Khoa môn **${selected
                 AI Study Companion & Q&A Bot
               </h1>
               <p className="text-sm font-medium text-blue-100 mt-1 max-w-2xl">
-                Hỏi đáp trực tiếp với AI về mọi bài học SGK (GDPT 2018 Lớp 4–9). AI giải thích sinh động theo đúng trình độ khối lớp và trích dẫn chuẩn Bài / Chương / Trang SGK.
+                Hỏi đáp trực tiếp với AI về mọi bài học SGK (GDPT 2018 Lớp 4–9). Tự động lưu lịch sử hỏi đáp trong 3 ngày gần đây để xem lại bất cứ lúc nào.
               </p>
             </div>
 
@@ -206,16 +311,33 @@ Em đang tìm hiểu kiến thức nào trong Sách Giáo Khoa môn **${selected
         <div className="rounded-3xl border border-slate-200/90 bg-white shadow-xl overflow-hidden flex flex-col h-[650px]">
           
           {/* Chat Top Banner */}
-          <div className="bg-slate-100/90 px-6 py-3 border-b border-slate-200 flex items-center justify-between text-xs font-bold text-slate-700">
+          <div className="bg-slate-100/90 px-6 py-3 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs font-bold text-slate-700">
             <div className="flex items-center gap-2">
               <span className="relative flex h-2.5 w-2.5">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
               </span>
-              <span>Đang kết nối: AI Tutor GDPT 2018 ({selectedSubject} - Lớp {selectedGrade})</span>
+              <span>Đang kết nối: AI Tutor ({selectedSubject} - Lớp {selectedGrade})</span>
             </div>
-            <div className="flex items-center gap-1.5 text-indigo-700 font-extrabold bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-200">
-              <BookMarked className="w-3.5 h-3.5 text-indigo-600" /> Grounded SGK Lớp {selectedGrade}
+
+            <div className="flex flex-wrap items-center gap-2.5">
+              <span className="inline-flex items-center gap-1.5 text-slate-600 bg-white px-2.5 py-1 rounded-lg border border-slate-200 text-[11px] font-semibold">
+                <Clock className="w-3.5 h-3.5 text-blue-600" /> Tự động lưu lịch sử 3 ngày
+              </span>
+
+              <div className="inline-flex items-center gap-1.5 text-indigo-700 font-extrabold bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-200">
+                <BookMarked className="w-3.5 h-3.5 text-indigo-600" /> Grounded SGK Lớp {selectedGrade}
+              </div>
+
+              <button
+                type="button"
+                onClick={handleClearHistory}
+                title="Xóa toàn bộ lịch sử hỏi đáp 3 ngày để làm mới đoạn chat"
+                className="inline-flex items-center gap-1 text-slate-500 hover:text-rose-600 bg-white hover:bg-rose-50 px-2.5 py-1 rounded-lg border border-slate-200 hover:border-rose-200 transition text-[11px] font-bold"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Xóa lịch sử</span>
+              </button>
             </div>
           </div>
 
@@ -244,15 +366,20 @@ Em đang tìm hiểu kiến thức nào trong Sách Giáo Khoa môn **${selected
                 {/* Message Bubble & Content */}
                 <div className={`max-w-3xl space-y-3 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
                   
-                  {/* Sender Name & Time */}
+                  {/* Sender Name, Subject Badge & Time */}
                   <div
                     className={`flex items-center gap-2 text-[11px] font-semibold text-slate-400 ${
                       msg.role === 'user' ? 'justify-end' : 'justify-start'
                     }`}
                   >
                     <span>{msg.role === 'user' ? user?.full_name || 'Học sinh' : 'Trợ Lý AI Tutor'}</span>
+                    {msg.subject && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-100 text-blue-700 border border-blue-200">
+                        {msg.subject} {msg.grade ? `Lớp ${msg.grade}` : ''}
+                      </span>
+                    )}
                     <span>•</span>
-                    <span>{msg.timestamp}</span>
+                    <span>{formatMessageTime(msg.createdAtISO, msg.timestamp)}</span>
                   </div>
 
                   {/* Main Bubble */}
