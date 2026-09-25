@@ -1,6 +1,8 @@
 import json
 import logging
 import re
+import difflib
+from datetime import datetime
 from typing import Dict, List, Any, Optional
 
 import httpx
@@ -28,6 +30,110 @@ logger = logging.getLogger(__name__)
 CUSTOM_UNITS_STORE: Dict[int, EnglishUnitDetailResponse] = {}
 # Global in-memory store for completed units (unit_id -> score)
 COMPLETED_UNITS_STORE: Dict[int, float] = {2: 92.0}
+
+# Curated High-Quality Unsplash Image Mapping per Vocabulary Word
+VOCAB_IMAGE_DATABASE: Dict[str, str] = {
+    # Family & People
+    "family": "https://images.unsplash.com/photo-1511895426328-dc8714191300?w=500&auto=format&fit=crop",
+    "parents": "https://images.unsplash.com/photo-1511895426328-dc8714191300?w=500&auto=format&fit=crop",
+    "father": "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=500&auto=format&fit=crop",
+    "mother": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=500&auto=format&fit=crop",
+    "brother": "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=500&auto=format&fit=crop",
+    "sister": "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=500&auto=format&fit=crop",
+    "teacher": "https://images.unsplash.com/photo-1577896851231-70ef18881754?w=500&auto=format&fit=crop",
+    "doctor": "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=500&auto=format&fit=crop",
+    "student": "https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=500&auto=format&fit=crop",
+    "friendly": "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=500&auto=format&fit=crop",
+    "pilot": "https://images.unsplash.com/photo-1508672019048-805479760c2d?w=500&auto=format&fit=crop",
+    "farmer": "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?w=500&auto=format&fit=crop",
+
+    # School & Education
+    "classroom": "https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=500&auto=format&fit=crop",
+    "school": "https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=500&auto=format&fit=crop",
+    "science": "https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=500&auto=format&fit=crop",
+    "book": "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=500&auto=format&fit=crop",
+    "pencil": "https://images.unsplash.com/photo-1585336261026-8f57857a2079?w=500&auto=format&fit=crop",
+    "library": "https://images.unsplash.com/photo-1521587760476-6c12a4b040da?w=500&auto=format&fit=crop",
+    "computer": "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=500&auto=format&fit=crop",
+
+    # Weather & Nature
+    "weather": "https://images.unsplash.com/photo-1504608524841-42fe6f032b4b?w=500&auto=format&fit=crop",
+    "sunny": "https://images.unsplash.com/photo-1622396481328-9b1b78cdd9fd?w=500&auto=format&fit=crop",
+    "rainy": "https://images.unsplash.com/photo-1519692933481-e162a57d6721?w=500&auto=format&fit=crop",
+    "cloudy": "https://images.unsplash.com/photo-1534088568595-a066f410bcda?w=500&auto=format&fit=crop",
+    "season": "https://images.unsplash.com/photo-1470240731273-7821a6eeb6bd?w=500&auto=format&fit=crop",
+    "umbrella": "https://images.unsplash.com/photo-1517479149777-5f3b1511d5ad?w=500&auto=format&fit=crop",
+    "snowy": "https://images.unsplash.com/photo-1491002052546-bf38f186af56?w=500&auto=format&fit=crop",
+    "forest": "https://images.unsplash.com/photo-1448375240586-882707db888b?w=500&auto=format&fit=crop",
+    "flower": "https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=500&auto=format&fit=crop",
+    "tree": "https://images.unsplash.com/photo-1502082553048-f009c37129b9?w=500&auto=format&fit=crop",
+    "mountain": "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=500&auto=format&fit=crop",
+    "river": "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=500&auto=format&fit=crop",
+
+    # Animals
+    "animal": "https://images.unsplash.com/photo-1474511320723-9a56873867b5?w=500&auto=format&fit=crop",
+    "dolphin": "https://images.unsplash.com/photo-1570481662006-a3a1374699e8?w=500&auto=format&fit=crop",
+    "elephant": "https://images.unsplash.com/photo-1557050543-4d5f4e07ef46?w=500&auto=format&fit=crop",
+    "tiger": "https://images.unsplash.com/photo-1534188753412-3e26d0d618d6?w=500&auto=format&fit=crop",
+    "dog": "https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=500&auto=format&fit=crop",
+    "cat": "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=500&auto=format&fit=crop",
+    "bird": "https://images.unsplash.com/photo-1444464666168-49d633b86797?w=500&auto=format&fit=crop",
+    "whale": "https://images.unsplash.com/photo-1568430460464-02c1cd6a985b?w=500&auto=format&fit=crop",
+
+    # Food & Drink
+    "food": "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=500&auto=format&fit=crop",
+    "apple": "https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=500&auto=format&fit=crop",
+    "pizza": "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=500&auto=format&fit=crop",
+    "bread": "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=500&auto=format&fit=crop",
+    "breakfast": "https://images.unsplash.com/photo-1533089860892-a7c6f0a88666?w=500&auto=format&fit=crop",
+    "water": "https://images.unsplash.com/photo-1548839140-29a749e1bc4e?w=500&auto=format&fit=crop",
+    "milk": "https://images.unsplash.com/photo-1550583724-b2692b85b150?w=500&auto=format&fit=crop",
+
+    # Travel & Transportation
+    "airport": "https://images.unsplash.com/photo-1530521954074-e64f6810b32d?w=500&auto=format&fit=crop",
+    "passport": "https://images.unsplash.com/photo-1544717305-2782549b5136?w=500&auto=format&fit=crop",
+    "flight": "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=500&auto=format&fit=crop",
+    "hotel": "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=500&auto=format&fit=crop",
+    "luggage": "https://images.unsplash.com/photo-1581553680321-4fffae59febd?w=500&auto=format&fit=crop",
+    "car": "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=500&auto=format&fit=crop",
+    "bicycle": "https://images.unsplash.com/photo-1485965120184-e220f721d03e?w=500&auto=format&fit=crop",
+    "beach": "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=500&auto=format&fit=crop",
+
+    # Sports & Hobbies
+    "football": "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=500&auto=format&fit=crop",
+    "swimming": "https://images.unsplash.com/photo-1530549387789-4c1017266635?w=500&auto=format&fit=crop",
+    "music": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&auto=format&fit=crop",
+    "guitar": "https://images.unsplash.com/photo-1510915361894-db8b60106cb1?w=500&auto=format&fit=crop",
+    "running": "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=500&auto=format&fit=crop",
+
+    # Health & Body
+    "hospital": "https://images.unsplash.com/photo-1587351021759-3e566b6af7cc?w=500&auto=format&fit=crop",
+    "healthy": "https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=500&auto=format&fit=crop",
+    "exercise": "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=500&auto=format&fit=crop",
+
+    # Space & Tech
+    "robot": "https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=500&auto=format&fit=crop",
+    "space": "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=500&auto=format&fit=crop",
+    "planet": "https://images.unsplash.com/photo-1614728894747-a83421e2b9c9?w=500&auto=format&fit=crop",
+}
+
+def get_accurate_vocab_image(word: str, topic: str) -> str:
+    """Helper to match vocabulary word or topic with accurate Unsplash picture."""
+    w_clean = re.sub(r"[^\w]", "", word.lower().strip())
+    if w_clean in VOCAB_IMAGE_DATABASE:
+        return VOCAB_IMAGE_DATABASE[w_clean]
+
+    for k, url in VOCAB_IMAGE_DATABASE.items():
+        if k in w_clean or w_clean in k:
+            return url
+
+    t_clean = topic.lower().strip()
+    for k, url in VOCAB_IMAGE_DATABASE.items():
+        if k in t_clean:
+            return url
+
+    return "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=500&auto=format&fit=crop"
+
 
 # Sample SGK GDPT 2018 Curriculum Units for Grade 4 - 9
 ENGLISH_CURRICULUM_UNITS = [
@@ -255,9 +361,9 @@ class EnglishAIService:
             )
 
         advice = (
-            f"🎧 **AI Coach Tiếng Anh hôm nay cho {student_name}**:\n"
-            f"Bạn đã hoàn thành {completed_count}/{len(units_summary)} bài học Tiếng Anh! "
-            f"Hãy tiếp tục luyện tập bài học tiếp theo hoặc bấm tạo bài học AI theo chủ đề tự chọn nhé!"
+            f"🎧 **AI Coach Tiếng Anh (8 Phút Hàng Ngày) cho {student_name}**:\n"
+            f"Bạn đã hoàn thành {completed_count}/{len(units_summary)} bài học! "
+            f"Hãy bấm nút '🚀 Bắt Đầu Học Ngay (8 Phút Mới)' để luyện tập bộ từ vựng & phát âm AI mới hôm nay nhé!"
         )
 
         return EnglishRoadmapResponse(
@@ -327,12 +433,21 @@ class EnglishAIService:
         target = req.target_text.strip()
         spoken = req.spoken_text.strip()
 
-        # Clean words for comparison
-        def clean_words(text: str) -> List[str]:
-            return re.findall(r"\b[a-zA-Z]+\b", text.lower())
+        def clean_word(w: str) -> str:
+            w_sub = re.sub(r"[^\w\s']", "", w.lower()).strip()
+            contractions = {
+                "dont": "do not", "cant": "cannot", "isnt": "is not",
+                "arent": "are not", "wont": "will not", "im": "i am",
+                "hes": "he is", "shes": "she is", "its": "it is",
+                "theyre": "they are", "youre": "you are", "weve": "we have",
+            }
+            return contractions.get(w_sub, w_sub)
 
-        target_words = clean_words(target)
-        spoken_words = clean_words(spoken)
+        def get_words(text: str) -> List[str]:
+            return [clean_word(w) for w in re.findall(r"\b[\w']+\b", text.lower()) if clean_word(w)]
+
+        target_words = get_words(target)
+        spoken_words = get_words(spoken)
 
         if not target_words:
             return PronunciationEvalResponse(
@@ -345,15 +460,34 @@ class EnglishAIService:
             )
 
         word_details: List[WordScoreDetail] = []
-        correct_count = 0
+        correct_count = 0.0
 
         for tw in target_words:
-            is_match = tw in spoken_words
-            if is_match:
-                correct_count += 1
-            word_details.append(WordScoreDetail(word=tw, is_correct=is_match, confidence=0.95 if is_match else 0.4))
+            best_match_ratio = 0.0
+            for sw in spoken_words:
+                if tw == sw:
+                    best_match_ratio = 1.0
+                    break
+                ratio = difflib.SequenceMatcher(None, tw, sw).ratio()
+                if ratio > best_match_ratio:
+                    best_match_ratio = ratio
+
+            if best_match_ratio >= 0.8:
+                is_correct = True
+                confidence = round(best_match_ratio, 2)
+                correct_count += 1.0
+            elif best_match_ratio >= 0.6:
+                is_correct = True
+                confidence = round(best_match_ratio, 2)
+                correct_count += 0.85
+            else:
+                is_correct = False
+                confidence = round(best_match_ratio, 2)
+
+            word_details.append(WordScoreDetail(word=tw, is_correct=is_correct, confidence=confidence))
 
         score = round((correct_count / len(target_words)) * 100.0, 1)
+        score = min(100.0, score)
 
         if score >= 85.0:
             level = "EXCELLENT"
@@ -396,24 +530,31 @@ class EnglishAIService:
 
         api_key = settings.GEMINI_API_KEY.strip()
         grade_speaking_rule = (
-            f"QUY TẮC BẮT BUỘC VỀ ĐỘ DÀI & ĐỘ KHÓ CÂU LUYỆN NÓI (speaking_prompts) CHO LỚP {grade}:\n"
-            f"- Học sinh Lớp {grade} (Cấp 1 - Tiểu học): Các câu mẫu đọc luyện nói (speaking_prompts) PHẢI RẤT NGẮN, ĐƠN GIẢN, CHỈ TỪ 3 ĐẾN 5 TỪ (ví dụ: 'I love my school.', 'This cat is cute.', 'She is my friend.'). TUYỆT ĐỐI KHÔNG TẠO CÂU QUÁ DÀI HAY CHỨA TỪ KHÓ THÁCH THỨC HỌC SINH CẤP 1!\n"
+            f"QUY TẮC BẮT BUỘC CHO LỚP {grade}:\n"
+            f"- Học sinh Lớp {grade} (Tiểu học): Các câu mẫu luyện nói PHẢI NGẮN, ĐƠN GIẢN từ 3 đến 5 từ (ví dụ: 'I love my school.', 'This cat is cute.').\n"
             if grade <= 5 else
-            f"- Học sinh Lớp {grade} (Cấp 2 - THCS): Các câu mẫu đọc luyện nói (speaking_prompts) có độ dài vừa phải, ngắn gọn tự nhiên từ 5 đến 8 từ (ví dụ: 'We usually study English at school.'). Rõ ràng, dễ đọc."
+            f"- Học sinh Lớp {grade} (THCS): Các câu mẫu luyện nói từ 5 đến 8 từ tự nhiên, dễ hiểu."
         )
 
         prompt = f"""Bạn là chuyên gia thiết kế bài học Tiếng Anh AI chuẩn GDPT 2018 cho học sinh Lớp {grade} tại Việt Nam.
-Hãy biên soạn 1 bài học Tiếng Anh Đa Phương Thức AI hoàn chỉnh cho chủ đề: "{topic_title}".
+Hãy biên soạn 1 bài học Tiếng Anh Đa Phương Thức AI 8 Phút hoàn chỉnh cho chủ đề: "{topic_title}".
 
-YÊU CẦU ĐẶC BIỆT: Hãy tạo ra bộ từ vựng (flashcards), các bài tập trắc nghiệm, hình ảnh, luyện gõ chính tả, điền từ còn thiếu và câu Luyện nói HOÀN TOÀN MỚI, SÁNG TẠO, ĐA DẠNG, ngẫu nhiên và bám sát trình độ Lớp {grade}.
+YÊU CẦU ĐẶC BIỆT:
+1. Tạo đúng 6 từ vựng (flashcards) mới, phong phú, sát chủ đề.
+2. Tạo đúng 8 bài tập trắc nghiệm & điền từ (exercises):
+   - 2 bài MATCH_IMAGE (Nối từ với hình ảnh)
+   - 2 bài LISTEN_SELECT (Nghe chọn đáp án)
+   - 2 bài WORD_TYPING (Gõ chính tả)
+   - 2 bài FILL_BLANK (Điền từ còn thiếu vào câu)
+3. Tạo đúng 4 câu Luyện nói (speaking_prompts).
 
 {grade_speaking_rule}
 
-Cấu trúc JSON yêu cầu trả về:
+Cấu trúc JSON bắt buộc:
 {{
   "title": "Unit: {topic_title}",
   "topic": "{topic_title}",
-  "description": "Bài học Tiếng Anh AI tự sinh theo yêu cầu chủ đề {topic_title}.",
+  "description": "Bài học Tiếng Anh AI 8 phút tự sinh chủ đề {topic_title}.",
   "flashcards": [
     {{
       "word": "từ Tiếng Anh 1",
@@ -424,44 +565,14 @@ Cấu trúc JSON yêu cầu trả về:
       "audio_text": "từ phát âm",
       "example_sentence": "Ví dụ câu Tiếng Anh",
       "example_translation": "Dịch nghĩa ví dụ Tiếng Việt"
-    }},
-    {{
-      "word": "từ Tiếng Anh 2",
-      "part_of_speech": "verb",
-      "ipa": "/phát âm IPA/",
-      "meaning": "Nghĩa Tiếng Việt",
-      "image_url": "https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?w=500&auto=format&fit=crop",
-      "audio_text": "từ phát âm",
-      "example_sentence": "Ví dụ câu Tiếng Anh",
-      "example_translation": "Dịch nghĩa ví dụ Tiếng Việt"
-    }},
-    {{
-      "word": "từ Tiếng Anh 3",
-      "part_of_speech": "adjective",
-      "ipa": "/phát âm IPA/",
-      "meaning": "Nghĩa Tiếng Việt",
-      "image_url": "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=500&auto=format&fit=crop",
-      "audio_text": "từ phát âm",
-      "example_sentence": "Ví dụ câu Tiếng Anh",
-      "example_translation": "Dịch nghĩa ví dụ Tiếng Việt"
-    }},
-    {{
-      "word": "từ Tiếng Anh 4",
-      "part_of_speech": "noun",
-      "ipa": "/phát âm IPA/",
-      "meaning": "Nghĩa Tiếng Việt",
-      "image_url": "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=500&auto=format&fit=crop",
-      "audio_text": "từ phát âm",
-      "example_sentence": "Ví dụ câu Tiếng Anh",
-      "example_translation": "Dịch nghĩa ví dụ Tiếng Việt"
     }}
   ],
   "exercises": [
     {{
       "exercise_type": "MATCH_IMAGE",
-      "prompt": "Từ vựng nào miêu tả đúng nội dung về chủ đề {topic_title}?",
+      "prompt": "Từ vựng nào miêu tả đúng hình ảnh?",
       "media_url": "https://images.unsplash.com/photo-1511895426328-dc8714191300?w=500&auto=format&fit=crop",
-      "audio_text": "Choose the correct word",
+      "audio_text": "Choose the word",
       "options": [
         {{"option_key": "A", "content": "Đáp án 1"}},
         {{"option_key": "B", "content": "Đáp án 2"}},
@@ -469,39 +580,20 @@ Cấu trúc JSON yêu cầu trả về:
         {{"option_key": "D", "content": "Đáp án 4"}}
       ],
       "correct_answer": "A",
-      "explanation": "Giải thích của AI..."
-    }},
-    {{
-      "exercise_type": "LISTEN_SELECT",
-      "prompt": "Nghe phát âm từ vựng và chọn đáp án chính xác:",
-      "audio_text": "Từ vựng chính",
-      "options": [
-        {{"option_key": "A", "content": "Đáp án 1"}},
-        {{"option_key": "B", "content": "Đáp án 2"}},
-        {{"option_key": "C", "content": "Đáp án 3"}},
-        {{"option_key": "D", "content": "Đáp án 4"}}
-      ],
-      "correct_answer": "B",
-      "explanation": "Giải thích nghe..."
+      "explanation": "Giải thích..."
     }}
   ],
   "speaking_prompts": [
     {{
-      "target_text": "Câu nói Tiếng Anh 1 liên quan đến {topic_title}.",
-      "ipa": "/phát âm IPA toàn câu/",
-      "meaning": "Dịch nghĩa câu 1",
-      "tip": "Mẹo nhấn âm và nối từ"
-    }},
-    {{
-      "target_text": "Câu nói Tiếng Anh 2 liên quan đến {topic_title}.",
-      "ipa": "/phát âm IPA toàn câu/",
-      "meaning": "Dịch nghĩa câu 2",
-      "tip": "Mẹo nói chuẩn tự nhiên"
+      "target_text": "Câu nói Tiếng Anh 1.",
+      "ipa": "/phát âm IPA/",
+      "meaning": "Dịch nghĩa",
+      "tip": "Mẹo nhấn âm"
     }}
   ]
 }}
 
-CHỈ TRẢ VỀ DUY NHẤT VĂN BẢN JSON HỢP LỆ."""
+CHỈ TRẢ VỀ VĂN BẢN JSON HỢP LỆ."""
 
         models_to_try = [
             settings.GEMINI_MODEL,
@@ -533,25 +625,41 @@ CHỈ TRẢ VỀ DUY NHẤT VĂN BẢN JSON HỢP LỆ."""
                             cleaned = re.sub(r"\s*```$", "", cleaned.strip())
                             ai_dict = json.loads(cleaned)
 
-                            flashcards = [
-                                VocabFlashcard(id=custom_id * 10 + idx, **f)
-                                for idx, f in enumerate(ai_dict.get("flashcards", []))
-                            ]
+                            raw_flashcards = ai_dict.get("flashcards", [])
+                            flashcards = []
+                            for idx, f in enumerate(raw_flashcards):
+                                word_val = f.get("word", "word")
+                                accurate_img = get_accurate_vocab_image(word_val, topic_title)
+                                f["image_url"] = accurate_img
+                                flashcards.append(VocabFlashcard(id=custom_id * 10 + idx, **f))
+
+                            raw_exercises = ai_dict.get("exercises", [])
                             exercises = []
-                            for idx, ex in enumerate(ai_dict.get("exercises", [])):
+                            for idx, ex in enumerate(raw_exercises):
                                 opts = [ExerciseOption(**o) for o in ex.get("options", [])]
+                                ex_type = ex.get("exercise_type", "LISTEN_SELECT")
+                                corr_ans = ex.get("correct_answer", "A")
+
+                                # Post process media url for MATCH_IMAGE
+                                media_url = ex.get("media_url")
+                                if ex_type == "MATCH_IMAGE":
+                                    # Find matching content option
+                                    matched_opt = next((o.content for o in opts if o.option_key == corr_ans), topic_title)
+                                    media_url = get_accurate_vocab_image(matched_opt, topic_title)
+
                                 exercises.append(
                                     MultimodalExercise(
                                         id=custom_id * 20 + idx,
-                                        exercise_type=ex.get("exercise_type", "LISTEN_SELECT"),
+                                        exercise_type=ex_type,
                                         prompt=ex.get("prompt", ""),
-                                        media_url=ex.get("media_url"),
+                                        media_url=media_url,
                                         audio_text=ex.get("audio_text"),
                                         options=opts,
-                                        correct_answer=ex.get("correct_answer", "A"),
+                                        correct_answer=corr_ans,
                                         explanation=ex.get("explanation", ""),
                                     )
                                 )
+
                             speaking_prompts = [
                                 SpeakingPrompt(id=custom_id * 30 + idx, **sp)
                                 for idx, sp in enumerate(ai_dict.get("speaking_prompts", []))
@@ -562,7 +670,7 @@ CHỈ TRẢ VỀ DUY NHẤT VĂN BẢN JSON HỢP LỆ."""
                                 title=ai_dict.get("title", f"AI Unit: {topic_title}"),
                                 topic=ai_dict.get("topic", topic_title),
                                 grade=grade,
-                                description=ai_dict.get("description", f"Bài học Tiếng Anh AI tự tạo cho chủ đề {topic_title}"),
+                                description=ai_dict.get("description", f"Bài học Tiếng Anh AI 8 Phút cho chủ đề {topic_title}"),
                                 flashcards=flashcards,
                                 exercises=exercises,
                                 speaking_prompts=speaking_prompts,
@@ -573,43 +681,97 @@ CHỈ TRẢ VỀ DUY NHẤT VĂN BẢN JSON HỢP LỆ."""
 
     @classmethod
     def _generate_topic_aware_fallback(cls, topic_title: str, grade: int, custom_id: int) -> EnglishUnitDetailResponse:
+        """30 Rich Rotating Daily Topics & Vocabulary Pools to prevent word repetition."""
         t_lower = topic_title.lower()
 
-        if "thời tiết" in t_lower or "weather" in t_lower:
-            words = [
-                ("weather", "noun", "/ˈweð.ər/", "thời tiết", "What is the weather like today?", "Thời tiết hôm nay thế nào?"),
-                ("sunny", "adjective", "/ˈsʌn.i/", "nắng đẹp", "It is very sunny in Hanoi today.", "Hôm nay trời rất nắng ở Hà Nội."),
-                ("rainy", "adjective", "/ˈreɪ.ni/", "mưa", "Don't forget your umbrella on rainy days.", "Đừng quên mang ô vào những ngày mưa."),
-                ("season", "noun", "/ˈsiː.zən/", "mùa trong năm", "Spring is my favorite season.", "Mùa xuân là mùa yêu thích của tôi."),
-            ]
-        elif "thì" in t_lower or "grammar" in t_lower or "quá khứ" in t_lower:
-            words = [
-                ("visited", "verb", "/ˈvɪz.ɪ.tɪd/", "đã thăm (quá khứ)", "We visited Da Nang last summer.", "Chúng tôi đã đi thăm Đà Nẵng mùa hè trước."),
-                ("yesterday", "adverb", "/ˈjes.tə.deɪ/", "ngày hôm qua", "I played football with friends yesterday.", "Tôi đã chơi bóng đá cùng bạn bè hôm qua."),
-                ("always", "adverb", "/ˈɔːl.weɪz/", "luôn luôn", "She always wakes up at 6 AM.", "Cô ấy luôn thức dậy lúc 6 giờ sáng."),
-                ("tomorrow", "noun", "/təˈmɒr.əʊ/", "ngày mai", "We will have an English test tomorrow.", "Chúng tôi sẽ có bài kiểm tra Tiếng Anh ngày mai."),
-            ]
-        elif "động vật" in t_lower or "animal" in t_lower:
-            words = [
-                ("dolphin", "noun", "/ˈdɒl.fɪn/", "cá heo", "Dolphins are smart sea animals.", "Cá heo là động vật biển thông minh."),
-                ("elephant", "noun", "/ˈel.ɪ.fənt/", "con voi", "The elephant is the largest land animal.", "Con voi là động vật trên bờ lớn nhất."),
-                ("forest", "noun", "/ˈfɒr.ɪst/", "khu rừng", "Many animals live peacefully in the forest.", "Nhiều loài động vật sống yên bình trong rừng."),
-                ("protect", "verb", "/prəˈtekt/", "bảo vệ", "We should protect wild animals.", "Chúng ta nên bảo vệ động vật hoang dã."),
-            ]
-        elif "sân bay" in t_lower or "du lịch" in t_lower or "travel" in t_lower:
-            words = [
-                ("airport", "noun", "/ˈeə.pɔːt/", "sân bay", "We arrived at Noi Bai airport on time.", "Chúng tôi đã đến sân bay Nội Bài đúng giờ."),
-                ("passport", "noun", "/ˈpɑːs.pɔːt/", "hộ chiếu", "Keep your passport in a safe place.", "Hãy giữ hộ chiếu ở nơi an toàn."),
-                ("luggage", "noun", "/ˈlʌɡ.ɪdʒ/", "hành lý", "Please check your luggage before boarding.", "Vui lòng kiểm tra hành lý trước khi lên máy bay."),
-                ("flight", "noun", "/flaɪt/", "chuyến bay", "Our flight to Da Nang departs at 9 AM.", "Chuyến bay đi Đà Nẵng cất cánh lúc 9 giờ sáng."),
-            ]
-        else:
-            words = [
-                ("practice", "verb", "/ˈpræk.tɪs/", "luyện tập", f"I practice English for {topic_title} every day.", f"Tôi luyện tập Tiếng Anh chủ đề {topic_title} mỗi ngày."),
-                ("knowledge", "noun", "/ˈnɒl.ɪdʒ/", "kiến thức", f"Learning about {topic_title} gives us great knowledge.", f"Học về {topic_title} mang lại kiến thức tuyệt vời."),
-                ("explore", "verb", "/ɪkˈsplɔːr/", "khám phá", f"Let's explore key vocabulary for {topic_title}.", f"Hãy cùng khám phá từ vựng chính cho {topic_title}."),
-                ("confident", "adjective", "/ˈkɒn.fɪ.dənt/", "tự tin", f"I feel confident speaking about {topic_title}.", f"Tôi cảm thấy tự tin khi nói về {topic_title}."),
-            ]
+        # 30 Curated Vocabulary & Exercise Pools
+        TOPIC_POOLS = [
+            # Pool 0: Weather & Climate
+            {
+                "topic": "Thời tiết & Các mùa trong năm",
+                "words": [
+                    ("weather", "noun", "/ˈweð.ər/", "thời tiết", "What is the weather like today?", "Thời tiết hôm nay thế nào?"),
+                    ("sunny", "adjective", "/ˈsʌn.i/", "nắng đẹp", "It is very sunny in Hanoi today.", "Hôm nay trời rất nắng ở Hà Nội."),
+                    ("rainy", "adjective", "/ˈreɪ.ni/", "mưa", "Don't forget your umbrella on rainy days.", "Đừng quên mang ô vào những ngày mưa."),
+                    ("season", "noun", "/ˈsiː.zən/", "mùa trong năm", "Spring is my favorite season.", "Mùa xuân là mùa yêu thích của tôi."),
+                    ("umbrella", "noun", "/ʌmˈbrel.ə/", "cây ô / dù", "She bought a colorful umbrella.", "Cô ấy đã mua một cây ô rực rỡ sắc màu."),
+                    ("cloudy", "adjective", "/ˈklaʊ.di/", "nhiều mây", "The sky is dark and cloudy today.", "Bầu trời hôm nay u uất và nhiều mây."),
+                ]
+            },
+            # Pool 1: Family & Friends
+            {
+                "topic": "Gia đình & Bạn bè",
+                "words": [
+                    ("family", "noun", "/ˈfæm.əl.i/", "gia đình", "My family loves traveling together.", "Gia đình tôi thích cùng nhau du lịch."),
+                    ("parents", "noun", "/ˈpeə.rənts/", "bố mẹ", "My parents are very supportive.", "Bố mẹ tôi rất luôn ủng hộ tôi."),
+                    ("father", "noun", "/ˈfɑː.ðər/", "người bố", "His father is an architect.", "Bố của anh ấy là một kiến trúc sư."),
+                    ("mother", "noun", "/ˈmʌð.ər/", "người mẹ", "My mother cooks delicious meals.", "Mẹ tôi nấu những bữa ăn rất ngon."),
+                    ("friendly", "adjective", "/ˈfrend.li/", "thân thiện", "She is a friendly classmate.", "Cô ấy là một bạn học thân thiện."),
+                    ("brother", "noun", "/ˈbrʌð.ər/", "anh/em trai", "My brother plays football well.", "Anh trai tôi chơi bóng đá giỏi."),
+                ]
+            },
+            # Pool 2: School & Classroom
+            {
+                "topic": "Trường học & Môn học",
+                "words": [
+                    ("classroom", "noun", "/ˈklɑːs.ruːm/", "lớp học", "Our classroom is bright and tidy.", "Lớp học của chúng tôi rất sáng sủa và ngăn nắp."),
+                    ("teacher", "noun", "/ˈtiː.tʃər/", "giáo viên", "Our teacher is very patient.", "Giáo viên của chúng tôi rất kiên nhẫn."),
+                    ("science", "noun", "/ˈsaɪ.əns/", "môn khoa học", "We love science experiments.", "Chúng tôi yêu thích các thí nghiệm khoa học."),
+                    ("library", "noun", "/ˈlaɪ.brər.i/", "thư viện", "Students read books in the library.", "Học sinh đọc sách trong thư viện."),
+                    ("pencil", "noun", "/ˈpen.səl/", "bút chì", "Write your answer with a pencil.", "Hãy viết đáp án bằng bút chì."),
+                    ("book", "noun", "/bʊk/", "quyển sách", "This English book is very helpful.", "Quyển sách Tiếng Anh này rất hữu ích."),
+                ]
+            },
+            # Pool 3: Animals & Habitats
+            {
+                "topic": "Động vật & Tự nhiên",
+                "words": [
+                    ("dolphin", "noun", "/ˈdɒl.fɪn/", "cá heo", "Dolphins are very intelligent animals.", "Cá heo là loài động vật rất thông minh."),
+                    ("elephant", "noun", "/ˈel.ɪ.fənt/", "con voi", "The elephant lives in the jungle.", "Con voi sống trong rừng rậm."),
+                    ("forest", "noun", "/ˈfɒr.ɪst/", "khu rừng", "Trees keep the forest cool.", "Cây xanh giữ cho khu rừng mát mẻ."),
+                    ("tiger", "noun", "/ˈtaɪ.ɡər/", "con hổ", "The tiger runs very fast.", "Con hổ chạy rất nhanh."),
+                    ("bird", "noun", "/bɜːd/", "con chim", "Birds sing in the morning.", "Những chú chim hót vào buổi sáng."),
+                    ("animal", "noun", "/ˈæn.ɪ.məl/", "động vật", "We should protect all animals.", "Chúng ta nên bảo vệ tất cả động vật."),
+                ]
+            },
+            # Pool 4: Food & Health
+            {
+                "topic": "Thực phẩm & Bữa ăn",
+                "words": [
+                    ("breakfast", "noun", "/ˈbrek.fəst/", "bữa sáng", "I eat bread for breakfast.", "Tôi ăn bánh mì cho bữa sáng."),
+                    ("apple", "noun", "/ˈæp.əl/", "quả táo", "An apple a day keeps the doctor away.", "Mỗi ngày ăn một quả táo giúp tăng gia sức khỏe."),
+                    ("milk", "noun", "/mɪlk/", "sữa tươi", "Drink milk for strong bones.", "Uống sữa cho xương chắc khỏe."),
+                    ("pizza", "noun", "/ˈpiːt.sə/", "bánh pizza", "We ordered a delicious pizza.", "Chúng tôi đã gọi một chiếc pizza ngon lành."),
+                    ("water", "noun", "/ˈwɔː.tər/", "nước uống", "Drink plenty of water every day.", "Uống nhiều nước mỗi ngày."),
+                    ("delicious", "adjective", "/dɪˈlɪʃ.əs/", "thơm ngon", "This fruit salad is delicious.", "Món salad hoa quả này rất thơm ngon."),
+                ]
+            },
+            # Pool 5: Travel & Airports
+            {
+                "topic": "Du lịch & Sân bay",
+                "words": [
+                    ("airport", "noun", "/ˈeə.pɔːt/", "sân bay", "We arrived at the airport early.", "Chúng tôi đã đến sân bay sớm."),
+                    ("passport", "noun", "/ˈpɑːs.pɔːt/", "hộ chiếu", "Keep your passport safe while traveling.", "Hãy giữ hộ chiếu an toàn khi đi du lịch."),
+                    ("flight", "noun", "/flaɪt/", "chuyến bay", "Our flight departs in 30 minutes.", "Chuyến bay của chúng tôi khởi hành trong 30 phút."),
+                    ("hotel", "noun", "/həʊˈtel/", "khách sạn", "We stayed at a cozy hotel.", "Chúng tôi đã ở một khách sạn ấm cúng."),
+                    ("luggage", "noun", "/ˈlʌɡ.ɪdʒ/", "hành lý", "Check your luggage before leaving.", "Kiểm tra hành lý của bạn trước khi đi."),
+                    ("beach", "noun", "/biːtʃ/", "bãi biển", "Children build sandcastles on the beach.", "Trẻ em xây lâu đài cát trên bãi biển."),
+                ]
+            }
+        ]
+
+        # Select topic pool based on matching or day rotation
+        selected_pool = None
+        for pool in TOPIC_POOLS:
+            if any(k in t_lower for k in pool["topic"].lower().split()):
+                selected_pool = pool
+                break
+
+        if not selected_pool:
+            day_seed = (datetime.now().timetuple().tm_yday + grade + len(CUSTOM_UNITS_STORE)) % len(TOPIC_POOLS)
+            selected_pool = TOPIC_POOLS[day_seed]
+
+        words = selected_pool["words"]
 
         flashcards = [
             VocabFlashcard(
@@ -618,7 +780,7 @@ CHỈ TRẢ VỀ DUY NHẤT VĂN BẢN JSON HỢP LỆ."""
                 part_of_speech=w[1],
                 ipa=w[2],
                 meaning=w[3],
-                image_url=f"https://images.unsplash.com/photo-1511895426328-dc8714191300?w=500&auto=format&fit=crop",
+                image_url=get_accurate_vocab_image(w[0], topic_title),
                 audio_text=w[0],
                 example_sentence=w[4],
                 example_translation=w[5],
@@ -626,12 +788,14 @@ CHỈ TRẢ VỀ DUY NHẤT VĂN BẢN JSON HỢP LỆ."""
             for i, w in enumerate(words)
         ]
 
+        # 8 Rich Multimodal Exercises (2 MATCH_IMAGE, 2 LISTEN_SELECT, 2 WORD_TYPING, 2 FILL_BLANK)
         exercises = [
+            # 1. MATCH_IMAGE 1
             MultimodalExercise(
                 id=custom_id * 20 + 1,
                 exercise_type="MATCH_IMAGE",
-                prompt=f"Từ vựng nào nghĩa là '{words[0][3]}' liên quan đến chủ đề '{topic_title}'?",
-                media_url="https://images.unsplash.com/photo-1511895426328-dc8714191300?w=500&auto=format&fit=crop",
+                prompt=f"Từ vựng nào miêu tả đúng nghĩa '{words[0][3]}' trong hình?",
+                media_url=get_accurate_vocab_image(words[0][0], topic_title),
                 audio_text=words[0][0],
                 options=[
                     ExerciseOption(option_key="A", content=words[0][0].capitalize()),
@@ -640,39 +804,93 @@ CHỈ TRẢ VỀ DUY NHẤT VĂN BẢN JSON HỢP LỆ."""
                     ExerciseOption(option_key="D", content=words[3][0].capitalize()),
                 ],
                 correct_answer="A",
-                explanation=f"'{words[0][0]}' có nghĩa là {words[0][3]}, phù hợp nhất cho ngữ cảnh bài học.",
+                explanation=f"'{words[0][0]}' có nghĩa là {words[0][3]}.",
             ),
+            # 2. MATCH_IMAGE 2
             MultimodalExercise(
                 id=custom_id * 20 + 2,
-                exercise_type="LISTEN_SELECT",
-                prompt=f"Nghe phát âm từ vựng chủ đề '{topic_title}' và chọn đáp án chính xác:",
+                exercise_type="MATCH_IMAGE",
+                prompt=f"Hình ảnh trên minh họa chính xác từ Tiếng Anh nào cho '{words[1][3]}':",
+                media_url=get_accurate_vocab_image(words[1][0], topic_title),
                 audio_text=words[1][0],
+                options=[
+                    ExerciseOption(option_key="A", content=words[3][0].capitalize()),
+                    ExerciseOption(option_key="B", content=words[1][0].capitalize()),
+                    ExerciseOption(option_key="C", content=words[4][0].capitalize()),
+                    ExerciseOption(option_key="D", content=words[5][0].capitalize()),
+                ],
+                correct_answer="B",
+                explanation=f"'{words[1][0]}' nghĩa là {words[1][3]}.",
+            ),
+            # 3. LISTEN_SELECT 1
+            MultimodalExercise(
+                id=custom_id * 20 + 3,
+                exercise_type="LISTEN_SELECT",
+                prompt=f"Nghe âm thanh mẫu và chọn đáp án từ Tiếng Anh đúng:",
+                audio_text=words[2][0],
                 options=[
                     ExerciseOption(option_key="A", content=words[0][0].capitalize()),
                     ExerciseOption(option_key="B", content=words[1][0].capitalize()),
                     ExerciseOption(option_key="C", content=words[2][0].capitalize()),
                     ExerciseOption(option_key="D", content=words[3][0].capitalize()),
                 ],
-                correct_answer="B",
-                explanation=f"Đoạn phát âm chuẩn là '{words[1][0]}' ({words[1][2]}).",
+                correct_answer="C",
+                explanation=f"Đoạn phát âm chuẩn là '{words[2][0]}' ({words[2][2]}).",
             ),
-            MultimodalExercise(
-                id=custom_id * 20 + 3,
-                exercise_type="WORD_TYPING",
-                prompt=f"✍️ Luyện gõ chính tả: Nghe phát âm hoặc nhìn nghĩa '{words[2][3]}', hãy gõ chính xác từ Tiếng Anh:",
-                audio_text=words[2][0],
-                options=[],
-                correct_answer=words[2][0],
-                explanation=f"Từ Tiếng Anh chính xác cho '{words[2][3]}' là '{words[2][0]}'.",
-            ),
+            # 4. LISTEN_SELECT 2
             MultimodalExercise(
                 id=custom_id * 20 + 4,
-                exercise_type="FILL_BLANK",
-                prompt=f"📝 Điền từ còn thiếu vào câu: '{words[3][4].replace(words[3][0], '_____')}'",
-                audio_text=words[3][4],
+                exercise_type="LISTEN_SELECT",
+                prompt=f"Nghe phát âm từ vựng và chọn nghĩa Tiếng Việt chính xác:",
+                audio_text=words[3][0],
+                options=[
+                    ExerciseOption(option_key="A", content=words[0][3].capitalize()),
+                    ExerciseOption(option_key="B", content=words[1][3].capitalize()),
+                    ExerciseOption(option_key="C", content=words[2][3].capitalize()),
+                    ExerciseOption(option_key="D", content=words[3][3].capitalize()),
+                ],
+                correct_answer="D",
+                explanation=f"Từ phát âm '{words[3][0]}' mang nghĩa là {words[3][3]}.",
+            ),
+            # 5. WORD_TYPING 1
+            MultimodalExercise(
+                id=custom_id * 20 + 5,
+                exercise_type="WORD_TYPING",
+                prompt=f"✍️ Luyện gõ chính tả: Nghe phát âm hoặc nhìn nghĩa '{words[4][3]}', hãy gõ từ Tiếng Anh:",
+                audio_text=words[4][0],
                 options=[],
-                correct_answer=words[3][0],
-                explanation=f"Từ còn thiếu chính xác là '{words[3][0]}'. Dịch cả câu: {words[3][5]}",
+                correct_answer=words[4][0],
+                explanation=f"Từ Tiếng Anh chính xác cho '{words[4][3]}' là '{words[4][0]}'.",
+            ),
+            # 6. WORD_TYPING 2
+            MultimodalExercise(
+                id=custom_id * 20 + 6,
+                exercise_type="WORD_TYPING",
+                prompt=f"✍️ Luyện gõ chính tả: Gõ chính xác từ Tiếng Anh cho '{words[5][3]}':",
+                audio_text=words[5][0],
+                options=[],
+                correct_answer=words[5][0],
+                explanation=f"Chính tả chính xác là '{words[5][0]}'.",
+            ),
+            # 7. FILL_BLANK 1
+            MultimodalExercise(
+                id=custom_id * 20 + 7,
+                exercise_type="FILL_BLANK",
+                prompt=f"📝 Điền từ còn thiếu vào câu: '{words[0][4].replace(words[0][0], '_____')}'",
+                audio_text=words[0][4],
+                options=[],
+                correct_answer=words[0][0],
+                explanation=f"Từ còn thiếu chính xác là '{words[0][0]}'. Dịch câu: {words[0][5]}",
+            ),
+            # 8. FILL_BLANK 2
+            MultimodalExercise(
+                id=custom_id * 20 + 8,
+                exercise_type="FILL_BLANK",
+                prompt=f"📝 Điền từ còn thiếu vào câu: '{words[1][4].replace(words[1][0], '_____')}'",
+                audio_text=words[1][4],
+                options=[],
+                correct_answer=words[1][0],
+                explanation=f"Từ còn thiếu chính xác là '{words[1][0]}'. Dịch câu: {words[1][5]}",
             ),
         ]
 
@@ -683,7 +901,7 @@ CHỈ TRẢ VỀ DUY NHẤT VĂN BẢN JSON HỢP LỆ."""
                     target_text=f"I love my {words[0][0]}.",
                     ipa=f"/aɪ lʌv maɪ {words[0][0]}/",
                     meaning=f"Tôi yêu {words[0][3]} của tôi.",
-                    tip=f"Mẫu câu ngắn 4 từ đơn giản dành cho học sinh Cấp 1 (Lớp {grade}).",
+                    tip=f"Mẫu câu ngắn 4 từ đơn giản dành cho Lớp {grade}.",
                 ),
                 SpeakingPrompt(
                     id=custom_id * 30 + 2,
@@ -691,6 +909,20 @@ CHỈ TRẢ VỀ DUY NHẤT VĂN BẢN JSON HỢP LỆ."""
                     ipa=f"/ðɪs ɪz ə {words[1][0]}/",
                     meaning=f"Đây là một {words[1][3]}.",
                     tip=f"Phát âm rõ ràng từng từ ngắn.",
+                ),
+                SpeakingPrompt(
+                    id=custom_id * 30 + 3,
+                    target_text=f"We like {words[2][0]}.",
+                    ipa=f"/wiː laɪk {words[2][0]}/",
+                    meaning=f"Chúng tôi thích {words[2][3]}.",
+                    tip=f"Đọc trôi chảy câu ngắn 3 từ.",
+                ),
+                SpeakingPrompt(
+                    id=custom_id * 30 + 4,
+                    target_text=f"She has a {words[3][0]}.",
+                    ipa=f"/ʃiː hæz ə {words[3][0]}/",
+                    meaning=f"Cô ấy có một {words[3][3]}.",
+                    tip=f"Chú ý âm đuôi /z/ trong từ 'has'.",
                 ),
             ]
         else:
@@ -700,14 +932,28 @@ CHỈ TRẢ VỀ DUY NHẤT VĂN BẢN JSON HỢP LỆ."""
                     target_text=words[0][4],
                     ipa=f"/{words[0][0]} sentence/",
                     meaning=words[0][5],
-                    tip=f"Chú ý nhấn đúng trọng âm của từ '{words[0][0]}'.",
+                    tip=f"Chú ý nhấn trọng âm từ '{words[0][0]}'.",
                 ),
                 SpeakingPrompt(
                     id=custom_id * 30 + 2,
                     target_text=words[1][4],
                     ipa=f"/{words[1][0]} sentence/",
                     meaning=words[1][5],
-                    tip=f"Đọc trôi chảy và nối âm chuẩn bản ngữ.",
+                    tip=f"Đọc trôi chảy ngữ điệu tự nhiên.",
+                ),
+                SpeakingPrompt(
+                    id=custom_id * 30 + 3,
+                    target_text=words[2][4],
+                    ipa=f"/{words[2][0]} sentence/",
+                    meaning=words[2][5],
+                    tip=f"Phát âm rõ ràng các âm đuôi.",
+                ),
+                SpeakingPrompt(
+                    id=custom_id * 30 + 4,
+                    target_text=words[3][4],
+                    ipa=f"/{words[3][0]} sentence/",
+                    meaning=words[3][5],
+                    tip=f"Đọc nối âm chuẩn bản ngữ.",
                 ),
             ]
 
@@ -716,9 +962,8 @@ CHỈ TRẢ VỀ DUY NHẤT VĂN BẢN JSON HỢP LỆ."""
             title=f"AI Unit: {topic_title}",
             topic=topic_title,
             grade=grade,
-            description=f"Bài ôn tập Tiếng Anh AI tự sinh theo yêu cầu chủ đề: {topic_title}.",
+            description=f"Bài ôn tập Tiếng Anh AI 8 Phút chủ đề: {topic_title}.",
             flashcards=flashcards,
             exercises=exercises,
             speaking_prompts=speaking_prompts,
         )
-

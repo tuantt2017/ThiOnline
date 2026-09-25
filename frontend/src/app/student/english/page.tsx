@@ -40,19 +40,19 @@ export default function EnglishLearningHubPage() {
   const [isRecalculating, setIsRecalculating] = useState(false);
   const [isStartingDaily, setIsStartingDaily] = useState(false);
 
-  const handleStartDaily5MinPractice = async () => {
+  const handleStartDaily8MinPractice = async () => {
     if (isStartingDaily) return;
     setIsStartingDaily(true);
     try {
       const todayStr = new Date().toLocaleDateString('vi-VN');
       const randomSeed = Math.floor(Math.random() * 9000) + 1000;
-      const topic = `Thử Thách Tiếng Anh 5 Phút Hàng Ngày (${todayStr}) #${randomSeed}`;
+      const topic = `Thử Thách Tiếng Anh 8 Phút Hàng Ngày (${todayStr}) #${randomSeed}`;
 
       const generated = await api.generateCustomEnglishUnit(topic, data?.grade || 5);
       const targetId = generated?.unit_id ?? 1;
       router.push(`/student/english/unit/${targetId}`);
     } catch (err: any) {
-      alert(`Lỗi khi tạo bài học 5 phút: ${err.message}`);
+      alert(`Lỗi khi tạo bài học 8 phút: ${err.message}`);
     } finally {
       setIsStartingDaily(false);
     }
@@ -338,26 +338,26 @@ export default function EnglishLearningHubPage() {
           <div className="rounded-3xl border border-purple-200 bg-gradient-to-br from-purple-50 to-indigo-50/70 p-6 shadow-sm flex flex-col justify-between space-y-4">
             <div>
               <div className="flex items-center gap-2 text-purple-700 font-bold text-sm mb-2">
-                <Flame className="w-5 h-5 text-amber-500 animate-pulse" /> AI Daily English Coach
+                <Flame className="w-5 h-5 text-amber-500 animate-pulse" /> AI Daily English Coach (8 Phút Hàng Ngày)
               </div>
               <p className="text-xs text-slate-700 leading-relaxed font-medium bg-white/90 p-4 rounded-2xl border border-purple-100 shadow-xs">
                 {data.ai_daily_coaching_advice}
               </p>
             </div>
             <button
-              onClick={handleStartDaily5MinPractice}
+              onClick={handleStartDaily8MinPractice}
               disabled={isStartingDaily}
               className="w-full inline-flex items-center justify-center gap-2 py-3.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 font-extrabold text-white rounded-2xl text-sm shadow-md transition active:scale-95 disabled:opacity-60"
             >
               {isStartingDaily ? (
                 <>
                   <RefreshCw className="w-4 h-4 animate-spin text-white" />
-                  <span>AI Gemini Đang Sinh Bài 5 Phút Mới...</span>
+                  <span>AI Gemini Đang Sinh Bài 8 Phút Mới...</span>
                 </>
               ) : (
                 <>
                   <Play className="w-4 h-4 fill-white" />
-                  <span>🚀 Bắt Đầu Học Ngay (5 Phút Mới)</span>
+                  <span>🚀 Bắt Đầu Học Ngay (Bài 8 Phút Mới)</span>
                 </>
               )}
             </button>

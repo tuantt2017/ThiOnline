@@ -111,7 +111,7 @@ export default function EnglishUnitStudioPage() {
     }
   };
 
-  // Start Speech Recognition
+  // Start Speech Recognition with interim real-time feedback
   const startRecording = () => {
     if (typeof window === 'undefined') return;
 
@@ -119,15 +119,19 @@ export default function EnglishUnitStudioPage() {
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
     if (!SpeechRecognition) {
-      alert('Trình duyệt chưa hỗ trợ Web Speech Recognition. Hệ thống sẽ giả lập thử nghiệm thu âm giọng đọc.');
       simulateRecording();
       return;
     }
 
     try {
+      if (recognitionRef.current) {
+        try { recognitionRef.current.abort(); } catch {}
+      }
+
       const recognition = new SpeechRecognition();
       recognition.lang = 'en-US';
-      recognition.interimResults = false;
+      recognition.continuous = false;
+      recognition.interimResults = true;
       recognition.maxAlternatives = 1;
 
       recognition.onstart = () => {
@@ -137,10 +141,24 @@ export default function EnglishUnitStudioPage() {
       };
 
       recognition.onresult = async (event: any) => {
-        const transcript = event.results[0][0].transcript;
-        setRecordedText(transcript);
-        setIsRecording(false);
-        await evaluateSpokenText(transcript);
+        let interimTranscript = '';
+        let finalTranscript = '';
+
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            finalTranscript += event.results[i][0].transcript;
+          } else {
+            interimTranscript += event.results[i][0].transcript;
+          }
+        }
+
+        const currentText = finalTranscript || interimTranscript;
+        setRecordedText(currentText);
+
+        if (finalTranscript) {
+          setIsRecording(false);
+          await evaluateSpokenText(finalTranscript);
+        }
       };
 
       recognition.onerror = (event: any) => {
@@ -163,7 +181,7 @@ export default function EnglishUnitStudioPage() {
 
   const stopRecording = () => {
     if (recognitionRef.current) {
-      recognitionRef.current.stop();
+      try { recognitionRef.current.stop(); } catch {}
     }
     setIsRecording(false);
   };
@@ -180,7 +198,7 @@ export default function EnglishUnitStudioPage() {
       const simulatedText = promptObj.target_text;
       setRecordedText(simulatedText);
       await evaluateSpokenText(simulatedText);
-    }, 2500);
+    }, 2000);
   };
 
   // Evaluate Pronunciation with AI API
