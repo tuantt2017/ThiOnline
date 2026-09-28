@@ -41,82 +41,94 @@ ENGLISH_BLACKLIST_WORDS = {
 
 # Expanded & Clean Curated SGK Curriculum Word Bank (GDPT Lớp 4 - 9)
 VIETNAMESE_SGK_WORDS: List[Dict[str, Any]] = [
-    # --- Chặng 1-5 / Lớp 4 & Lớp 5 (Từ ghép 1-2 tiếng) ---
-    {"word": "YÊU THƯƠNG", "grade": 4, "hint": "Tình cảm gắn bó, quan tâm sâu sắc giữa con người với con người.", "lesson": "SGK Tiếng Việt 4 - Chủ điểm 'Chắp cánh ước mơ'"},
-    {"word": "ĐOÀN KẾT", "grade": 4, "hint": "Sự kết hợp tập thể thành một khối thống nhất vì mục tiêu chung.", "lesson": "SGK Tiếng Việt 4 - Bài tập đọc 'Măng mọc thẳng'"},
-    {"word": "TRUNG THỰC", "grade": 4, "hint": "Tôn trọng sự thật, không dối trá, thành thật với bản thân và người khác.", "lesson": "SGK Tiếng Việt 4 - Luyện từ và câu 'Tính trung thực'"},
-    {"word": "CHĂM CHỈ", "grade": 4, "hint": "Chịu khó, siêng năng làm việc và học tập liên tục.", "lesson": "SGK Tiếng Việt 4 - Bài đọc mở rộng"},
-    {"word": "KHIÊM TỐN", "grade": 4, "hint": "Phẩm chất tốt đẹp, không tự kiêu tự đại, luôn kính trọng người khác.", "lesson": "SGK Tiếng Việt 4 - Luyện từ và câu 'Đức tính khiêm tốn'"},
-    {"word": "DŨNG CẢM", "grade": 4, "hint": "Không sợ nguy hiểm, khó khăn, sẵn sàng bảo vệ lẽ phải.", "lesson": "SGK Tiếng Việt 4 - Tập đọc 'Khí thế dũng cảm'"},
-    {"word": "KIÊN TRÌ", "grade": 4, "hint": "Nhẫn nại, không nản lòng trước mọi thử thách để đạt mục tiêu.", "lesson": "SGK Tiếng Việt 4 - Bài 'Có công mài sắt'"},
-    {"word": "KỶ LUẬT", "grade": 4, "hint": "Ý thức tuân thủ quy định chung của tập thể và nhà trường.", "lesson": "SGK Tiếng Việt 4 - Bài học nếp sống văn minh"},
-    {"word": "HIẾU THẢO", "grade": 4, "hint": "Lòng biết ơn và sự chăm sóc kính trọng cha mẹ, ông bà.", "lesson": "SGK Tiếng Việt 4 - Bài 'Mẹ vắng nhà'"},
-    {"word": "TỰ TRỌNG", "grade": 4, "hint": "Coi trọng và giữ gìn nhân cách, phẩm giá của chính mình.", "lesson": "SGK Tiếng Việt 4 - Luyện từ và câu"},
-    {"word": "THÀNH THẬT", "grade": 4, "hint": "Thành thật, không dối trá, luôn nói đúng sự thật.", "lesson": "SGK Tiếng Việt 4 - Bài học Đạo đức"},
-    {"word": "CẦN CÙ", "grade": 4, "hint": "Chịu khó làm việc một cách thường xuyên, đều đặn.", "lesson": "SGK Tiếng Việt 4"},
-    {"word": "THƯƠNG NGHÈO", "grade": 4, "hint": "Tấm lòng nhân ái, sẵn sàng giúp đỡ người gặp khó khăn.", "lesson": "SGK Tiếng Việt 4"},
-    {"word": "LỄ PHÉP", "grade": 4, "hint": "Thái độ kính trọng, đúng mực đối với người lớn tuổi.", "lesson": "SGK Tiếng Việt 4"},
-    {"word": "HỌC HỎI", "grade": 4, "hint": "Tìm tòi, tiếp thu kiến thức mới từ sách vở và mọi người.", "lesson": "SGK Tiếng Việt 4"},
-    {"word": "GIÚP ĐỠ", "grade": 4, "hint": "Hành động san sẻ công sức để người khác vượt qua khó khăn.", "lesson": "SGK Tiếng Việt 4"},
-    {"word": "CHAN HÒA", "grade": 4, "hint": "Sống cởi mở, thân thiện và gắn bó với tập thể.", "lesson": "SGK Tiếng Việt 4"},
-    {"word": "BẠN BÈ", "grade": 4, "hint": "Những người cùng lứa tuổi, gắn bó và thân thiết với nhau.", "lesson": "SGK Tiếng Việt 4 - Chủ điểm Mái trường"},
-    {"word": "LỚP HỌC", "grade": 4, "hint": "Nơi tập hợp học sinh để cùng thầy cô học tập tri thức.", "lesson": "SGK Tiếng Việt 4"},
-    {"word": "THẦY CÔ", "grade": 4, "hint": "Người truyền dạy tri thức và nâng đỡ ước mơ cho học sinh.", "lesson": "SGK Tiếng Việt 4"},
-    {"word": "TRƯỜNG LỚP", "grade": 4, "hint": "Môi trường giáo dục thân thương của học sinh.", "lesson": "SGK Tiếng Việt 4"},
-    {"word": "GIA ĐÌNH", "grade": 4, "hint": "Tổ ấm thương yêu gắn kết cha mẹ và con cái.", "lesson": "SGK Tiếng Việt 4"},
-    {"word": "TỔ QUỐC", "grade": 4, "hint": "Đất nước thân yêu thiêng liêng của chúng ta.", "lesson": "SGK Tiếng Việt 4"},
-    {"word": "ĐẤT NƯỚC", "grade": 4, "hint": "Quê hương giang sơn gấm vóc ngàn năm văn hiến.", "lesson": "SGK Tiếng Việt 4"},
-    {"word": "ĐẠO ĐỨC", "grade": 4, "hint": "Những chuẩn mực phẩm giá tốt đẹp của con người.", "lesson": "SGK Tiếng Việt 4"},
-    {"word": "SÁCH VỞ", "grade": 4, "hint": "Dụng cụ học tập ghi chép kiến thức bổ ích hàng ngày.", "lesson": "SGK Tiếng Việt 4"},
-    {"word": "BÚT MỰC", "grade": 4, "hint": "Vật dụng nhỏ bé viết nên từng dòng chữ nết người.", "lesson": "SGK Tiếng Việt 4"},
-    {"word": "TRI THỨC", "grade": 4, "hint": "Hiểu biết và kiến thức thu nhận được qua học tập.", "lesson": "SGK Tiếng Việt 4"},
-    {"word": "THỜI GIAN", "grade": 4, "hint": "Tài sản quý giá không gì mua được của mỗi con người.", "lesson": "SGK Tiếng Việt 4"},
-    {"word": "SỨC KHỎE", "grade": 4, "hint": "Vốn quý nhất của con người giúp sống vui tươi học tốt.", "lesson": "SGK Tiếng Việt 4"},
-    {"word": "NIỀM VUI", "grade": 4, "hint": "Cảm giác hân hoan hạnh phúc trong tâm hồn.", "lesson": "SGK Tiếng Việt 4"},
-    {"word": "ƯỚC MƠ", "grade": 4, "hint": "Mong muốn tươi đẹp hướng về tương lai rực rỡ.", "lesson": "SGK Tiếng Việt 4"},
-    {"word": "HY VỌNG", "grade": 4, "hint": "Niềm tin tưởng vào những điều tốt đẹp sắp tới.", "lesson": "SGK Tiếng Việt 4"},
-    {"word": "LÒNG TỐT", "grade": 4, "hint": "Sự nhân ái sẵn lòng làm điều hay giúp đỡ mọi người.", "lesson": "SGK Tiếng Việt 4"},
-    {"word": "NHÂN ÁI", "grade": 4, "hint": "Lòng yêu thương con người biết đồng cảm san sẻ.", "lesson": "SGK Tiếng Việt 4"},
-    {"word": "KÍNH TRỌNG", "grade": 4, "hint": "Thái độ tôn kính đối với người có công lao lớn.", "lesson": "SGK Tiếng Việt 4"},
-    {"word": "BIẾT ƠN", "grade": 4, "hint": "Ghi nhớ tình nghĩa và công ơn người khác giúp đỡ.", "lesson": "SGK Tiếng Việt 4"},
+    # --- DẠNG 1: TỪ LÁY HAY & TỪ GỢI TẢ/GỢI HÌNH/CẢM XÚC (Lớp 4 - 9) ---
+    {"word": "LUNG LINH", "grade": 4, "hint": "Ánh sáng phản chiếu chập chờn, rạng rỡ và vô cùng đẹp mắt.", "lesson": "SGK Tiếng Việt 4 - Mở rộng vốn từ 'Gợi tả'"},
+    {"word": "RỰC RỠ", "grade": 4, "hint": "Màu sắc tươi sáng, lộng lẫy và nổi bật thu hút mọi ánh nhìn.", "lesson": "SGK Tiếng Việt 4 - Bài tập đọc 'Sắc màu quê hương'"},
+    {"word": "BÁT NGÁT", "grade": 4, "hint": "Cánh đồng hay không gian rộng lớn bao la kéo dài tới tận chân trời.", "lesson": "SGK Tiếng Việt 4 - Cánh đồng quê hương"},
+    {"word": "RÓC RÁCH", "grade": 4, "hint": "Âm thanh vui tai của dòng nước nhỏ chảy qua kẽ đá trong rừng.", "lesson": "SGK Tiếng Việt 4 - Bài 'Tiếng suối'"},
+    {"word": "XÔN XAO", "grade": 4, "hint": "Âm thanh nhộn nhịp hoặc cảm xúc xao xuyến, vui vẻ của tập thể.", "lesson": "SGK Tiếng Việt 4 - Bài đọc mở rộng"},
+    {"word": "THƯỚT THA", "grade": 4, "hint": "Dáng vẻ mềm mại, dịu dàng của tà áo dài hoặc bước đi uyển chuyển.", "lesson": "SGK Tiếng Việt 4 - Bài 'Áo dài Việt Nam'"},
+    {"word": "MỘC MẠC", "grade": 4, "hint": "Giản dị, chân thật, mang nét đẹp tự nhiên không màu mè tô vẽ.", "lesson": "SGK Tiếng Việt 4 - Luyện từ và câu"},
+    {"word": "CẦN MẪN", "grade": 4, "hint": "Siêng năng, chịu khó miệt mài làm việc một cách bền bỉ.", "lesson": "SGK Tiếng Việt 4 - Đức tính tốt đẹp"},
+    {"word": "HOẠT BÁT", "grade": 4, "hint": "Nhanh nhẹn, vui vẻ, linh hoạt trong giao tiếp và hành động.", "lesson": "SGK Tiếng Việt 4 - Mở rộng vốn từ 'Con người'"},
+    {"word": "ĐẦM ẤM", "grade": 4, "hint": "Cảm giác ấm áp, hân hoan và hạnh phúc trong tình yêu thương gia đình.", "lesson": "SGK Tiếng Việt 4 - Chủ điểm Gia đình"},
+    {"word": "DỊU DÀNG", "grade": 4, "hint": "Thái độ ân cần, nhẹ nhàng và gây ấn tượng tốt cho người đối diện.", "lesson": "SGK Tiếng Việt 4"},
+    {"word": "ÔN TỒN", "grade": 4, "hint": "Lời nói và thái độ từ tốn, lịch sự, nhã nhặn khi ứng xử.", "lesson": "SGK Tiếng Việt 4"},
+    {"word": "LẤP LÁNH", "grade": 4, "hint": "Ánh sáng phát ra nhấp nháy liên tục rực rỡ như những giọt sương.", "lesson": "SGK Tiếng Việt 4"},
+    {"word": "THÁO VÁT", "grade": 4, "hint": "Nhanh trí, linh hoạt, biết cách xoay xở giải quyết mọi việc khéo léo.", "lesson": "SGK Tiếng Việt 4"},
+    {"word": "BÂN G KHUÂN G", "grade": 5, "hint": "Cảm xúc man mát buồn, vương vấn kỷ niệm trong tâm hồn.", "lesson": "SGK Tiếng Việt 5 - Mùa thu quê hương"},
+    {"word": "THA THIẾT", "grade": 5, "hint": "Tình cảm chân thành, nồng nàn và tràn đầy tâm huyết dành cho quê hương.", "lesson": "SGK Tiếng Việt 5"},
+    {"word": "RÀO RẠT", "grade": 5, "hint": "Âm thanh hoặc cảm xúc dâng trào mạnh mẽ, liên tục như sóng biển.", "lesson": "SGK Tiếng Việt 5"},
+    {"word": "RỘN RÃ", "grade": 5, "hint": "Âm thanh vui tươi, vang dội nhộn nhịp trong các lễ hội.", "lesson": "SGK Tiếng Việt 5"},
+    {"word": "RÌ RÀO", "grade": 5, "hint": "Âm thanh êm dịu của tiếng gió thổi qua kẽ lá râm mát.", "lesson": "SGK Tiếng Việt 5"},
+    {"word": "LONG LANH", "grade": 5, "hint": "Vẻ trong trẻo, phản chiếu ánh sáng lấp lánh của giọt sương mai.", "lesson": "SGK Tiếng Việt 5"},
 
-    # --- Chặng 6-10 / Lớp 5 - 7 (Từ ghép 2-3 tiếng, cụm từ) ---
-    {"word": "THIÊN NHIÊN", "grade": 5, "hint": "Tất cả những gì tồn tại xung quanh con người không do con người tạo ra.", "lesson": "SGK Tiếng Việt 5 - Chủ điểm 'Mẹ Thiên Nhiên'"},
-    {"word": "AN TOÀN GIAO THÔNG", "grade": 5, "hint": "Ý thức chấp hành luật pháp khi tham gia di chuyển trên đường phố.", "lesson": "SGK Tiếng Việt 5 - Hoạt động trải nghiệm GDPT"},
-    {"word": "TÌNH LÀNG NGHĨA XÓM", "grade": 5, "hint": "Sự gắn kết, yêu thương, giúp đỡ lẫn nhau giữa các gia đình hàng xóm.", "lesson": "SGK Tiếng Việt 5 - Tập đọc 'Chuỗi ngọc xanh'"},
-    {"word": "BẢO VỆ MÔI TRƯỜNG", "grade": 5, "hint": "Hành động giữ gìn không khí, nguồn nước và cây xanh sạch đẹp.", "lesson": "SGK Tiếng Việt 5 - Bài 'Hành tinh xanh của chúng ta'"},
-    {"word": "TÔN SƯ TRỌNG ĐẠO", "grade": 5, "hint": "Thành ngữ dạy học sinh kính trọng thầy cô và coi trọng đạo học.", "lesson": "SGK Tiếng Việt 5 - Chủ điểm 'Nghĩa thầy trò'"},
-    {"word": "HỌC ĐI ĐÔI VỚI HÀNH", "grade": 5, "hint": "Quy tắc học tập: vừa tiếp thu lý thuyết vừa áp dụng thực hành.", "lesson": "SGK Tiếng Việt 5 - Luyện từ và câu"},
-    {"word": "GIANG SƠN CẨM VÓC", "grade": 5, "hint": "Hình ảnh ẩn dụ vẻ đẹp tươi đẹp, hùng vĩ của đất nước Việt Nam.", "lesson": "SGK Tiếng Việt 5 - Tập đọc 'Đất nước'"},
-    {"word": "Ý THỨC CỘNG ĐỒNG", "grade": 5, "hint": "Tinh thần tự giác vì lợi ích chung của tập thể và xã hội.", "lesson": "SGK Tiếng Việt 5 - Bài tập làm văn"},
-    {"word": "TỰ DO ĐỘC LẬP", "grade": 6, "hint": "Quyền chủ quyền thiêng liêng của một dân tộc, không bị phụ thuộc.", "lesson": "SGK Ngữ Văn 6 - Văn bản 'Tuyên ngôn Độc lập'"},
-    {"word": "TRUYỀN THỐNG", "grade": 6, "hint": "Những giá trị văn hóa, tinh thần tốt đẹp được truyền từ đời này sang đời khác.", "lesson": "SGK Ngữ Văn 6 - Văn học dân gian Việt Nam"},
-    {"word": "VĂN HÓA DÂN TỘC", "grade": 6, "hint": "Bản sắc tinh thần, phong tục tập quán đặc trưng của đất nước.", "lesson": "SGK Ngữ Văn 6 - Bài 'Thánh Gióng & Sơn Tinh Thủy Tinh'"},
-    {"word": "LÒNG TỰ HÀO", "grade": 6, "hint": "Cảm xúc hãnh diện về lịch sử dựng nước và giữ nước anh hùng.", "lesson": "SGK Ngữ Văn 6 - Truyền thuyết Lạc Long Quân"},
-    {"word": "DỰNG NƯỚC GIỮ NƯỚC", "grade": 6, "hint": "Sứ mệnh lịch sử vẻ vang của các thế hệ người Việt Nam.", "lesson": "SGK Ngữ Văn 6 - Chủ đề Lịch sử dân tộc"},
-    {"word": "TÍNH TỰ LẬP", "grade": 6, "hint": "Khả năng tự mình làm lấy công việc mà không dựa dẫm người khác.", "lesson": "SGK Ngữ Văn 6 - Kỹ năng sống"},
-    {"word": "SÁNG TẠO TRI THỨC", "grade": 7, "hint": "Hành động phát minh, làm mới kiến thức khoa học và đời sống.", "lesson": "SGK Ngữ Văn 7 - Đọc hiểu văn bản thông tin"},
-    {"word": "BẢO TỒN DI SẢN", "grade": 7, "hint": "Hoạt động gìn giữ danh lam thắng cảnh và di tích lịch sử.", "lesson": "SGK Ngữ Văn 7 - Văn bản 'Ca Huế trên sông Hương'"},
-    {"word": "TINH THẦN YÊU NƯỚC", "grade": 7, "hint": "Lòng nồng nàn yêu quê hương, đất nước của nhân dân ta.", "lesson": "SGK Ngữ Văn 7 - Văn bản 'Tinh thần yêu nước của nhân dân ta'"},
-    {"word": "VĂN HÓA DÂN GIAN", "grade": 7, "hint": "Kho tàng ca dao, dân ca, tục ngữ đúc kết trí tuệ ông cha.", "lesson": "SGK Ngữ Văn 7 - Bài Ca dao tục ngữ Việt Nam"},
-    {"word": "BẢO VỆ CHỦ QUYỀN", "grade": 7, "hint": "Nhiệm vụ thiêng liêng giữ vững lãnh thổ, biển đảo quê hương.", "lesson": "SGK Ngữ Văn 7 - Văn bản 'Nam quốc sơn hà'"},
-    {"word": "TRÍ TUỆ NHÂN TẠO", "grade": 8, "hint": "Công nghệ máy tính thông minh mô phỏng khả năng tư duy con người.", "lesson": "SGK Ngữ Văn & Tin học 8 - Bài đọc mở rộng"},
-    {"word": "TRÁCH NHIỆM XÃ HỘI", "grade": 8, "hint": "Ý thức đóng góp công sức xây dựng cộng đồng văn minh, giàu đẹp.", "lesson": "SGK Ngữ Văn 8 - Văn bản nghị luận"},
-    {"word": "ĐỔI MỚI SÁNG TẠO", "grade": 8, "hint": "Tinh thần suy nghĩ khác biệt, ứng dụng công nghệ hiện đại vào thực tiễn.", "lesson": "SGK Ngữ Văn 8 - Chủ điểm 'Thế giới tương lai'"},
-    {"word": "PHÁT TRIỂN BỀN VỮNG", "grade": 8, "hint": "Tăng trưởng kinh tế gắn liền bảo vệ thiên nhiên và công bằng xã hội.", "lesson": "SGK Ngữ Văn 8 - Bài đọc Văn bản thông tin"},
-    {"word": "CHUYỂN ĐỔI SỐ", "grade": 8, "hint": "Quá trình thay đổi phương thức làm việc bằng công nghệ kỹ thuật số.", "lesson": "SGK Tin học & Ngữ Văn 8"},
-    {"word": "TRI ÂN THẦY CÔ", "grade": 9, "hint": "Tấm lòng ghi nhớ và kính trọng công ơn dạy dỗ của thầy cô giáo.", "lesson": "SGK Ngữ Văn 9 - Văn bản biểu cảm"},
-    {"word": "KHẢO THÍ TRỰC TUYẾN", "grade": 9, "hint": "Phương pháp kiểm tra, đánh giá năng lực học sinh trên nền tảng kỹ thuật số.", "lesson": "SGK Ngữ Văn & Tin học 9 - Ứng dụng số hóa"},
-    {"word": "HỘI NHẬP QUỐC TẾ", "grade": 9, "hint": "Mở rộng giao lưu văn hóa, kinh tế và khoa học với các quốc gia trên thế giới.", "lesson": "SGK Ngữ Văn 9 - Văn bản 'Bàn về đọc sách & Hội nhập'"},
-    {"word": "CHỦ QUYỀN BIỂN ĐẢO", "grade": 9, "hint": "Quyền thiêng liêng đối với vùng biển, thềm lục địa và các quần đảo của Tổ quốc.", "lesson": "SGK Ngữ Văn 9 - Văn bản 'Đoàn thuyền đánh cá'"},
-    {"word": "KHÁT VỌNG CỐNG HIẾN", "grade": 9, "hint": "Mong muốn đem hết tài năng và sức lực phụng sự cho quê hương đất nước.", "lesson": "SGK Ngữ Văn 9 - Văn bản 'Lặng lẽ Sa Pa'"},
+    # --- DẠNG 2: THIÊN NHIÊN, VŨ TRỤ & ĐẤT NƯỚC (Lớp 4 - 7) ---
+    {"word": "BÌNH MINH", "grade": 4, "hint": "Khoảnh khắc mặt trời bắt đầu mọc lên chào ngày mới tươi sáng.", "lesson": "SGK Tiếng Việt 4"},
+    {"word": "HOÀNG HÔN", "grade": 4, "hint": "Khoảnh khắc mặt trời lặn dần vào ranh giới cuối buổi chiều.", "lesson": "SGK Tiếng Việt 4"},
+    {"word": "PHÙ SA", "grade": 4, "hint": "Đất màu mỡ do dòng sông bồi đắp cho đồng ruộng tươi tốt.", "lesson": "SGK Tiếng Việt 4 - Bài 'Cửu Long giang'"},
+    {"word": "GIANG SƠN", "grade": 5, "hint": "Sông núi đất nước bao la hùng vĩ ngàn năm văn hiến.", "lesson": "SGK Tiếng Việt 5"},
+    {"word": "THIÊN VĂN", "grade": 5, "hint": "Ngành khoa học nghiên cứu các vì sao, hành tinh và vũ trụ.", "lesson": "SGK Tiếng Việt 5 - Khám phá tự nhiên"},
+    {"word": "TINH TÚ", "grade": 5, "hint": "Các vì sao lấp lánh lung linh trên bầu trời đêm huyền diệu.", "lesson": "SGK Tiếng Việt 5"},
+    {"word": "ĐẠI DƯƠNG", "grade": 5, "hint": "Vùng biển rộng lớn vô tận bao phủ đại bộ phận trái đất.", "lesson": "SGK Tiếng Việt 5 - Hành tinh xanh"},
+    {"word": "THẢO NGUYÊN", "grade": 5, "hint": "Cánh đồng cỏ tự nhiên bao la ngút ngàn tầm mắt.", "lesson": "SGK Tiếng Việt 5"},
+    {"word": "SÔNG NÚI", "grade": 5, "hint": "Hình ảnh ẩn dụ tượng trưng cho non sông thiêng liêng của Tổ quốc.", "lesson": "SGK Tiếng Việt 5"},
+    {"word": "HẢI ĐẢO", "grade": 5, "hint": "Vùng đất nổi lên giữa biển cả kiên cường của đất nước.", "lesson": "SGK Tiếng Việt 5 - Biển đảo quê hương"},
+    {"word": "SINH THÁI", "grade": 6, "hint": "Môi trường sống tự nhiên và sự cân bằng giữa các loài sinh vật.", "lesson": "SGK Ngữ Văn 6 - Văn bản môi trường"},
 
-    # --- Chặng 11-15 / Lớp 5 - 9 (Thành ngữ, tục ngữ, câu nói hay SGK) ---
-    {"word": "UỐNG NƯỚC NHỚ NGUỒN", "grade": 5, "hint": "Thành ngữ thể hiện lòng biết ơn sâu sắc đối với thế hệ đi trước.", "lesson": "SGK Tiếng Việt 5 - Bài 'Người công dân số một'"},
-    {"word": "ĂN QUẢ NHỚ KẺ TRỒNG CÂY", "grade": 5, "hint": "Thành ngữ ghi nhớ công ơn người tạo ra thành quả cho mình hưởng.", "lesson": "SGK Tiếng Việt 5 - Bài đọc truyền thống"},
-    {"word": "LÁ LÀNH ĐÙM LÁ RÁCH", "grade": 5, "hint": "Tục ngữ khuyên nhủ con người biết cưu mang giúp đỡ người khó khăn hơn.", "lesson": "SGK Tiếng Việt 5 - Luyện từ và câu"},
+    # --- DẠNG 3: VĂN HỌC, NGHỆ THUẬT & TÂM HỒN (Lớp 6 - 9) ---
+    {"word": "KHÁT VỌNG", "grade": 6, "hint": "Ước mơ mãnh liệt hướng tới những điều cao đẹp trong tương lai.", "lesson": "SGK Ngữ Văn 6 - Văn học và tâm hồn"},
+    {"word": "HOÀI NIỆM", "grade": 6, "hint": "Cảm xúc thương nhớ vương vấn về những kỷ niệm đẹp đã qua.", "lesson": "SGK Ngữ Văn 6"},
+    {"word": "CẢM HỨNG", "grade": 6, "hint": "Trạng thái tâm hồn thăng hoa thúc đẩy sáng tạo nghệ thuật.", "lesson": "SGK Ngữ Văn 6"},
+    {"word": "THI CA", "grade": 6, "hint": "Nghệ thuật thơ ca giàu cảm xúc, nhạc điệu và hình ảnh.", "lesson": "SGK Ngữ Văn 6"},
+    {"word": "TRI ÂM", "grade": 6, "hint": "Người bạn thấu hiểu sâu sắc tâm tư và tình cảm của mình.", "lesson": "SGK Ngữ Văn 6"},
+    {"word": "NHÂN VĂN", "grade": 7, "hint": "Giá trị cao đẹp hướng về tình yêu thương con người và sự sẻ chia.", "lesson": "SGK Ngữ Văn 7 - Giá trị nhân văn"},
+    {"word": "PHONG THÁI", "grade": 7, "hint": "Dáng vẻ tự tin, ung dung và lịch thiệp trong cách ứng xử.", "lesson": "SGK Ngữ Văn 7"},
+    {"word": "BẢN LĨNH", "grade": 7, "hint": "Sự vững vàng, dũng cảm đối mặt với khó khăn thử thách.", "lesson": "SGK Ngữ Văn 7"},
+    {"word": "TRƯỜNG TỒN", "grade": 7, "hint": "Sức sống bền vững mãi mãi cùng lịch sử thời gian.", "lesson": "SGK Ngữ Văn 7"},
+    {"word": "UY NGHI", "grade": 7, "hint": "Dáng vẻ trang nghiêm, lẫm liệt khiến mọi người kính nể.", "lesson": "SGK Ngữ Văn 7"},
+    {"word": "TRÁNG LỆ", "grade": 7, "hint": "Vẻ đẹp lộng lẫy, nguy nga và hùng vĩ đáng tự hào.", "lesson": "SGK Ngữ Văn 7"},
+
+    # --- DẠNG 4: KHOA HỌC, KHÁM PHÁ & TRÍ TUỆ (Lớp 7 - 9) ---
+    {"word": "PHÁT MINH", "grade": 7, "hint": "Sáng tạo ra thiết bị hoặc giải pháp kỹ thuật mới có giá trị.", "lesson": "SGK Ngữ Văn 7 - Đọc hiểu khoa học"},
+    {"word": "THÁM HIỂM", "grade": 7, "hint": "Hành trình đi đến vùng đất mới lạ để nghiên cứu và phát hiện.", "lesson": "SGK Ngữ Văn 7"},
+    {"word": "SÁNG KIẾN", "grade": 8, "hint": "Ý tưởng cải tiến công việc mang lại hiệu quả cao hơn.", "lesson": "SGK Ngữ Văn 8"},
+    {"word": "GIẢI MÃ", "grade": 8, "hint": "Tìm ra đáp án hoặc bí mật ẩn giấu sau các mã số, câu đố.", "lesson": "SGK Ngữ Văn 8"},
+    {"word": "LOGIC", "grade": 8, "hint": "Tư duy chặt chẽ, có nguyên lý và lập luận khoa học.", "lesson": "SGK Tin học & Ngữ Văn 8"},
+    {"word": "NGUYÊN LÝ", "grade": 8, "hint": "Quy luật nền tảng cơ bản làm cơ sở cho các ngành khoa học.", "lesson": "SGK Ngữ Văn 8"},
+    {"word": "PHÁT KIẾN", "grade": 8, "hint": "Tìm ra điều mới mẻ mang tính đột phá cho tri thức nhân loại.", "lesson": "SGK Ngữ Văn 8"},
+    {"word": "MÔ PHỎNG", "grade": 8, "hint": "Tái tạo lại hình ảnh hoặc hoạt động dựa trên mô hình thực tế.", "lesson": "SGK Tin học 8"},
+
+    # --- DẠNG 5: ĐẠO ĐỨC, LỐI SỐNG & PHẨM CHẤT (Lớp 4 - 9) ---
+    {"word": "YÊU THƯƠNG", "grade": 4, "hint": "Tình cảm gắn bó, quan tâm sâu sắc giữa con người với con người.", "lesson": "SGK Tiếng Việt 4"},
+    {"word": "ĐOÀN KẾT", "grade": 4, "hint": "Sự kết hợp tập thể thành một khối thống nhất vì mục tiêu chung.", "lesson": "SGK Tiếng Việt 4"},
+    {"word": "TRUNG THỰC", "grade": 4, "hint": "Tôn trọng sự thật, không dối trá, thành thật với bản thân.", "lesson": "SGK Tiếng Việt 4"},
+    {"word": "CHĂM CHỈ", "grade": 4, "hint": "Chịu khó, siêng năng làm việc và học tập liên tục.", "lesson": "SGK Tiếng Việt 4"},
+    {"word": "KHIÊM TỐN", "grade": 4, "hint": "Phẩm chất tốt đẹp, không tự kiêu tự đại, luôn kính trọng người khác.", "lesson": "SGK Tiếng Việt 4"},
+    {"word": "DŨNG CẢM", "grade": 4, "hint": "Không sợ nguy hiểm, sẵn sàng bảo vệ lẽ phải.", "lesson": "SGK Tiếng Việt 4"},
+    {"word": "KIÊN TRÌ", "grade": 4, "hint": "Nhẫn nại, không nản lòng trước mọi thử thách để đạt mục tiêu.", "lesson": "SGK Tiếng Việt 4"},
+    {"word": "KỶ LUẬT", "grade": 4, "hint": "Ý thức tuân thủ quy định chung của tập thể và nhà trường.", "lesson": "SGK Tiếng Việt 4"},
+    {"word": "HIẾU THẢO", "grade": 4, "hint": "Lòng biết ơn và sự chăm sóc kính trọng cha mẹ, ông bà.", "lesson": "SGK Tiếng Việt 4"},
+    {"word": "BAO DUNG", "grade": 5, "hint": "Lòng rộng lượng sẵn sàng bỏ qua lỗi lầm của người khác.", "lesson": "SGK Tiếng Việt 5 - Đạo đức lối sống"},
+    {"word": "VỊ THA", "grade": 5, "hint": "Tấm lòng vì người khác, sống hướng thiện không ích kỷ.", "lesson": "SGK Tiếng Việt 5"},
+    {"word": "ĐỒNG CẢM", "grade": 5, "hint": "Sự thấu hiểu và chia sẻ cảm xúc chân thành với người khác.", "lesson": "SGK Tiếng Việt 5"},
+    {"word": "SẺ CHIA", "grade": 5, "hint": "Hành động san sẻ niềm vui, nỗi buồn hoặc hỗ trợ bạn bè.", "lesson": "SGK Tiếng Việt 5"},
+    {"word": "KIÊN CƯỜNG", "grade": 6, "hint": "Vững vàng, không chịu lùi bước trước khó khăn gian khổ.", "lesson": "SGK Ngữ Văn 6"},
+    {"word": "TRUNG HẬU", "grade": 6, "hint": "Chân thành, tốt bụng và trước sau như một trong tình cảm.", "lesson": "SGK Ngữ Văn 6"},
+    {"word": "KHIÊM NHƯỜNG", "grade": 6, "hint": "Nhún nhường, coi trọng người khác không khoe khoang cá nhân.", "lesson": "SGK Ngữ Văn 6"},
+    {"word": "TỰ LẬP", "grade": 6, "hint": "Khả năng tự mình hoàn thành công việc không dựa dẫm người khác.", "lesson": "SGK Ngữ Văn 6"},
+    {"word": "HOAN HỶ", "grade": 6, "hint": "Vui vẻ, hân hoan đón nhận những điều may mắn tốt đẹp.", "lesson": "SGK Ngữ Văn 6"},
+    {"word": "TRI ÂN", "grade": 7, "hint": "Tỏ lòng biết ơn sâu sắc tới thầy cô và những người giúp đỡ.", "lesson": "SGK Ngữ Văn 7"},
+
+    # --- DẠNG 6: CỤM TỪ, THÀNH NGỮ, TỤC NGỮ HAY (Chặng 6-15 / Lớp 5 - 9) ---
+    {"word": "BẢO VỆ MÔI TRƯỜNG", "grade": 5, "hint": "Hành động giữ gìn không khí, nguồn nước và cây xanh sạch đẹp.", "lesson": "SGK Tiếng Việt 5"},
+    {"word": "TÔN SƯ TRỌNG ĐẠO", "grade": 5, "hint": "Thành ngữ dạy học sinh kính trọng thầy cô và coi trọng đạo học.", "lesson": "SGK Tiếng Việt 5"},
+    {"word": "HỌC ĐI ĐÔI VỚI HÀNH", "grade": 5, "hint": "Quy tắc học tập: vừa tiếp thu lý thuyết vừa áp dụng thực hành.", "lesson": "SGK Tiếng Việt 5"},
+    {"word": "GIANG SƠN CẨM VÓC", "grade": 5, "hint": "Hình ảnh ẩn dụ vẻ đẹp tươi đẹp, hùng vĩ của đất nước Việt Nam.", "lesson": "SGK Tiếng Việt 5"},
+    {"word": "UỐNG NƯỚC NHỚ NGUỒN", "grade": 5, "hint": "Thành ngữ thể hiện lòng biết ơn sâu sắc đối với thế hệ đi trước.", "lesson": "SGK Tiếng Việt 5"},
+    {"word": "ĂN QUẢ NHỚ KẺ TRỒNG CÂY", "grade": 5, "hint": "Thành ngữ ghi nhớ công ơn người tạo ra thành quả cho mình hưởng.", "lesson": "SGK Tiếng Việt 5"},
+    {"word": "LÁ LÀNH ĐÙM LÁ RÁCH", "grade": 5, "hint": "Tục ngữ khuyên nhủ con người biết cưu mang giúp đỡ người khó khăn hơn.", "lesson": "SGK Tiếng Việt 5"},
     {"word": "MỘT CÂY LÀM CHẲNG NÊN NON", "grade": 5, "hint": "Câu tục ngữ nhắc nhở sức mạnh vô song của tinh thần đoàn kết.", "lesson": "SGK Tiếng Việt 5"},
-    {"word": "THẦY CÔ LÀ NGƯỜI LÁI ĐÒ", "grade": 5, "hint": "Hình ảnh ẩn dụ cao quý dành cho công ơn dạy dỗ của người thầy.", "lesson": "SGK Tiếng Việt 5"},
     {"word": "HỌC HỌC NỮA HỌC MÃI", "grade": 6, "hint": "Lời khuyên học tập suốt đời nổi tiếng của Lênin.", "lesson": "SGK Ngữ Văn 6"},
     {"word": "TIÊN HỌC LỄ HẬU HỌC VĂN", "grade": 6, "hint": "Đạo lý học đường: Học lễ nghĩa trước rồi mới học tri thức văn hóa.", "lesson": "SGK Ngữ Văn 6"},
     {"word": "CÓ CÔNG MÀI SẮT CÓ NGÀY NÊN KIM", "grade": 6, "hint": "Tục ngữ dạy bài học kiên trì nhẫn nại vượt qua mọi gian khó.", "lesson": "SGK Ngữ Văn 6"},
@@ -124,9 +136,10 @@ VIETNAMESE_SGK_WORDS: List[Dict[str, Any]] = [
     {"word": "ĐI MỘT NGÀY ĐÀNG HỌC MỘT SÀNG KHÔN", "grade": 7, "hint": "Tục ngữ khuyên mở rộng vốn sống và trải nghiệm thực tế.", "lesson": "SGK Ngữ Văn 7"},
     {"word": "BẦU ƠI THƯƠNG LẤY BÍ CÙNG", "grade": 7, "hint": "Lời ca dao tình nghĩa đùm bọc giữa đồng bào cùng một đất nước.", "lesson": "SGK Ngữ Văn 7"},
     {"word": "HỌC THẦY KHÔNG BẰNG HỌC BẠN", "grade": 8, "hint": "Lời khuyên tích cực giao lưu học hỏi lẫn nhau giữa bạn bè.", "lesson": "SGK Ngữ Văn 8"},
-    {"word": "NHẤT TỰ VI SƯ BÁN TỰ VI SƯ", "grade": 8, "hint": "Đạo lý tôn kính thầy cô: Một chữ cũng là thầy nửa chữ cũng là thầy.", "lesson": "SGK Ngữ Văn 8"},
-    {"word": "THỜI GIAN LÀ VÀNG BẠC", "grade": 8, "hint": "Lời nhắc nhở trân trọng từng phút giây quý giá của cuộc đời.", "lesson": "SGK Ngữ Văn 8"},
+    {"word": "THẮNG KHÔNG GIÈM THẤT BẠI KHÔNG NẢN", "grade": 8, "hint": "Tinh thần thể thao và học tập kiên cường, khiêm tốn.", "lesson": "SGK Ngữ Văn 8"},
+    {"word": "GẦN MỰC THÌ ĐEN GẦN ĐÈN THÌ SÁNG", "grade": 8, "hint": "Lời khuyên chọn lựa bạn tốt và môi trường sống lành mạnh.", "lesson": "SGK Ngữ Văn 8"},
     {"word": "ĐẠI ĐOÀN KẾT DÂN TỘC", "grade": 9, "hint": "Sức mạnh bệ phóng giúp đất nước vượt qua khó khăn vươn xa.", "lesson": "SGK Ngữ Văn 9"},
+    {"word": "KHÁT VỌNG CỐNG HIẾN", "grade": 9, "hint": "Mong muốn đem hết tài năng và sức lực phụng sự cho quê hương đất nước.", "lesson": "SGK Ngữ Văn 9"},
 ]
 
 ENGLISH_SGK_WORDS: List[Dict[str, Any]] = [
@@ -364,20 +377,33 @@ YÊU CẦU ĐẦU RA JSON CHÍNH XÁC:
 }}
 """
         else:
-            prompt = f"""Bạn là giáo viên Ngữ Văn / Tiếng Việt biên soạn SGK Tiếng Việt Lớp {grade} (GDPT 2018) cho Chặng {stage}/15.
-Hãy sinh ngẫu nhiên 01 {req_type} thuộc bài học Lớp {grade}.
+            categories = [
+                "TỪ LÁY HAY & GỢI TẢ GỢI HÌNH (Ví dụ: LUNG LINH, RỰC RỠ, RÓC RÁCH, XÔN XAO, THƯỚT THA, BÂNG KHUÂN G, MỘC MẠC, CẦN MẪN, HOẠT BÁT, LẤP LÁNH, ĐẦM ẤM, RÀO RẠT)",
+                "THIÊN NHIÊN, VŨ TRỤ & ĐẤT NƯỚC (Ví dụ: HOÀNG HÔN, BÌNH MINH, PHÙ SA, GIANG SƠN, THIÊN VĂN, TINH TÚ, ĐẠI DƯƠNG, THẢO NGUYÊN, SINH THÁI, SÔNG NÚI)",
+                "VĂN HỌC, NGHỆ THUẬT & TÂM HỒN (Ví dụ: KHÁT VỌNG, HOÀI NIỆM, CẢM HỨNG, THI CA, TRI ÂM, NHÂN VĂN, BẢN LĨNH, TRƯỜNG TỒN, UY NGHI, TRÁNG LỆ)",
+                "KHOA HỌC, KHÁM PHÁ & TRÍ TUỆ (Ví dụ: SÁNG KIẾN, PHÁT MINH, THÁM HIỂM, GIẢI MÃ, NGUYÊN LÝ, LOGIC, PHÁT KIẾN, MÔ PHỎNG)",
+                "ĐẠO ĐỨC, KỸ NĂNG SỐNG & LỐI SỐNG (Ví dụ: BAO DUNG, VỊ THA, ĐỒNG CẢM, SẺ CHIA, KIÊN CƯỜNG, TRUNG HẬU, KHIÊM NHƯỜNG, TỰ LẬP, TRI ÂN)",
+                "THÀNH NGỮ TỤC NGỮ HAY (Ví dụ: UỐNG NƯỚC NHỚ NGUỒN, ĂN QUẢ NHỚ KẺ TRỒNG CÂY, HỌC THẦY KHÔNG BẰNG HỌC BẠN, ĐI MỘT NGÀY ĐÀNG HỌC MỘT SÀNG KHÔN, THẮNG KHÔNG GIÈM THẤT BẠI KHÔNG NẢN)",
+            ]
+            chosen_cat = random.choice(categories)
+
+            prompt = f"""Bạn là giáo viên Ngữ Văn / Tiếng Việt biên soạn từ vựng SGK Tiếng Việt Lớp {grade} (GDPT 2018) cho Chặng {stage}/15.
+Hãy sinh ngẫu nhiên 01 từ/cụm từ thuộc chủ đề: {chosen_cat}.
+Yêu cầu cấp độ: {req_type}.
+
+ĐẶC BIỆT LƯU Ý: Đa dạng hóa vốn từ vựng phong phú, ưu tiên từ láy hay, từ giàu hình ảnh/cảm xúc/thiên nhiên/khoa học/văn học. TUYỆT ĐỐI KHÔNG sinh lại các từ quen thuộc quá đơn điệu.
 
 YÊU CẦU BẮT BUỘC:
-1. Trường `word` BẮT BUỘC phải là từ ghép/thành ngữ TIẾNG VIỆT có nghĩa (viết IN HOA).
+1. Trường `word` BẮT BUỘC phải là từ ghép/từ láy/thành ngữ TIẾNG VIỆT có nghĩa (viết IN HOA, có dấu đầy đủ).
 2. TUYỆT ĐỐI KHÔNG sinh từ Tiếng Anh.
-3. Trường `hint` giải thích nghĩa bằng Tiếng Việt ngắn gọn 1 câu dễ hiểu cho học sinh Lớp {grade}.
+3. Trường `hint` giải thích nghĩa bằng Tiếng Việt ngắn gọn 1 câu gợi ý hay, dễ hiểu cho học sinh Lớp {grade}.
 4. TUYỆT ĐỐI KHÔNG TRÙNG VỚI CÁC TỪ SAU: {recent_str}.
 
 YÊU CẦU ĐẦU RA JSON CHÍNH XÁC:
 {{
   "word": "TỪ_HOẶC_CÂU_TIẾNG_VIỆT_IN_HOA",
-  "hint": "Định nghĩa ngắn gọn 1 câu...",
-  "lesson": "SGK Tiếng Việt / Ngữ Văn {grade} - Tên bài học"
+  "hint": "Định nghĩa/gợi ý ngắn gọn 1 câu...",
+  "lesson": "SGK Tiếng Việt / Ngữ Văn {grade} - Tên bài học/Chủ điểm"
 }}
 """
 
@@ -390,7 +416,7 @@ YÊU CẦU ĐẦU RA JSON CHÍNH XÁC:
         models_to_try = list(dict.fromkeys([m.strip() for m in models_to_try if m and m.strip()]))
 
         try:
-            with httpx.Client(timeout=2.5) as client:
+            with httpx.Client(timeout=4.5) as client:
                 for model_name in models_to_try:
                     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
                     payload = {
