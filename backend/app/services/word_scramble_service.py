@@ -351,7 +351,7 @@ class WordScrambleService:
 
         is_english = "anh" in subject.lower() or "english" in subject.lower()
         sub_name = "Tiếng Anh" if is_english else "Tiếng Việt"
-        recent_str = ", ".join(recent_words[-15:]) if recent_words else "Không có"
+        recent_str = ", ".join(recent_words[-40:]) if recent_words else "Không có"
 
         if stage <= 5:
             req_type = "từ ghép hoặc từ vựng ngắn TỐI ĐA 2 TIẾNG (Ví dụ: 'TRUNG THỰC', 'YÊU THƯƠNG', 'TEACHER', 'FAMILY')"
@@ -361,38 +361,51 @@ class WordScrambleService:
             req_type = "câu thành ngữ, tục ngữ dài hoặc câu nói hay SGK 3-5 tiếng (Ví dụ: 'UỐNG NƯỚC NHỚ NGUỒN', 'ĂN QUẢ NHỚ KẺ TRỒNG CÂY', 'PROTECT THE ENVIRONMENT')"
 
         if is_english:
-            prompt = f"""Bạn là giáo viên Tiếng Anh biên soạn từ vựng SGK Tiếng Anh Lớp {grade} (GDPT 2018) cho Chặng {stage}/15.
-Hãy sinh ngẫu nhiên 01 {req_type} thuộc bài học Lớp {grade}.
+            english_categories = [
+                "VOCABULARY & WORDS (e.g. ADVENTURE, WONDERFUL, EXPLORATION, KNOWLEDGE, CREATIVITY, IMAGINATION, UNIVERSE, CHALLENGE, PERSEVERANCE)",
+                "NATURE & ENVIRONMENT (e.g. RAINFOREST, ATMOSPHERE, ECOSYSTEM, SUNLIGHT, WILDLIFE, LANDSCAPE, THUNDERSTORM, CONSERVATION)",
+                "SCIENCE & TECHNOLOGY (e.g. ARTIFICIAL INTELLIGENCE, EXPERIMENT, ASTRONOMY, INNOVATION, DISCOVERY, ROBOTICS, ASTRONAUT)",
+                "CULTURE, ARTS & SPORTS (e.g. CELEBRATION, INSTRUMENT, MASTERPIECE, CHAMPIONSHIP, TRADITION, HARMONY, ARCHITECTURE)",
+                "LIFE SKILLS & PERSONALITY (e.g. INDEPENDENCE, PERSEVERANCE, HONESTY, GENEROSITY, COMPASSION, RESPONSIBILITY)",
+                "ENGLISH PROVERBS & IDIOMS (e.g. PRACTICE MAKES PERFECT, KNOWLEDGE IS POWER, WHERE THERE IS A WILL, ACTIONS SPEAK LOUDER)",
+            ]
+            chosen_eng_cat = random.choice(english_categories)
+
+            prompt = f"""Bạn là một từ điển Tiếng Anh AI thông minh biên soạn từ vựng SGK & Tiếng Anh chuẩn Quốc tế Lớp {grade} cho Chặng {stage}/15.
+Hãy tìm kiếm trong kho từ điển Tiếng Anh 01 từ/cụm từ hay, độc đáo thuộc chủ đề: {chosen_eng_cat}.
+Yêu cầu cấp độ: {req_type}.
+
+ĐẶC BIỆT LƯU Ý: Đa dạng hóa vốn từ vựng phong phú, không lặp lại từ đơn điệu.
 
 YÊU CẦU BẮT BUỘC:
-1. Trường `word` BẮT BUỘC phải là TIẾNG ANH viết IN HOA, chỉ gồm ký tự chữ cái A-Z.
-2. KHÔNG ĐƯỢC sinh từ Tiếng Việt trong trường `word`.
-3. Trường `hint` giải thích nghĩa bằng Tiếng Việt hoặc Tiếng Anh ngắn gọn 1 câu cho học sinh Lớp {grade}.
+1. Trường `word` BẮT BUỘC phải là TIẾNG ANH viết IN HOA, chỉ gồm các ký tự chữ cái A-Z và khoảng trắng (nếu là cụm từ).
+2. KHÔNG ĐƯỢC chứa ký tự Tiếng Việt hoặc dấu câu phức tạp trong trường `word`.
+3. Trường `hint` giải thích nghĩa từ/cụm từ bằng Tiếng Việt hoặc Tiếng Anh ngắn gọn 1 câu dễ hiểu cho học sinh Lớp {grade}.
 4. TUYỆT ĐỐI KHÔNG TRÙNG VỚI CÁC TỪ SAU: {recent_str}.
 
 YÊU CẦU ĐẦU RA JSON CHÍNH XÁC:
 {{
   "word": "ENGLISH_WORD_OR_PHRASE",
-  "hint": "Short definition...",
-  "lesson": "English Grade {grade} - Unit X"
+  "hint": "Gợi ý nghĩa từ/cụm từ...",
+  "lesson": "English Grade {grade} - Unit / Topic"
 }}
 """
         else:
             categories = [
-                "TỪ LÁY HAY & GỢI TẢ GỢI HÌNH (Ví dụ: LUNG LINH, RỰC RỠ, RÓC RÁCH, XÔN XAO, THƯỚT THA, BÂNG KHUÂN G, MỘC MẠC, CẦN MẪN, HOẠT BÁT, LẤP LÁNH, ĐẦM ẤM, RÀO RẠT)",
-                "THIÊN NHIÊN, VŨ TRỤ & ĐẤT NƯỚC (Ví dụ: HOÀNG HÔN, BÌNH MINH, PHÙ SA, GIANG SƠN, THIÊN VĂN, TINH TÚ, ĐẠI DƯƠNG, THẢO NGUYÊN, SINH THÁI, SÔNG NÚI)",
-                "VĂN HỌC, NGHỆ THUẬT & TÂM HỒN (Ví dụ: KHÁT VỌNG, HOÀI NIỆM, CẢM HỨNG, THI CA, TRI ÂM, NHÂN VĂN, BẢN LĨNH, TRƯỜNG TỒN, UY NGHI, TRÁNG LỆ)",
-                "KHOA HỌC, KHÁM PHÁ & TRÍ TUỆ (Ví dụ: SÁNG KIẾN, PHÁT MINH, THÁM HIỂM, GIẢI MÃ, NGUYÊN LÝ, LOGIC, PHÁT KIẾN, MÔ PHỎNG)",
-                "ĐẠO ĐỨC, KỸ NĂNG SỐNG & LỐI SỐNG (Ví dụ: BAO DUNG, VỊ THA, ĐỒNG CẢM, SẺ CHIA, KIÊN CƯỜNG, TRUNG HẬU, KHIÊM NHƯỜNG, TỰ LẬP, TRI ÂN)",
-                "THÀNH NGỮ TỤC NGỮ HAY (Ví dụ: UỐNG NƯỚC NHỚ NGUỒN, ĂN QUẢ NHỚ KẺ TRỒNG CÂY, HỌC THẦY KHÔNG BẰNG HỌC BẠN, ĐI MỘT NGÀY ĐÀNG HỌC MỘT SÀNG KHÔN, THẮNG KHÔNG GIÈM THẤT BẠI KHÔNG NẢN)",
+                "TỪ LÁY HAY & GỢI TẢ GỢI HÌNH (Ví dụ: LUNG LINH, RỰC RỠ, RÓC RÁCH, XÔN XAO, THƯỚT THA, BÂNG KHUÂN G, MỘC MẠC, CẦN MẪN, HOẠT BÁT, LẤP LÁNH, ĐẦM ẤM, RÀO RẠT, LONG LANH, THA THIẾT, XANH XAO, NỒNG NÀN)",
+                "THIÊN NHIÊN, VŨ TRỤ & ĐẤT NƯỚC (Ví dụ: HOÀNG HÔN, BÌNH MINH, PHÙ SA, GIANG SƠN, THIÊN VĂN, TINH TÚ, ĐẠI DƯƠNG, THẢO NGUYÊN, SINH THÁI, SÔNG NÚI, SƯƠNG MÙ, BÃO TÁP, BẢO TỒN)",
+                "VĂN HỌC, NGHỆ THUẬT & TÂM HỒN (Ví dụ: KHÁT VỌNG, HOÀI NIỆM, CẢM HỨNG, THI CA, TRI ÂM, NHÂN VĂN, BẢN LĨNH, TRƯỜNG TỒN, UY NGHI, TRÁNG LỆ, NGHỆ THUẬT, TÂM HUYẾT)",
+                "KHOA HỌC, KHÁM PHÁ & TRÍ TUỆ (Ví dụ: SÁNG KIẾN, PHÁT MINH, THÁM HIỂM, GIẢI MÃ, NGUYÊN LÝ, LOGIC, PHÁT KIẾN, MÔ PHỎNG, ĐỘT PHÁ, TRI THỨC)",
+                "ĐẠO ĐỨC, KỸ NĂNG SỐNG & LỐI SỐNG (Ví dụ: BAO DUNG, VỊ THA, ĐỒNG CẢM, SẺ CHIA, KIÊN CƯỜNG, TRUNG HẬU, KHIÊM NHƯỜNG, TỰ LẬP, TRI ÂN, DŨNG CẢM, KỶ LUẬT)",
+                "THÀNH NGỮ TỤC NGỮ HAY (Ví dụ: UỐNG NƯỚC NHỚ NGUỒN, ĂN QUẢ NHỚ KẺ TRỒNG CÂY, HỌC THẦY KHÔNG BẰNG HỌC BẠN, ĐI MỘT NGÀY ĐÀNG HỌC MỘT SÀNG KHÔN, THẮNG KHÔNG GIÈM THẤT BẠI KHÔNG NẢN, BẦU ƠI THƯƠNG LẤY BÍ CÙNG, TIÊN HỌC LỄ HẬU HỌC VĂN)",
             ]
             chosen_cat = random.choice(categories)
 
-            prompt = f"""Bạn là giáo viên Ngữ Văn / Tiếng Việt biên soạn từ vựng SGK Tiếng Việt Lớp {grade} (GDPT 2018) cho Chặng {stage}/15.
-Hãy sinh ngẫu nhiên 01 từ/cụm từ thuộc chủ đề: {chosen_cat}.
+            prompt = f"""Bạn là một chuyên gia ngôn ngữ học & từ điển Tiếng Việt biên soạn từ vựng SGK Tiếng Việt Lớp {grade} (GDPT 2018) cho Chặng {stage}/15.
+Hãy tìm kiếm trong kho từ điển Tiếng Việt 01 từ/cụm từ hay, giàu hình ảnh/cảm xúc thuộc chủ đề: {chosen_cat}.
 Yêu cầu cấp độ: {req_type}.
 
-ĐẶC BIỆT LƯU Ý: Đa dạng hóa vốn từ vựng phong phú, ưu tiên từ láy hay, từ giàu hình ảnh/cảm xúc/thiên nhiên/khoa học/văn học. TUYỆT ĐỐI KHÔNG sinh lại các từ quen thuộc quá đơn điệu.
+ĐẶC BIỆT LƯU Ý: Đa dạng hóa vốn từ vựng phong phú, ưu tiên từ láy hay, từ giàu hình ảnh/cảm xúc/thiên nhiên/khoa học/văn học/thành ngữ. TUYỆT ĐỐI KHÔNG sinh lại các từ quen thuộc quá đơn điệu.
 
 YÊU CẦU BẮT BUỘC:
 1. Trường `word` BẮT BUỘC phải là từ ghép/từ láy/thành ngữ TIẾNG VIỆT có nghĩa (viết IN HOA, có dấu đầy đủ).
@@ -410,20 +423,24 @@ YÊU CẦU ĐẦU RA JSON CHÍNH XÁC:
 
         models_to_try = [
             settings.GEMINI_MODEL,
-            "gemini-2.5-flash",
             "gemini-1.5-flash",
             "gemini-2.0-flash",
+            "gemini-flash-latest",
+            "gemini-3.5-flash-lite",
+            "gemini-3.1-flash-lite",
+            "gemini-3.8-flash",
+            "gemini-3.5-flash",
         ]
         models_to_try = list(dict.fromkeys([m.strip() for m in models_to_try if m and m.strip()]))
 
         try:
-            with httpx.Client(timeout=4.5) as client:
+            with httpx.Client(timeout=7.0) as client:
                 for model_name in models_to_try:
                     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
                     payload = {
                         "contents": [{"parts": [{"text": prompt}]}],
                         "generationConfig": {
-                            "temperature": 0.9,
+                            "temperature": 1.0,
                             "responseMimeType": "application/json",
                         },
                     }
@@ -466,6 +483,7 @@ YÊU CẦU ĐẦU RA JSON CHÍNH XÁC:
             logger.warning(f"Lỗi kết nối Gemini AI: {main_exc}")
 
         return None
+
 
     @classmethod
     def get_next_question(
