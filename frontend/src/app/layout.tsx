@@ -5,10 +5,28 @@ import { Navbar } from '@/components/Navbar';
 import { FloatingContactWidget } from '@/components/FloatingContactWidget';
 
 export const metadata: Metadata = {
-  title: 'Online Exam AI — Hệ Thống Khảo Thí & Gia Sư AI Thông Minh',
+  metadataBase: new URL('https://www.hoccungai.io.vn'),
+  title: 'Học Cùng AI — Hệ Thống Khảo Thí & Gia Sư AI Thông Minh',
   description: 'Nền tảng thi trực tuyến tích hợp trí tuệ nhân tạo Gemini: tạo câu hỏi chuẩn SGK, bối cảnh thực tế, timer server-authoritative và AI Tutor giải thích chi tiết.',
-  keywords: ['online exam', 'ai tutor', 'thi trực tuyến', 'khảo thí ai', 'gemini ai exam'],
+  keywords: ['học cùng ai', 'hoccungai', 'online exam', 'ai tutor', 'thi trực tuyến', 'khảo thí ai', 'gemini ai exam'],
+  icons: {
+    icon: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+      { url: '/icon.svg', type: 'image/svg+xml' },
+    ],
+    shortcut: '/favicon.svg',
+    apple: '/apple-icon.svg',
+  },
+  openGraph: {
+    title: 'Học Cùng AI — Hệ Thống Khảo Thí & Gia Sư AI Thông Minh',
+    description: 'Nền tảng thi trực tuyến tích hợp trí tuệ nhân tạo Gemini SGK Lớp 4 - Lớp 9.',
+    url: 'https://www.hoccungai.io.vn',
+    siteName: 'Học Cùng AI',
+    locale: 'vi_VN',
+    type: 'website',
+  },
 };
+
 
 export default function RootLayout({
   children,

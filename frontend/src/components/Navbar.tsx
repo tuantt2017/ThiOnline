@@ -189,19 +189,20 @@ export function Navbar() {
         
         {/* Left Section: Brand Logo & Desktop Navigation */}
         <div className="flex items-center gap-3 xl:gap-4 min-w-0">
-          <Link href="/" className="flex items-center gap-2 group shrink-0">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/20 group-hover:scale-105 transition-transform">
-              <GraduationCap className="h-5 w-5" />
+          <Link href="/" className="flex items-center gap-2.5 group shrink-0">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl overflow-hidden shadow-md shadow-blue-500/20 group-hover:scale-105 transition-transform bg-slate-950 border border-slate-800 p-0.5">
+              <img src="/logo.svg" alt="Học Cùng AI Logo" className="h-full w-full object-contain" />
             </div>
             <div className="flex flex-col">
               <span className="text-base font-extrabold tracking-tight text-slate-900 leading-none">
-                Online Exam <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">AI</span>
+                Học Cùng <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">AI</span>
               </span>
               <span className="text-[9px] font-bold text-slate-500 tracking-wider uppercase mt-0.5">
-                Khảo Thí Smart AI
+                Khảo Thí & Gia Sư AI
               </span>
             </div>
           </Link>
+
 
           {/* Desktop Navigation Links (Primary Top Bar) */}
           <nav className="hidden xl:flex items-center gap-1 shrink-0">
