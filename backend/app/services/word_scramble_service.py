@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.models.user import User
+from app.models.game_progress import UserGameProgress
 from app.schemas.word_scramble import (
     WordScrambleQuestionResponse,
     WordScrambleVerifyResponse,
@@ -489,6 +490,13 @@ YÊU CẦU ĐẦU RA JSON CHÍNH XÁC:
         current_stage = max(1, min(15, stage))
         curr_q_index = max(1, min(10, question_index))
 
+        # Auto-resume from DB progress if stage=1 and question_index=1
+        if stage == 1 and question_index == 1:
+            saved_p = cls.get_user_progress(db=db, student=student, subject=target_subject, grade=applied_grade)
+            if saved_p and (saved_p.get("stage", 1) > 1 or saved_p.get("question_index", 1) > 1):
+                current_stage = max(1, min(15, saved_p.get("stage", 1)))
+                curr_q_index = max(1, min(10, saved_p.get("question_index", 1)))
+
         user_id = student.id
         recent_words = USER_RECENT_WORDS.get(user_id, [])
 
@@ -618,7 +626,7 @@ YÊU CẦU ĐẦU RA JSON CHÍNH XÁC:
             earned_diamonds = reward_res.get("awarded", 0)
             new_balance = reward_res.get("new_balance", new_balance)
 
-        # Auto-update persistent stage & question progress on correct answer
+        # Auto-update persistent stage & question progress on answer
         if is_correct:
             curr_stage = session.get("stage", 1)
             curr_q_index = session.get("question_index", 1)
@@ -631,12 +639,23 @@ YÊU CẦU ĐẦU RA JSON CHÍNH XÁC:
                 next_q_index = 1
 
             cls.save_user_progress(
+                db=db,
                 student=student,
                 subject=target_subject,
                 grade=session.get("grade", 5),
                 stage=next_stage,
                 question_index=next_q_index,
                 streak=new_streak,
+            )
+        else:
+            cls.save_user_progress(
+                db=db,
+                student=student,
+                subject=target_subject,
+                grade=session.get("grade", 5),
+                stage=session.get("stage", 1),
+                question_index=session.get("question_index", 1),
+                streak=0,
             )
 
         explanation = (
@@ -661,11 +680,46 @@ YÊU CẦU ĐẦU RA JSON CHÍNH XÁC:
         )
 
     @classmethod
-    def get_user_progress(cls, student: User, subject: str = "Tiếng Việt", grade: int = 5) -> Dict[str, Any]:
-        """Retrieves persistent game progress for student by subject & grade."""
+    def get_user_progress(
+        cls,
+        db: Optional[Session] = None,
+        student: Optional[User] = None,
+        subject: str = "Tiếng Việt",
+        grade: int = 5,
+    ) -> Dict[str, Any]:
+        """Retrieves persistent game progress for student by subject & grade from Database."""
         target_subject = "Tiếng Anh" if "anh" in subject.lower() or "english" in subject.lower() else "Tiếng Việt"
-        user_id = student.id
-        user_dict = USER_STAGE_PROGRESS.get(user_id, {})
+        user_id = student.id if student else None
+
+        if db and user_id:
+            try:
+                prog = (
+                    db.query(UserGameProgress)
+                    .filter(
+                        UserGameProgress.user_id == user_id,
+                        UserGameProgress.game_type == "word_scramble",
+                        UserGameProgress.subject == target_subject,
+                        UserGameProgress.grade == grade,
+                    )
+                    .first()
+                )
+                if prog:
+                    saved_data = {
+                        "subject": target_subject,
+                        "grade": grade,
+                        "stage": prog.stage,
+                        "question_index": prog.question_index,
+                        "streak": prog.streak,
+                    }
+                    if user_id not in USER_STAGE_PROGRESS:
+                        USER_STAGE_PROGRESS[user_id] = {}
+                    USER_STAGE_PROGRESS[user_id][target_subject] = saved_data
+                    return saved_data
+            except Exception as exc:
+                logger.warning(f"Lỗi khi truy vấn UserGameProgress từ Database: {exc}")
+
+        # Fallback to in-memory registry if DB record not found or DB not provided
+        user_dict = USER_STAGE_PROGRESS.get(user_id, {}) if user_id else {}
         sub_progress = user_dict.get(target_subject)
         if not sub_progress:
             sub_progress = {
@@ -680,18 +734,17 @@ YÊU CẦU ĐẦU RA JSON CHÍNH XÁC:
     @classmethod
     def save_user_progress(
         cls,
-        student: User,
-        subject: str,
-        grade: int,
-        stage: int,
-        question_index: int,
+        db: Optional[Session] = None,
+        student: Optional[User] = None,
+        subject: str = "Tiếng Việt",
+        grade: int = 5,
+        stage: int = 1,
+        question_index: int = 1,
         streak: int = 0,
     ) -> Dict[str, Any]:
-        """Saves persistent game progress for student by subject & grade."""
+        """Saves persistent game progress for student by subject & grade to Database."""
         target_subject = "Tiếng Anh" if "anh" in subject.lower() or "english" in subject.lower() else "Tiếng Việt"
-        user_id = student.id
-        if user_id not in USER_STAGE_PROGRESS:
-            USER_STAGE_PROGRESS[user_id] = {}
+        user_id = student.id if student else None
 
         bounded_stage = max(1, min(15, stage))
         bounded_q_idx = max(1, min(10, question_index))
@@ -703,5 +756,45 @@ YÊU CẦU ĐẦU RA JSON CHÍNH XÁC:
             "question_index": bounded_q_idx,
             "streak": max(0, streak),
         }
-        USER_STAGE_PROGRESS[user_id][target_subject] = saved_data
+
+        # 1. Update in-memory cache
+        if user_id:
+            if user_id not in USER_STAGE_PROGRESS:
+                USER_STAGE_PROGRESS[user_id] = {}
+            USER_STAGE_PROGRESS[user_id][target_subject] = saved_data
+
+        # 2. Persist to Database
+        if db and user_id:
+            try:
+                prog = (
+                    db.query(UserGameProgress)
+                    .filter(
+                        UserGameProgress.user_id == user_id,
+                        UserGameProgress.game_type == "word_scramble",
+                        UserGameProgress.subject == target_subject,
+                        UserGameProgress.grade == grade,
+                    )
+                    .first()
+                )
+                if prog:
+                    prog.stage = bounded_stage
+                    prog.question_index = bounded_q_idx
+                    prog.streak = max(0, streak)
+                else:
+                    prog = UserGameProgress(
+                        user_id=user_id,
+                        game_type="word_scramble",
+                        subject=target_subject,
+                        grade=grade,
+                        stage=bounded_stage,
+                        question_index=bounded_q_idx,
+                        streak=max(0, streak),
+                    )
+                    db.add(prog)
+
+                db.commit()
+            except Exception as exc:
+                db.rollback()
+                logger.warning(f"Lỗi khi lưu UserGameProgress vào Database: {exc}")
+
         return saved_data

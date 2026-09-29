@@ -105,7 +105,7 @@ def test_word_scramble_api_endpoints(client: TestClient, student_headers):
     assert "game_id" in data
     assert "scrambled_letters" in data
     assert "hint_meaning" in data
-    assert data["question_index"] == 1
+    assert data["question_index"] >= 1
     assert data["total_questions_per_stage"] == 10
 
     # Verify endpoint
@@ -118,6 +118,35 @@ def test_word_scramble_api_endpoints(client: TestClient, student_headers):
     verify_data = res_verify.json()
     assert "is_correct" in verify_data
     assert "explanation" in verify_data
+
+
+def test_word_scramble_database_progress_persistence(db, student_user):
+    """Test that stage progress is persisted in Database across service calls & server restarts."""
+    # Save progress to DB for Grade 5 Tiếng Việt
+    WordScrambleService.save_user_progress(
+        db=db,
+        student=student_user,
+        subject="Tiếng Việt",
+        grade=5,
+        stage=3,
+        question_index=7,
+        streak=4,
+    )
+
+    # Clear in-memory dictionary cache to simulate server restart / new login session
+    from app.services.word_scramble_service import USER_STAGE_PROGRESS
+    USER_STAGE_PROGRESS.clear()
+
+    # Retrieve progress from DB
+    prog = WordScrambleService.get_user_progress(db=db, student=student_user, subject="Tiếng Việt", grade=5)
+    assert prog["stage"] == 3
+    assert prog["question_index"] == 7
+    assert prog["streak"] == 4
+
+    # Verify next question automatically resumes at Stage 3, Question 7 from DB
+    q = WordScrambleService.get_next_question(db=db, student=student_user, subject="Tiếng Việt", grade=5, stage=1, question_index=1)
+    assert q.stage == 3
+    assert q.question_index == 7
 
 
 def test_pre_filled_hints_generation():

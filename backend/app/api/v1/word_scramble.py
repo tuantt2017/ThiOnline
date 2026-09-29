@@ -60,12 +60,14 @@ def verify_word_scramble_answer(
 def get_word_scramble_progress(
     subject: Optional[str] = Query("Tiếng Việt", description="Môn học (Tiếng Việt / Tiếng Anh)"),
     grade: Optional[int] = Query(5, ge=4, le=9, description="Khối lớp (4-9)"),
+    db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     """
     Retrieves student's persistent game stage & question progress by subject & grade.
     """
     res = WordScrambleService.get_user_progress(
+        db=db,
         student=current_user,
         subject=subject or "Tiếng Việt",
         grade=grade or 5,
@@ -76,12 +78,14 @@ def get_word_scramble_progress(
 @router.post("/progress", response_model=WordScrambleProgressResponse)
 def save_word_scramble_progress(
     req: WordScrambleProgressSaveRequest,
+    db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     """
     Saves student's persistent game stage & question progress.
     """
     res = WordScrambleService.save_user_progress(
+        db=db,
         student=current_user,
         subject=req.subject,
         grade=req.grade,
