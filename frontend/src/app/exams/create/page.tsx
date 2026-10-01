@@ -48,23 +48,55 @@ export default function CreateExamPage() {
   const [loadingQuestions, setLoadingQuestions] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [randomCount, setRandomCount] = useState<number>(10);
+  const [prioritizeUnused, setPrioritizeUnused] = useState<boolean>(true);
+  const [filterMode, setFilterMode] = useState<'ALL' | 'UNUSED' | 'USED'>('ALL');
 
   // Submit State
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Function to pick random N questions from available pool
-  const handlePickRandom = (countToPick?: number, sourceQuestions?: Question[]) => {
+  // Computed question lists by exam usage
+  const unusedQuestions = availableQuestions.filter((q) => (q.used_in_exam_count || 0) === 0);
+  const usedQuestions = availableQuestions.filter((q) => (q.used_in_exam_count || 0) > 0);
+
+  const displayedQuestions = availableQuestions.filter((q) => {
+    if (filterMode === 'UNUSED') return (q.used_in_exam_count || 0) === 0;
+    if (filterMode === 'USED') return (q.used_in_exam_count || 0) > 0;
+    return true;
+  });
+
+  // Function to pick random N questions, prioritizing questions NEVER used in any exam
+  const handlePickRandom = (countToPick?: number, sourceQuestions?: Question[], forcePrioritize?: boolean) => {
     const pool = sourceQuestions || availableQuestions;
     if (!pool || pool.length === 0) return;
     
     const count = countToPick !== undefined ? countToPick : randomCount;
     const numToPick = Math.min(Math.max(1, count), pool.length);
+    const shouldPrioritize = forcePrioritize !== undefined ? forcePrioritize : prioritizeUnused;
 
-    // Shuffle array randomly
-    const shuffled = [...pool].sort(() => 0.5 - Math.random());
-    const pickedIds = shuffled.slice(0, numToPick).map((q) => q.id);
-    setSelectedQuestionIds(pickedIds);
+    if (shouldPrioritize) {
+      // 1. Separate questions never used in an exam vs already used
+      const unused = pool.filter((q) => (q.used_in_exam_count || 0) === 0);
+      const used = pool.filter((q) => (q.used_in_exam_count || 0) > 0);
+
+      // Randomly shuffle unused pool
+      const shuffledUnused = [...unused].sort(() => 0.5 - Math.random());
+
+      // For used questions, sort by lowest exam usage count first
+      const sortedUsed = [...used].sort((a, b) => {
+        const diff = (a.used_in_exam_count || 0) - (b.used_in_exam_count || 0);
+        return diff !== 0 ? diff : (0.5 - Math.random());
+      });
+
+      // Combine: fresh unused questions first, then least-used backfill
+      const combined = [...shuffledUnused, ...sortedUsed];
+      const pickedIds = combined.slice(0, numToPick).map((q) => q.id);
+      setSelectedQuestionIds(pickedIds);
+    } else {
+      const shuffled = [...pool].sort(() => 0.5 - Math.random());
+      const pickedIds = shuffled.slice(0, numToPick).map((q) => q.id);
+      setSelectedQuestionIds(pickedIds);
+    }
   };
 
   // Load APPROVED questions matching subject & grade
@@ -76,6 +108,7 @@ export default function CreateExamPage() {
         grade,
         status: 'APPROVED',
         search: searchQuery || undefined,
+        prioritize_unused_in_exams: true,
         page: 1,
         page_size: 100,
       })
@@ -83,10 +116,10 @@ export default function CreateExamPage() {
         const items = res.items || [];
         setAvailableQuestions(items);
         if (items.length > 0) {
-          // Auto select up to 10 random questions by default
+          // Auto select up to 10 random questions by default, prioritizing unused
           const defaultCount = Math.min(10, items.length);
           setRandomCount(defaultCount);
-          handlePickRandom(defaultCount, items);
+          handlePickRandom(defaultCount, items, prioritizeUnused);
         } else {
           setSelectedQuestionIds([]);
         }
@@ -356,6 +389,35 @@ export default function CreateExamPage() {
                 </div>
               </div>
 
+              {/* Anti-Duplicate Priority Option */}
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-1 border-t border-indigo-100/90 text-xs">
+                <label className="flex items-center gap-2 cursor-pointer font-bold text-indigo-900 bg-white/90 px-3.5 py-2 rounded-xl border border-indigo-200 shadow-xs hover:bg-white transition select-none">
+                  <input
+                    type="checkbox"
+                    checked={prioritizeUnused}
+                    onChange={(e) => {
+                      const val = e.target.checked;
+                      setPrioritizeUnused(val);
+                      handlePickRandom(randomCount, availableQuestions, val);
+                    }}
+                    className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500"
+                  />
+                  <span className="flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                    Ưu tiên câu hỏi CHƯA DÙNG trong đề thi nào (Tránh trùng lặp)
+                  </span>
+                </label>
+
+                <div className="text-[11px] font-semibold text-slate-500 flex items-center gap-2">
+                  <span className="inline-flex items-center gap-1 text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-200">
+                    ✨ {unusedQuestions.length} câu mới 100%
+                  </span>
+                  <span className="inline-flex items-center gap-1 text-slate-600 bg-slate-100 px-2 py-0.5 rounded-lg border border-slate-200">
+                    📋 {usedQuestions.length} câu đã có trong đề
+                  </span>
+                </div>
+              </div>
+
               {/* Quick Select Buttons */}
               <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-indigo-100/80">
                 <span className="text-[11px] font-bold text-slate-500">Bốc nhanh:</span>
@@ -388,12 +450,59 @@ export default function CreateExamPage() {
               </div>
             </div>
 
+            {/* Filter Tabs by Usage */}
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-3">
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setFilterMode('ALL')}
+                  className={`px-3 py-1.5 text-xs font-bold rounded-xl transition ${
+                    filterMode === 'ALL'
+                      ? 'bg-slate-900 text-white shadow-sm'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  Tất cả ({availableQuestions.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFilterMode('UNUSED')}
+                  className={`px-3 py-1.5 text-xs font-bold rounded-xl transition flex items-center gap-1.5 ${
+                    filterMode === 'UNUSED'
+                      ? 'bg-emerald-600 text-white shadow-sm'
+                      : 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100'
+                  }`}
+                >
+                  <span>✨ Chưa dùng trong đề thi</span>
+                  <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-white/20 font-extrabold">{unusedQuestions.length}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFilterMode('USED')}
+                  className={`px-3 py-1.5 text-xs font-bold rounded-xl transition flex items-center gap-1.5 ${
+                    filterMode === 'USED'
+                      ? 'bg-amber-600 text-white shadow-sm'
+                      : 'bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100'
+                  }`}
+                >
+                  <span>Đã có trong đề thi khác</span>
+                  <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-white/20 font-extrabold">{usedQuestions.length}</span>
+                </button>
+              </div>
+
+              <div className="text-[11px] font-semibold text-slate-500">
+                Hiển thị: <strong className="text-slate-800">{displayedQuestions.length}</strong> câu hỏi
+              </div>
+            </div>
+
             {/* Questions List */}
             {loadingQuestions ? (
               <div className="text-center py-10 text-xs font-semibold text-slate-500">Đang tải câu hỏi...</div>
-            ) : availableQuestions.length === 0 ? (
+            ) : displayedQuestions.length === 0 ? (
               <div className="rounded-xl border border-dashed border-slate-300 p-8 text-center text-xs font-semibold text-slate-500">
-                Không tìm thấy câu hỏi đã duyệt nào phù hợp với môn {subject} Lớp {grade}.
+                {filterMode === 'UNUSED'
+                  ? 'Tất cả câu hỏi trong kho đã từng xuất hiện trong đề thi. Hệ thống sẽ lấy các câu hỏi ít xuất hiện nhất.'
+                  : `Không tìm thấy câu hỏi đã duyệt nào phù hợp với môn ${subject} Lớp ${grade}.`}
               </div>
             ) : (
               <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1">
@@ -415,8 +524,10 @@ export default function CreateExamPage() {
                   </span>
                 </div>
 
-                {availableQuestions.map((q) => {
+                {displayedQuestions.map((q) => {
                   const isSelected = selectedQuestionIds.includes(q.id);
+                  const isUnused = (q.used_in_exam_count || 0) === 0;
+
                   return (
                     <div
                       key={q.id}
@@ -434,13 +545,22 @@ export default function CreateExamPage() {
                           <Square className="w-4 h-4" />
                         )}
                       </button>
-                      <div className="flex-1 space-y-1">
+                      <div className="flex-1 space-y-1.5">
                         <div className="font-bold text-slate-900 leading-relaxed">
                           {q.content}
                         </div>
-                        <div className="text-[11px] font-semibold text-slate-500 flex items-center gap-2">
+                        <div className="text-[11px] font-semibold text-slate-500 flex items-center gap-2 flex-wrap">
                           <span>Độ khó: {q.difficulty === 'EASY' ? 'Dễ' : q.difficulty === 'HARD' ? 'Khó' : 'TB'}</span>
                           {q.chapter && <span>• {q.chapter}</span>}
+                          {isUnused ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              ✨ Chưa dùng trong đề nào (Mới 100%)
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-50 text-amber-700 border border-amber-200">
+                              ⚠️ Đã dùng trong {q.used_in_exam_count} đề thi
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>

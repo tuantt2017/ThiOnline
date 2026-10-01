@@ -178,6 +178,7 @@ export interface Question {
   created_at: string;
   updated_at: string;
   options: QuestionOption[];
+  used_in_exam_count?: number;
 }
 
 export interface QuestionListResponse {

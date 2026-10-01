@@ -47,6 +47,8 @@ def list_questions(
     status_filter: Optional[QuestionStatus] = Query(None, alias="status"),
     source: Optional[QuestionSource] = None,
     search: Optional[str] = None,
+    unused_in_exams_only: Optional[bool] = Query(None, description="Chỉ lấy câu hỏi chưa từng xuất hiện trong đề thi nào"),
+    prioritize_unused_in_exams: bool = Query(False, description="Ưu tiên xếp câu hỏi chưa dùng lên đầu"),
     page: int = Query(1, ge=1, description="Số trang hiện tại"),
     page_size: int = Query(20, ge=1, le=100, description="Số mục mỗi trang"),
     db: Session = Depends(get_db),
@@ -62,6 +64,8 @@ def list_questions(
         status_filter=status_filter,
         source=source,
         search=search,
+        unused_in_exams_only=unused_in_exams_only,
+        prioritize_unused_in_exams=prioritize_unused_in_exams,
         skip=skip,
         limit=page_size,
     )

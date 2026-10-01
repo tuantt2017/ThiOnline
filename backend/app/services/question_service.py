@@ -3,6 +3,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from app.models.exam import ExamQuestion
 from app.models.question import (
     Question,
     QuestionDifficulty,
@@ -71,6 +72,12 @@ def get_question(db: Session, question_id: int) -> Question:
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Không tìm thấy câu hỏi với ID {question_id}",
         )
+    question.used_in_exam_count = (
+        db.query(func.count(ExamQuestion.id))
+        .filter(ExamQuestion.question_id == question_id)
+        .scalar()
+        or 0
+    )
     return question
 
 
@@ -82,10 +89,14 @@ def get_questions(
     status_filter: Optional[QuestionStatus] = None,
     source: Optional[QuestionSource] = None,
     search: Optional[str] = None,
+    unused_in_exams_only: Optional[bool] = None,
+    prioritize_unused_in_exams: bool = False,
     skip: int = 0,
     limit: int = 20,
 ) -> Tuple[List[Question], int]:
-    """Query questions with flexible filters, search, and pagination."""
+    """Query questions with flexible filters, search, and pagination.
+    Optionally filters or prioritizes questions not yet used in any exam.
+    """
     query = db.query(Question)
 
     if subject:
@@ -105,13 +116,50 @@ def get_questions(
             | (Question.lesson.ilike(f"%{search.strip()}%"))
         )
 
+    # Subquery for exam usage counts
+    exam_usage_subquery = (
+        db.query(
+            ExamQuestion.question_id,
+            func.count(ExamQuestion.id).label("exam_usage_count"),
+        )
+        .group_by(ExamQuestion.question_id)
+        .subquery()
+    )
+
+    if unused_in_exams_only is True:
+        used_q_ids_subquery = db.query(ExamQuestion.question_id).distinct()
+        query = query.filter(Question.id.notin_(used_q_ids_subquery))
+
     total = query.count()
+
+    if prioritize_unused_in_exams:
+        query = query.outerjoin(
+            exam_usage_subquery, Question.id == exam_usage_subquery.c.question_id
+        ).order_by(
+            func.coalesce(exam_usage_subquery.c.exam_usage_count, 0).asc(),
+            Question.created_at.desc(),
+        )
+    else:
+        query = query.order_by(Question.created_at.desc())
+
     items = (
-        query.order_by(Question.created_at.desc())
-        .offset(skip)
+        query.offset(skip)
         .limit(limit)
         .all()
     )
+
+    # Batch compute used_in_exam_count for all returned items
+    if items:
+        item_ids = [q.id for q in items]
+        counts = dict(
+            db.query(ExamQuestion.question_id, func.count(ExamQuestion.id))
+            .filter(ExamQuestion.question_id.in_(item_ids))
+            .group_by(ExamQuestion.question_id)
+            .all()
+        )
+        for q in items:
+            q.used_in_exam_count = counts.get(q.id, 0)
+
     return items, total
 
 

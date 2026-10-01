@@ -254,3 +254,78 @@ def test_question_stats(client, teacher_headers):
     assert "by_difficulty" in data
     assert "by_grade" in data
     assert "by_subject" in data
+
+
+def test_question_used_in_exam_prioritization(client, teacher_headers, db):
+    from app.models.exam import Exam, ExamQuestion, ExamStatus
+    from app.models.user import User
+
+    # Create two questions
+    q1_res = client.post(
+        "/api/v1/questions/",
+        json={
+            "content": "Câu hỏi số 1 chưa dùng trong đề",
+            "subject": "Tiếng Việt",
+            "grade": 5,
+            "options": [
+                {"option_key": "A", "content": "Đáp án đúng", "is_correct": True},
+                {"option_key": "B", "content": "Đáp án sai", "is_correct": False},
+            ],
+        },
+        headers=teacher_headers,
+    )
+    q1_id = q1_res.json()["id"]
+
+    q2_res = client.post(
+        "/api/v1/questions/",
+        json={
+            "content": "Câu hỏi số 2 đã dùng trong đề thi",
+            "subject": "Tiếng Việt",
+            "grade": 5,
+            "options": [
+                {"option_key": "A", "content": "Đáp án đúng", "is_correct": True},
+                {"option_key": "B", "content": "Đáp án sai", "is_correct": False},
+            ],
+        },
+        headers=teacher_headers,
+    )
+    q2_id = q2_res.json()["id"]
+
+    # Approve both questions
+    client.patch(f"/api/v1/questions/{q1_id}/status", json={"status": "APPROVED"}, headers=teacher_headers)
+    client.patch(f"/api/v1/questions/{q2_id}/status", json={"status": "APPROVED"}, headers=teacher_headers)
+
+    # Attach q2 to an Exam
+    teacher = db.query(User).first()
+    exam = Exam(
+        title="Đề thi thử nghiệm",
+        subject="Tiếng Việt",
+        grade=5,
+        status=ExamStatus.PUBLISHED,
+        created_by_id=teacher.id if teacher else 1,
+    )
+    db.add(exam)
+    db.flush()
+
+    eq = ExamQuestion(exam_id=exam.id, question_id=q2_id, order_index=0, points=10.0)
+    db.add(eq)
+    db.commit()
+
+    # Verify q1 has used_in_exam_count = 0, q2 has used_in_exam_count = 1
+    res1 = client.get(f"/api/v1/questions/{q1_id}", headers=teacher_headers)
+    assert res1.json()["used_in_exam_count"] == 0
+
+    res2 = client.get(f"/api/v1/questions/{q2_id}", headers=teacher_headers)
+    assert res2.json()["used_in_exam_count"] == 1
+
+    # Test filtering unused_in_exams_only=True
+    filter_res = client.get(
+        "/api/v1/questions/?subject=Tiếng Việt&grade=5&unused_in_exams_only=true",
+        headers=teacher_headers,
+    )
+    assert filter_res.status_code == status.HTTP_200_OK
+    items = filter_res.json()["items"]
+    returned_ids = [item["id"] for item in items]
+    assert q1_id in returned_ids
+    assert q2_id not in returned_ids
+

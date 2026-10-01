@@ -121,6 +121,14 @@ class Question(Base):
         Index("ix_questions_subject_grade_status", "subject", "grade", "status"),
     )
 
+    @property
+    def used_in_exam_count(self) -> int:
+        return getattr(self, "_used_in_exam_count", 0)
+
+    @used_in_exam_count.setter
+    def used_in_exam_count(self, value: int):
+        self._used_in_exam_count = value
+
     def __repr__(self) -> str:
         return f"<Question id={self.id} subject='{self.subject}' grade={self.grade} status='{self.status}'>"
 

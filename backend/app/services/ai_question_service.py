@@ -209,9 +209,22 @@ class GeminiQuestionGenerator:
         raw_items: List[Dict[str, Any]] = []
         api_error: Optional[str] = None
 
+        # Fetch recent questions from DB/exams to avoid duplicates in newly generated questions
+        existing_sample_qs = (
+            db.query(Question.content)
+            .filter(
+                Question.subject == req.subject,
+                Question.grade == req.grade,
+            )
+            .order_by(Question.created_at.desc())
+            .limit(10)
+            .all()
+        )
+        existing_q_texts = [q[0][:120].strip() for q in existing_sample_qs if q[0]]
+
         if cls.is_gemini_configured():
             try:
-                raw_items = cls._call_gemini_api(req, doc_obj, doc_context_text)
+                raw_items = cls._call_gemini_api(req, doc_obj, doc_context_text, existing_q_texts)
             except Exception as e:
                 logger.warning(f"Lỗi khi gọi Gemini API để tạo câu hỏi: {e}. Sử dụng bộ sinh dự phòng.")
                 api_error = str(e)
@@ -322,6 +335,7 @@ class GeminiQuestionGenerator:
         req: AiQuestionGenerateRequest,
         doc_obj: Optional[Document],
         doc_context_text: str,
+        existing_q_texts: Optional[List[str]] = None,
     ) -> List[Dict[str, Any]]:
         """Invokes Google Gemini API with pedal-to-the-metal pedagogical prompt & JSON output mode."""
         api_key = settings.GEMINI_API_KEY.strip()
@@ -364,6 +378,16 @@ class GeminiQuestionGenerator:
         chapter_str = ", ".join(req.chapters) if (req.chapters and len(req.chapters) > 0) else (req.chapter or 'Tổng hợp kiến thức')
         lesson_str = ", ".join(req.topics) if (req.topics and len(req.topics) > 0) else (req.lesson or req.topic or 'Tất cả các bài học')
 
+        avoid_duplicate_instruction = ""
+        if existing_q_texts:
+            sample_list = "\n".join(f"- {txt}" for txt in existing_q_texts[:8])
+            avoid_duplicate_instruction = f"""
+- QUY TẮC TRÁNH TRÙNG LẶP CÂU HỎI ĐÃ CÓ TRONG HỆ THỐNG / ĐỀ THI:
+  Hệ thống đã có một số câu hỏi trước đây môn {req.subject} Lớp {req.grade}:
+{sample_list}
+  TUYỆT ĐỐI KHÔNG sinh lại các câu hỏi này hoặc tương tự. Hãy tạo các câu hỏi MỚI với ngữ cảnh và dữ liệu mới hoàn toàn!
+"""
+
         prompt = f"""Bạn là Chuyên gia biên soạn Đề thi và Đánh giá Giáo dục theo chương trình GDPT 2018 Bộ Giáo dục & Đào tạo Việt Nam.
 
 NHIỆM VỤ:
@@ -385,6 +409,7 @@ QUY TẮC BẮT BUỘC:
    - Phân số viết dạng 'a/b' hoặc '(a+b)/c'. Ký hiệu so sánh dùng '≤', '≥', '≠'.
 {web_grounding_instruction}
 {doc_instruction}
+{avoid_duplicate_instruction}
 
 ĐỊNH DẠNG TRẢ VỀ:
 CHỈ trả về DUY NHẤT một chuỗi JSON hợp lệ theo cấu trúc sau (không thêm bất kỳ văn bản giải thích nào bên ngoài):

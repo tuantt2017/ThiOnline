@@ -379,6 +379,8 @@ export const api = {
     status?: string;
     source?: string;
     search?: string;
+    unused_in_exams_only?: boolean;
+    prioritize_unused_in_exams?: boolean;
     page?: number;
     page_size?: number;
   }): Promise<QuestionListResponse> => {
@@ -389,6 +391,8 @@ export const api = {
     if (params?.status) query.append('status', params.status);
     if (params?.source) query.append('source', params.source);
     if (params?.search) query.append('search', params.search);
+    if (params?.unused_in_exams_only !== undefined) query.append('unused_in_exams_only', params.unused_in_exams_only.toString());
+    if (params?.prioritize_unused_in_exams !== undefined) query.append('prioritize_unused_in_exams', params.prioritize_unused_in_exams.toString());
     if (params?.page) query.append('page', params.page.toString());
     if (params?.page_size) query.append('page_size', params.page_size.toString());
 

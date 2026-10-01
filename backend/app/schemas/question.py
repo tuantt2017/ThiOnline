@@ -122,6 +122,7 @@ class QuestionResponse(QuestionBase):
     created_at: datetime
     updated_at: datetime
     options: List[QuestionOptionResponse] = []
+    used_in_exam_count: int = 0
 
 
 class QuestionListResponse(BaseModel):

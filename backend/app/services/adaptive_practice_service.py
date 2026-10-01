@@ -93,10 +93,22 @@ class AdaptivePracticeService:
             if previous_attempt_q_ids:
                 matching_query = matching_query.filter(Question.id.notin_(previous_attempt_q_ids))
 
-            matching_questions = matching_query.limit(count * 2).all()
+            matching_questions = matching_query.limit(count * 3).all()
             if matching_questions:
-                random.shuffle(matching_questions)
-                selected_questions.extend(matching_questions[:count])
+                # Prioritize questions that have never been used in any exam
+                used_in_exams = set(
+                    q_id
+                    for (q_id,) in db.query(ExamQuestion.question_id)
+                    .filter(ExamQuestion.question_id.in_([q.id for q in matching_questions]))
+                    .distinct()
+                    .all()
+                )
+                unused = [q for q in matching_questions if q.id not in used_in_exams]
+                used = [q for q in matching_questions if q.id in used_in_exams]
+                random.shuffle(unused)
+                random.shuffle(used)
+                sorted_pool = unused + used
+                selected_questions.extend(sorted_pool[:count])
 
         # 4. If not enough questions, dynamically generate FRESH randomized AI questions via Gemini
         if len(selected_questions) < count:

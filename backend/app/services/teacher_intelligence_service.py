@@ -466,17 +466,46 @@ Hãy sinh báo cáo đánh giá định dạng JSON chính xác:
         topic_name = req.topic or f"Kiến thức trọng tâm môn {req.subject} Lớp {req.grade}"
         exam_title = f"🚀 Bài Thi Khắc Phục Điểm Yếu: {topic_name}"
 
-        # Fetch approved questions matching subject & grade
-        questions = (
+        # Fetch approved questions matching subject & grade, prioritizing questions NOT yet in any exam to avoid duplicate questions
+        exam_usage_subquery = (
+            db.query(
+                ExamQuestion.question_id,
+                func.count(ExamQuestion.id).label("exam_usage_count"),
+            )
+            .group_by(ExamQuestion.question_id)
+            .subquery()
+        )
+        raw_candidates = (
             db.query(Question)
+            .outerjoin(exam_usage_subquery, Question.id == exam_usage_subquery.c.question_id)
             .filter(
                 Question.subject == req.subject,
                 Question.grade == req.grade,
                 Question.status == QuestionStatus.APPROVED,
             )
-            .limit(req.question_count * 2)
+            .order_by(
+                func.coalesce(exam_usage_subquery.c.exam_usage_count, 0).asc(),
+                Question.created_at.desc(),
+            )
+            .limit(req.question_count * 3)
             .all()
         )
+
+        # Split into unused in exams vs already used in exams
+        used_q_ids = set(
+            q_id
+            for (q_id,) in db.query(ExamQuestion.question_id)
+            .filter(ExamQuestion.question_id.in_([q.id for q in raw_candidates]))
+            .distinct()
+            .all()
+        ) if raw_candidates else set()
+
+        unused_qs = [q for q in raw_candidates if q.id not in used_q_ids]
+        used_qs = [q for q in raw_candidates if q.id in used_q_ids]
+        random.shuffle(unused_qs)
+        random.shuffle(used_qs)
+        questions = unused_qs + used_qs
+
 
         # If not enough questions, dynamically generate AI questions via Gemini
         if len(questions) < req.question_count:
