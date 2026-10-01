@@ -180,11 +180,15 @@ CHỈ trả về DUY NHẤT một chuỗi JSON hợp lệ (không kèm văn bả
 
             vision_models = [
                 settings.GEMINI_MODEL,
+                "gemini-1.5-flash",
+                "gemini-2.0-flash",
+                "gemini-2.0-flash-lite",
+                "gemini-1.5-flash-8b",
+                "gemini-1.5-pro",
+                "gemini-flash-latest",
+                "gemini-3.5-flash-lite",
                 "gemini-3.8-flash",
                 "gemini-3.5-flash",
-                "gemini-2.5-flash",
-                "gemini-flash-latest",
-                "gemini-flash-lite-latest",
             ]
             vision_models = list(dict.fromkeys([m.strip() for m in vision_models if m and m.strip()]))
 
@@ -208,18 +212,34 @@ CHỈ trả về DUY NHẤT một chuỗi JSON hợp lệ (không kèm văn bả
                             candidates = data.get("candidates", [])
                             if candidates:
                                 text_content = candidates[0].get("content", {}).get("parts", [{}])[0].get("text", "")
-                                cleaned = re.sub(r"^```(?:json)?\s*", "", text_content.strip())
+                                cleaned = re.sub(r"^```(?:json)?\s*", "", text_content.strip(), flags=re.IGNORECASE)
                                 cleaned = re.sub(r"\s*```$", "", cleaned.strip())
-                                ai_json = json.loads(cleaned)
-                                logger.info(f"Gemini Vision ({model_name}) đọc Mục lục và tạo Knowledge Map thành công!")
-                                return cls._build_extraction_result_from_vision(
-                                    ai_data=ai_json,
-                                    total_pages=total_pages,
-                                    subject=subject,
-                                    grade=grade,
-                                    book_series=book_name,
-                                    doc_title=doc_title,
-                                )
+                                raw_parsed = None
+                                try:
+                                    raw_parsed = json.loads(cleaned)
+                                except Exception:
+                                    match_obj = re.search(r"(\{.*\}|\[.*\])", cleaned, re.DOTALL)
+                                    if match_obj:
+                                        raw_json = match_obj.group(1).strip()
+                                        try:
+                                            raw_parsed = json.loads(raw_json)
+                                        except Exception:
+                                            fixed_json = re.sub(r",\s*([\}\]])", r"\1", raw_json)
+                                            try:
+                                                raw_parsed = json.loads(fixed_json)
+                                            except Exception:
+                                                raw_parsed = None
+                                if isinstance(raw_parsed, dict):
+                                    ai_json = raw_parsed
+                                    logger.info(f"Gemini Vision ({model_name}) đọc Mục lục và tạo Knowledge Map thành công!")
+                                    return cls._build_extraction_result_from_vision(
+                                        ai_data=ai_json,
+                                        total_pages=total_pages,
+                                        subject=subject,
+                                        grade=grade,
+                                        book_series=book_name,
+                                        doc_title=doc_title,
+                                    )
                         else:
                             logger.warning(f"Gemini Vision ({model_name}) trả về mã lỗi {resp.status_code}: {resp.text[:200]}")
                     except Exception as model_err:
@@ -362,11 +382,15 @@ CHỈ trả về DUY NHẤT một chuỗi JSON hợp lệ (không kèm văn bả
         # Ensure supported endpoints are prioritized
         models_to_try = [
             settings.GEMINI_MODEL,
+            "gemini-1.5-flash",
+            "gemini-2.0-flash",
+            "gemini-2.0-flash-lite",
+            "gemini-1.5-flash-8b",
+            "gemini-1.5-pro",
+            "gemini-flash-latest",
+            "gemini-3.5-flash-lite",
             "gemini-3.8-flash",
             "gemini-3.5-flash",
-            "gemini-2.5-flash",
-            "gemini-flash-latest",
-            "gemini-flash-lite-latest",
         ]
         models_to_try = list(dict.fromkeys([m.strip() for m in models_to_try if m and m.strip()]))
 
@@ -393,9 +417,23 @@ CHỈ trả về DUY NHẤT một chuỗi JSON hợp lệ (không kèm văn bả
                         candidates = data.get("candidates", [])
                         if candidates:
                             text_content = candidates[0].get("content", {}).get("parts", [{}])[0].get("text", "")
-                            cleaned = re.sub(r"^```(?:json)?\s*", "", text_content.strip())
+                            cleaned = re.sub(r"^```(?:json)?\s*", "", text_content.strip(), flags=re.IGNORECASE)
                             cleaned = re.sub(r"\s*```$", "", cleaned.strip())
-                            raw_parsed = json.loads(cleaned)
+                            raw_parsed = None
+                            try:
+                                raw_parsed = json.loads(cleaned)
+                            except Exception:
+                                match_obj = re.search(r"(\{.*\}|\[.*\])", cleaned, re.DOTALL)
+                                if match_obj:
+                                    raw_json = match_obj.group(1).strip()
+                                    try:
+                                        raw_parsed = json.loads(raw_json)
+                                    except Exception:
+                                        fixed_json = re.sub(r",\s*([\}\]])", r"\1", raw_json)
+                                        try:
+                                            raw_parsed = json.loads(fixed_json)
+                                        except Exception:
+                                            raw_parsed = None
 
                             # Handle both list and dict formats
                             if isinstance(raw_parsed, list):
@@ -403,8 +441,9 @@ CHỈ trả về DUY NHẤT một chuỗi JSON hợp lệ (không kèm văn bả
                             elif isinstance(raw_parsed, dict):
                                 ai_response_json = raw_parsed
 
-                            logger.info(f"Gemini ({model_name}) trích xuất tri thức thành công!")
-                            break
+                            if ai_response_json:
+                                logger.info(f"Gemini ({model_name}) trích xuất tri thức thành công!")
+                                break
                     else:
                         logger.warning(f"Gemini ({model_name}) trả về mã lỗi {resp.status_code}: {resp.text[:200]}")
                 except Exception as e:

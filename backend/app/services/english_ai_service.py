@@ -597,10 +597,15 @@ CHỈ TRẢ VỀ VĂN BẢN JSON HỢP LỆ."""
 
         models_to_try = [
             settings.GEMINI_MODEL,
+            "gemini-1.5-flash",
+            "gemini-2.0-flash",
+            "gemini-2.0-flash-lite",
+            "gemini-1.5-flash-8b",
+            "gemini-1.5-pro",
+            "gemini-flash-latest",
+            "gemini-3.5-flash-lite",
             "gemini-3.8-flash",
             "gemini-3.5-flash",
-            "gemini-2.5-flash",
-            "gemini-flash-latest",
         ]
         models_to_try = list(dict.fromkeys([m.strip() for m in models_to_try if m and m.strip()]))
 
@@ -621,9 +626,26 @@ CHỈ TRẢ VỀ VĂN BẢN JSON HỢP LỆ."""
                         candidates = data.get("candidates", [])
                         if candidates:
                             text_content = candidates[0].get("content", {}).get("parts", [{}])[0].get("text", "")
-                            cleaned = re.sub(r"^```(?:json)?\s*", "", text_content.strip())
+                            cleaned = re.sub(r"^```(?:json)?\s*", "", text_content.strip(), flags=re.IGNORECASE)
                             cleaned = re.sub(r"\s*```$", "", cleaned.strip())
-                            ai_dict = json.loads(cleaned)
+                            ai_dict = None
+                            try:
+                                ai_dict = json.loads(cleaned)
+                            except Exception:
+                                match_obj = re.search(r"(\{.*\}|\[.*\])", cleaned, re.DOTALL)
+                                if match_obj:
+                                    raw_json = match_obj.group(1).strip()
+                                    try:
+                                        ai_dict = json.loads(raw_json)
+                                    except Exception:
+                                        fixed_json = re.sub(r",\s*([\}\]])", r"\1", raw_json)
+                                        try:
+                                            ai_dict = json.loads(fixed_json)
+                                        except Exception:
+                                            ai_dict = None
+
+                            if not isinstance(ai_dict, dict):
+                                continue
 
                             raw_flashcards = ai_dict.get("flashcards", [])
                             flashcards = []

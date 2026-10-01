@@ -144,14 +144,19 @@ YÊU CẦU ĐẦU RA JSON ĐÚNG ĐỊNH DẠNG SAU:
 
         models_to_try = [
             settings.GEMINI_MODEL,
+            "gemini-1.5-flash",
+            "gemini-2.0-flash",
+            "gemini-2.0-flash-lite",
+            "gemini-1.5-flash-8b",
+            "gemini-1.5-pro",
+            "gemini-flash-latest",
+            "gemini-3.5-flash-lite",
             "gemini-3.8-flash",
             "gemini-3.5-flash",
-            "gemini-2.5-flash",
-            "gemini-flash-latest",
-            "gemini-flash-lite-latest",
         ]
         models_to_try = list(dict.fromkeys([m.strip() for m in models_to_try if m and m.strip()]))
 
+        data = None
         with httpx.Client(timeout=30.0) as client:
             for model_name in models_to_try:
                 endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={settings.GEMINI_API_KEY.strip()}"
@@ -159,18 +164,41 @@ YÊU CẦU ĐẦU RA JSON ĐÚNG ĐỊNH DẠNG SAU:
                     "contents": [{"parts": [{"text": prompt}]}],
                     "generationConfig": {"responseMimeType": "application/json", "temperature": 0.3},
                 }
-                resp = client.post(endpoint, json=payload)
-                if resp.status_code == 200:
-                    data = resp.json()
-                    break
-            else:
-                resp.raise_for_status()
+                try:
+                    resp = client.post(endpoint, json=payload)
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        break
+                    else:
+                        logger.warning(f"AI Tutor Gemini ({model_name}) HTTP error {resp.status_code}: {resp.text[:200]}")
+                except Exception as exc:
+                    logger.warning(f"AI Tutor Gemini ({model_name}) call failed: {exc}")
 
+        if not data:
+            raise RuntimeError(f"Không thể kết nối Gemini API cho AI Tutor qua các mô hình: {', '.join(models_to_try)}")
 
-        text_content = data["candidates"][0]["content"]["parts"][0]["text"]
-        parsed = json.loads(text_content)
+        text_content = data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "")
+        cleaned = re.sub(r"^```(?:json)?\s*", "", text_content.strip(), flags=re.IGNORECASE)
+        cleaned = re.sub(r"\s*```$", "", cleaned.strip())
 
-        feedbacks_map = {f["question_id"]: f for f in parsed.get("feedbacks", []) if "question_id" in f}
+        parsed = {}
+        try:
+            parsed = json.loads(cleaned)
+        except Exception:
+            match_obj = re.search(r"(\{.*\}|\[.*\])", cleaned, re.DOTALL)
+            if match_obj:
+                raw_json = match_obj.group(1).strip()
+                try:
+                    parsed = json.loads(raw_json)
+                except Exception:
+                    fixed_json = re.sub(r",\s*([\}\]])", r"\1", raw_json)
+                    try:
+                        parsed = json.loads(fixed_json)
+                    except Exception:
+                        parsed = {}
+
+        feedbacks_map = {f["question_id"]: f for f in parsed.get("feedbacks", []) if isinstance(f, dict) and "question_id" in f}
+
 
         feedback_items = []
         for qp in question_payloads:

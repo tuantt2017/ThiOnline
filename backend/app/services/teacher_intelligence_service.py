@@ -358,15 +358,17 @@ Hãy sinh báo cáo đánh giá định dạng JSON chính xác:
 """
         models_to_try = [
             settings.GEMINI_MODEL,
+            "gemini-1.5-flash",
+            "gemini-2.0-flash",
+            "gemini-2.0-flash-lite",
+            "gemini-1.5-flash-8b",
+            "gemini-1.5-pro",
+            "gemini-flash-latest",
+            "gemini-3.5-flash-lite",
             "gemini-3.8-flash",
             "gemini-3.5-flash",
-            "gemini-2.5-flash",
-            "gemini-flash-latest",
-            "gemini-flash-lite-latest",
         ]
         models_to_try = list(dict.fromkeys([m.strip() for m in models_to_try if m and m.strip()]))
-
-
 
         with httpx.Client(timeout=20.0) as client:
             for model_name in models_to_try:
@@ -375,22 +377,44 @@ Hãy sinh báo cáo đánh giá định dạng JSON chính xác:
                     "contents": [{"parts": [{"text": prompt}]}],
                     "generationConfig": {"responseMimeType": "application/json", "temperature": 0.3},
                 }
-                resp = client.post(url, json=payload)
-                if resp.status_code == 200:
-                    text_content = resp.json()["candidates"][0]["content"]["parts"][0]["text"]
-                    cleaned = text_content.replace("```json", "").replace("```", "").strip()
-                    parsed = json.loads(cleaned)
+                try:
+                    resp = client.post(url, json=payload)
+                    if resp.status_code == 200:
+                        candidates = resp.json().get("candidates", [])
+                        if candidates:
+                            text_content = candidates[0].get("content", {}).get("parts", [{}])[0].get("text", "")
+                            cleaned = re.sub(r"^```(?:json)?\s*", "", text_content.strip(), flags=re.IGNORECASE)
+                            cleaned = re.sub(r"\s*```$", "", cleaned.strip())
 
-                    return StudentAiEvaluationResponse(
-                        student_id=student.id,
-                        student_name=student.full_name,
-                        grade=student.grade or 5,
-                        overall_comment=parsed.get("overall_comment", f"Học sinh {student.full_name} có điểm trung bình {avg_score}/10.0."),
-                        strengths=parsed.get("strengths", ["Tiếp thu bài nhanh", "Chăm chỉ hoàn thành bài thi"]),
-                        weaknesses=parsed.get("weaknesses", weak_topics),
-                        parent_note=parsed.get("parent_note", f"Kính gửi Phụ huynh em {student.full_name}, em có thái độ học tập tốt."),
-                        action_plan=parsed.get("action_plan", "Ôn tập theo đúng hướng dẫn của giáo viên."),
-                    )
+                            parsed = None
+                            try:
+                                parsed = json.loads(cleaned)
+                            except Exception:
+                                match_obj = re.search(r"(\{.*\}|\[.*\])", cleaned, re.DOTALL)
+                                if match_obj:
+                                    raw_json = match_obj.group(1).strip()
+                                    try:
+                                        parsed = json.loads(raw_json)
+                                    except Exception:
+                                        fixed_json = re.sub(r",\s*([\}\]])", r"\1", raw_json)
+                                        try:
+                                            parsed = json.loads(fixed_json)
+                                        except Exception:
+                                            pass
+
+                            if isinstance(parsed, dict):
+                                return StudentAiEvaluationResponse(
+                                    student_id=student.id,
+                                    student_name=student.full_name,
+                                    grade=student.grade or 5,
+                                    overall_comment=parsed.get("overall_comment", f"Học sinh {student.full_name} có điểm trung bình {avg_score}/10.0."),
+                                    strengths=parsed.get("strengths", ["Tiếp thu bài nhanh", "Chăm chỉ hoàn thành bài thi"]),
+                                    weaknesses=parsed.get("weaknesses", weak_topics),
+                                    parent_note=parsed.get("parent_note", f"Kính gửi Phụ huynh em {student.full_name}, em có thái độ học tập tốt."),
+                                    action_plan=parsed.get("action_plan", "Ôn tập theo đúng hướng dẫn của giáo viên."),
+                                )
+                except Exception as exc:
+                    logger.warning(f"Teacher intelligence Gemini ({model_name}) call failed: {exc}")
 
         raise RuntimeError("Failed to generate evaluation report with Gemini.")
 
