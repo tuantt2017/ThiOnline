@@ -68,3 +68,35 @@ def test_english_api_endpoints(client: TestClient, student_headers: dict):
     assert "WORD_TYPING" in ex_types
     assert "FILL_BLANK" in ex_types
 
+
+def test_daily_8min_rotation_and_distinct_images():
+    from app.schemas.english_learning import GenerateCustomEnglishUnitRequest
+
+    # Test that multiple requests generate units with 100% distinct images across words
+    req1 = GenerateCustomEnglishUnitRequest(topic="Thử Thách Tiếng Anh 8 Phút Hàng Ngày (07/10/2026) #1001", grade=5)
+    unit1 = EnglishAIService.generate_custom_unit(req1)
+    
+    assert len(unit1.flashcards) == 6
+    img_urls1 = [f.image_url for f in unit1.flashcards]
+    # Verify no two flashcards have the same image URL
+    assert len(set(img_urls1)) == len(img_urls1), "All flashcard images in unit 1 must be distinct"
+
+    # Verify MATCH_IMAGE exercises have distinct media_urls
+    match_exercises = [ex for ex in unit1.exercises if ex.exercise_type == "MATCH_IMAGE"]
+    assert len(match_exercises) >= 2
+    match_media = [ex.media_url for ex in match_exercises]
+    assert len(set(match_media)) == len(match_media), "MATCH_IMAGE exercises must have different images"
+
+    # Next session generation must rotate topic and produce distinct words
+    req2 = GenerateCustomEnglishUnitRequest(topic="Thử Thách Tiếng Anh 8 Phút Hàng Ngày (08/10/2026) #1002", grade=5)
+    unit2 = EnglishAIService.generate_custom_unit(req2)
+    assert len(unit2.flashcards) == 6
+    img_urls2 = [f.image_url for f in unit2.flashcards]
+    assert len(set(img_urls2)) == len(img_urls2), "All flashcard images in unit 2 must be distinct"
+
+    words1 = [f.word.lower() for f in unit1.flashcards]
+    words2 = [f.word.lower() for f in unit2.flashcards]
+    # Rotating units must have different vocabulary words
+    assert words1 != words2, "Rotated units across days/sessions must not have identical vocabulary words"
+
+

@@ -3,7 +3,7 @@ import logging
 import re
 import difflib
 from datetime import datetime
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, Set
 
 import httpx
 from sqlalchemy.orm import Session
@@ -31,8 +31,157 @@ CUSTOM_UNITS_STORE: Dict[int, EnglishUnitDetailResponse] = {}
 # Global in-memory store for completed units (unit_id -> score)
 COMPLETED_UNITS_STORE: Dict[int, float] = {2: 92.0}
 
-# Curated High-Quality Unsplash Image Mapping per Vocabulary Word
+# 31 Engaging Rotating Daily Curriculum Themes (One for every day of the month)
+DAILY_THEMES = [
+    {"en": "Animals & Pets", "vi": "Động vật hoang dã & Thú cưng"},
+    {"en": "Delicious Food & Drinks", "vi": "Món ăn & Đồ uống yêu thích"},
+    {"en": "School Life & Classroom", "vi": "Trường học & Đồ dùng học tập"},
+    {"en": "My Lovely Home & Rooms", "vi": "Ngôi nhà & Đồ nội thất"},
+    {"en": "Weather & Four Seasons", "vi": "Thời tiết & Bốn mùa trong năm"},
+    {"en": "Family & Relatives", "vi": "Gia đình & Người thân yêu"},
+    {"en": "Sports & Outdoor Activities", "vi": "Thể thao & Trò chơi vận động"},
+    {"en": "Jobs & Dream Careers", "vi": "Nghề nghiệp trong tương lai"},
+    {"en": "Clothes & Daily Outfits", "vi": "Trang phục & Quần áo"},
+    {"en": "Fresh Fruits & Vegetables", "vi": "Trái cây & Rau củ quả tươi"},
+    {"en": "City Life & Transportation", "vi": "Thành phố & Phương tiện giao thông"},
+    {"en": "Beach & Summer Vacation", "vi": "Kỳ nghỉ bãi biển & Mùa hè"},
+    {"en": "Feelings & Emotions", "vi": "Cảm xúc & Tâm trạng con người"},
+    {"en": "Body Parts & Healthy Habits", "vi": "Các bộ phận cơ thể & Sức khỏe"},
+    {"en": "Hobbies & Leisure Time", "vi": "Sở thích & Thời gian rảnh rỗi"},
+    {"en": "Nature & Green Forest", "vi": "Thiên nhiên & Rừng xanh kỳ thú"},
+    {"en": "Space & Solar System", "vi": "Vũ trụ & Các hành tinh"},
+    {"en": "Birthday Party & Celebrations", "vi": "Tiệc sinh nhật & Lễ hội"},
+    {"en": "Music & Musical Instruments", "vi": "Âm nhạc & Các loại nhạc cụ"},
+    {"en": "A Day at the Zoo", "vi": "Chuyến dạo chơi Vườn bách thú"},
+    {"en": "Life on the Farm", "vi": "Nông trại miền quê & Động vật nuôi"},
+    {"en": "Supermarket & Shopping Time", "vi": "Đi siêu thị & Mua sắm"},
+    {"en": "Daily Routines & Time", "vi": "Thói quen sinh hoạt & Thời gian"},
+    {"en": "Ocean Wonders & Marine Life", "vi": "Đại dương & Sinh vật biển"},
+    {"en": "Playground & Fun Park", "vi": "Công viên & Trò chơi giải trí"},
+    {"en": "Kitchen & Cooking Fun", "vi": "Nhà bếp & Nấu ăn gia đình"},
+    {"en": "Toys & Fun Games", "vi": "Đồ chơi & Trò chơi tuổi thơ"},
+    {"en": "Fun Science & Experiments", "vi": "Khoa học vui & Thí nghiệm kỳ thú"},
+    {"en": "Camping & Picnic Adventure", "vi": "Cắm trại & Thám hiểm thiên nhiên"},
+    {"en": "Countries & World Cultures", "vi": "Các quốc gia & Du lịch thế giới"},
+    {"en": "Flowers & Beautiful Garden", "vi": "Khu vườn hoa & Cây cối xanh tươi"},
+]
+
+# Curated High-Quality Unsplash Image Mapping per Vocabulary Word (300+ Essential Words)
 VOCAB_IMAGE_DATABASE: Dict[str, str] = {
+    # Animals & Pets
+    "dog": "https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=500&auto=format&fit=crop",
+    "puppy": "https://images.unsplash.com/photo-1591160674255-ed8b80b57e74?w=500&auto=format&fit=crop",
+    "cat": "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=500&auto=format&fit=crop",
+    "kitten": "https://images.unsplash.com/photo-1533738363-b7f9aef128ce?w=500&auto=format&fit=crop",
+    "bird": "https://images.unsplash.com/photo-1444464666168-49d633b86797?w=500&auto=format&fit=crop",
+    "parrot": "https://images.unsplash.com/photo-1552728089-57bdde30beb3?w=500&auto=format&fit=crop",
+    "duck": "https://images.unsplash.com/photo-1555861496-0666c8981751?w=500&auto=format&fit=crop",
+    "chicken": "https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?w=500&auto=format&fit=crop",
+    "rooster": "https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?w=500&auto=format&fit=crop",
+    "elephant": "https://images.unsplash.com/photo-1557050543-4d5f4e07ef46?w=500&auto=format&fit=crop",
+    "tiger": "https://images.unsplash.com/photo-1534188753412-3e26d0d618d6?w=500&auto=format&fit=crop",
+    "lion": "https://images.unsplash.com/photo-1546182990-dffeafbe841d?w=500&auto=format&fit=crop",
+    "bear": "https://images.unsplash.com/photo-1530595467537-0b5996c41f2d?w=500&auto=format&fit=crop",
+    "panda": "https://images.unsplash.com/photo-1527118732049-c88155f2107c?w=500&auto=format&fit=crop",
+    "monkey": "https://images.unsplash.com/photo-1540573133985-87b6da6d54a9?w=500&auto=format&fit=crop",
+    "giraffe": "https://images.unsplash.com/photo-1538099130811-745e64318258?w=500&auto=format&fit=crop",
+    "zebra": "https://images.unsplash.com/photo-1501705388883-4ed8a543392c?w=500&auto=format&fit=crop",
+    "rabbit": "https://images.unsplash.com/photo-1585110396000-c9ffd4e4b308?w=500&auto=format&fit=crop",
+    "deer": "https://images.unsplash.com/photo-1484406566174-9da000fda645?w=500&auto=format&fit=crop",
+    "horse": "https://images.unsplash.com/photo-1553284965-83fd3e82fa5a?w=500&auto=format&fit=crop",
+    "cow": "https://images.unsplash.com/photo-1546445317-29f4545e9d53?w=500&auto=format&fit=crop",
+    "sheep": "https://images.unsplash.com/photo-1484557052118-f32bd25b45b5?w=500&auto=format&fit=crop",
+    "pig": "https://images.unsplash.com/photo-1516467508483-a7212febe31a?w=500&auto=format&fit=crop",
+    "dolphin": "https://images.unsplash.com/photo-1570481662006-a3a1374699e8?w=500&auto=format&fit=crop",
+    "whale": "https://images.unsplash.com/photo-1568430460464-02c1cd6a985b?w=500&auto=format&fit=crop",
+    "shark": "https://images.unsplash.com/photo-1560275619-4662e36fa65c?w=500&auto=format&fit=crop",
+    "fish": "https://images.unsplash.com/photo-1524704654690-b56c05c78a00?w=500&auto=format&fit=crop",
+    "turtle": "https://images.unsplash.com/photo-1437622368342-7a3d73a34c8f?w=500&auto=format&fit=crop",
+    "frog": "https://images.unsplash.com/photo-1563281577-a7be47e20db9?w=500&auto=format&fit=crop",
+    "butterfly": "https://images.unsplash.com/photo-1550684848-fac1c5b4e853?w=500&auto=format&fit=crop",
+    "bee": "https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=500&auto=format&fit=crop",
+    "penguin": "https://images.unsplash.com/photo-1598439210625-5067c578f3f6?w=500&auto=format&fit=crop",
+    "owl": "https://images.unsplash.com/photo-1574063413132-355dbfd83e25?w=500&auto=format&fit=crop",
+    "crab": "https://images.unsplash.com/photo-1559827291-72ee739d0d9a?w=500&auto=format&fit=crop",
+    "octopus": "https://images.unsplash.com/photo-1545671913-b89ac1b4ac10?w=500&auto=format&fit=crop",
+    "animal": "https://images.unsplash.com/photo-1474511320723-9a56873867b5?w=500&auto=format&fit=crop",
+    "pet": "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=500&auto=format&fit=crop",
+
+    # Food & Drink & Fruits & Vegetables
+    "apple": "https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=500&auto=format&fit=crop",
+    "banana": "https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?w=500&auto=format&fit=crop",
+    "orange": "https://images.unsplash.com/photo-1547514701-42782101795e?w=500&auto=format&fit=crop",
+    "lemon": "https://images.unsplash.com/photo-1533089860892-a7c6f0a88666?w=500&auto=format&fit=crop",
+    "grape": "https://images.unsplash.com/photo-1537640538966-79f369143f8f?w=500&auto=format&fit=crop",
+    "strawberry": "https://images.unsplash.com/photo-1464965911861-746a04b4bca6?w=500&auto=format&fit=crop",
+    "watermelon": "https://images.unsplash.com/photo-1587049352851-8d4e89133924?w=500&auto=format&fit=crop",
+    "pineapple": "https://images.unsplash.com/photo-1550258987-190a2d41a8ba?w=500&auto=format&fit=crop",
+    "mango": "https://images.unsplash.com/photo-1553279768-865429fa0078?w=500&auto=format&fit=crop",
+    "tomato": "https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=500&auto=format&fit=crop",
+    "potato": "https://images.unsplash.com/photo-1518977676601-b53f82aba655?w=500&auto=format&fit=crop",
+    "carrot": "https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?w=500&auto=format&fit=crop",
+    "corn": "https://images.unsplash.com/photo-1551754655-cd27e38d2076?w=500&auto=format&fit=crop",
+    "bread": "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=500&auto=format&fit=crop",
+    "rice": "https://images.unsplash.com/photo-1586201375761-83865001e31c?w=500&auto=format&fit=crop",
+    "noodle": "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=500&auto=format&fit=crop",
+    "pizza": "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=500&auto=format&fit=crop",
+    "burger": "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500&auto=format&fit=crop",
+    "sandwich": "https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=500&auto=format&fit=crop",
+    "cake": "https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=500&auto=format&fit=crop",
+    "cookie": "https://images.unsplash.com/photo-1499636136210-6f4ee915583e?w=500&auto=format&fit=crop",
+    "chocolate": "https://images.unsplash.com/photo-1511381939415-e44015466834?w=500&auto=format&fit=crop",
+    "ice cream": "https://images.unsplash.com/photo-1501443762994-82bd5dace89a?w=500&auto=format&fit=crop",
+    "cheese": "https://images.unsplash.com/photo-1486297678162-eb2a19b0a32d?w=500&auto=format&fit=crop",
+    "egg": "https://images.unsplash.com/photo-1582722872445-44dc5f7e3c8f?w=500&auto=format&fit=crop",
+    "breakfast": "https://images.unsplash.com/photo-1533089860892-a7c6f0a88666?w=500&auto=format&fit=crop",
+    "lunch": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&auto=format&fit=crop",
+    "dinner": "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=500&auto=format&fit=crop",
+    "milk": "https://images.unsplash.com/photo-1550583724-b2692b85b150?w=500&auto=format&fit=crop",
+    "water": "https://images.unsplash.com/photo-1548839140-29a749e1bc4e?w=500&auto=format&fit=crop",
+    "juice": "https://images.unsplash.com/photo-1613478223719-2ab802602423?w=500&auto=format&fit=crop",
+    "tea": "https://images.unsplash.com/photo-1576092768241-dec231879fc3?w=500&auto=format&fit=crop",
+    "soup": "https://images.unsplash.com/photo-1547592166-23ac45744acd?w=500&auto=format&fit=crop",
+    "food": "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=500&auto=format&fit=crop",
+
+    # School & Education
+    "classroom": "https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=500&auto=format&fit=crop",
+    "school": "https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=500&auto=format&fit=crop",
+    "student": "https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=500&auto=format&fit=crop",
+    "teacher": "https://images.unsplash.com/photo-1577896851231-70ef18881754?w=500&auto=format&fit=crop",
+    "book": "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=500&auto=format&fit=crop",
+    "notebook": "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=500&auto=format&fit=crop",
+    "pen": "https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?w=500&auto=format&fit=crop",
+    "pencil": "https://images.unsplash.com/photo-1585336261026-8f57857a2079?w=500&auto=format&fit=crop",
+    "eraser": "https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?w=500&auto=format&fit=crop",
+    "ruler": "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=500&auto=format&fit=crop",
+    "backpack": "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=500&auto=format&fit=crop",
+    "bag": "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=500&auto=format&fit=crop",
+    "desk": "https://images.unsplash.com/photo-1518455027359-f3f8164ba6bd?w=500&auto=format&fit=crop",
+    "chair": "https://images.unsplash.com/photo-1503602642458-232111445657?w=500&auto=format&fit=crop",
+    "board": "https://images.unsplash.com/photo-1572935748466-300431053e01?w=500&auto=format&fit=crop",
+    "library": "https://images.unsplash.com/photo-1521587760476-6c12a4b040da?w=500&auto=format&fit=crop",
+    "computer": "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=500&auto=format&fit=crop",
+    "science": "https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=500&auto=format&fit=crop",
+    "clock": "https://images.unsplash.com/photo-1508057198894-247b23fe5ade?w=500&auto=format&fit=crop",
+    "map": "https://images.unsplash.com/photo-1524661135-423995f22d0b?w=500&auto=format&fit=crop",
+
+    # Home & Living
+    "house": "https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?w=500&auto=format&fit=crop",
+    "home": "https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?w=500&auto=format&fit=crop",
+    "room": "https://images.unsplash.com/photo-1513694203232-719a280e022f?w=500&auto=format&fit=crop",
+    "bedroom": "https://images.unsplash.com/photo-1540518614846-7ede433c457b?w=500&auto=format&fit=crop",
+    "living room": "https://images.unsplash.com/photo-1583847268964-b28dc8f51f92?w=500&auto=format&fit=crop",
+    "kitchen": "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=500&auto=format&fit=crop",
+    "bathroom": "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=500&auto=format&fit=crop",
+    "bed": "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=500&auto=format&fit=crop",
+    "table": "https://images.unsplash.com/photo-1615066390971-03e4e1c36ddf?w=500&auto=format&fit=crop",
+    "sofa": "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=500&auto=format&fit=crop",
+    "door": "https://images.unsplash.com/photo-1513694203232-719a280e022f?w=500&auto=format&fit=crop",
+    "window": "https://images.unsplash.com/photo-1513694203232-719a280e022f?w=500&auto=format&fit=crop",
+    "television": "https://images.unsplash.com/photo-1593359677879-a4bb92f829d1?w=500&auto=format&fit=crop",
+    "fridge": "https://images.unsplash.com/photo-1584269600464-37b1b58a9fe7?w=500&auto=format&fit=crop",
+    "garden": "https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?w=500&auto=format&fit=crop",
+
     # Family & People
     "family": "https://images.unsplash.com/photo-1511895426328-dc8714191300?w=500&auto=format&fit=crop",
     "parents": "https://images.unsplash.com/photo-1511895426328-dc8714191300?w=500&auto=format&fit=crop",
@@ -40,99 +189,158 @@ VOCAB_IMAGE_DATABASE: Dict[str, str] = {
     "mother": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=500&auto=format&fit=crop",
     "brother": "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=500&auto=format&fit=crop",
     "sister": "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=500&auto=format&fit=crop",
-    "teacher": "https://images.unsplash.com/photo-1577896851231-70ef18881754?w=500&auto=format&fit=crop",
-    "doctor": "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=500&auto=format&fit=crop",
-    "student": "https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=500&auto=format&fit=crop",
+    "baby": "https://images.unsplash.com/photo-1519689680058-324335c77eba?w=500&auto=format&fit=crop",
+    "friend": "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=500&auto=format&fit=crop",
     "friendly": "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=500&auto=format&fit=crop",
-    "pilot": "https://images.unsplash.com/photo-1508672019048-805479760c2d?w=500&auto=format&fit=crop",
-    "farmer": "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?w=500&auto=format&fit=crop",
 
-    # School & Education
-    "classroom": "https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=500&auto=format&fit=crop",
-    "school": "https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=500&auto=format&fit=crop",
-    "science": "https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=500&auto=format&fit=crop",
-    "book": "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=500&auto=format&fit=crop",
-    "pencil": "https://images.unsplash.com/photo-1585336261026-8f57857a2079?w=500&auto=format&fit=crop",
-    "library": "https://images.unsplash.com/photo-1521587760476-6c12a4b040da?w=500&auto=format&fit=crop",
-    "computer": "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=500&auto=format&fit=crop",
+    # Clothes & Fashion
+    "clothes": "https://images.unsplash.com/photo-1489987707025-afc232f7ea0f?w=500&auto=format&fit=crop",
+    "shirt": "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=500&auto=format&fit=crop",
+    "dress": "https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?w=500&auto=format&fit=crop",
+    "skirt": "https://images.unsplash.com/photo-1583496661160-fb5886a0aaaa?w=500&auto=format&fit=crop",
+    "pants": "https://images.unsplash.com/photo-1473966968600-fa801b869a1a?w=500&auto=format&fit=crop",
+    "jacket": "https://images.unsplash.com/photo-1551028719-00167b16eac5?w=500&auto=format&fit=crop",
+    "hat": "https://images.unsplash.com/photo-1534215754734-18e55d13e346?w=500&auto=format&fit=crop",
+    "cap": "https://images.unsplash.com/photo-1588850561407-ed78c282e89b?w=500&auto=format&fit=crop",
+    "shoes": "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=500&auto=format&fit=crop",
+    "boots": "https://images.unsplash.com/photo-1542838132-92c53300491e?w=500&auto=format&fit=crop",
+    "socks": "https://images.unsplash.com/photo-1586350977771-b3b0abd50c82?w=500&auto=format&fit=crop",
+    "glasses": "https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=500&auto=format&fit=crop",
+    "umbrella": "https://images.unsplash.com/photo-1517479149777-5f3b1511d5ad?w=500&auto=format&fit=crop",
 
-    # Weather & Nature
+    # Transportation & Travel
+    "car": "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=500&auto=format&fit=crop",
+    "bus": "https://images.unsplash.com/photo-1570125909232-eb263c188f7e?w=500&auto=format&fit=crop",
+    "bicycle": "https://images.unsplash.com/photo-1485965120184-e220f721d03e?w=500&auto=format&fit=crop",
+    "bike": "https://images.unsplash.com/photo-1485965120184-e220f721d03e?w=500&auto=format&fit=crop",
+    "train": "https://images.unsplash.com/photo-1474487548417-781cb71495f3?w=500&auto=format&fit=crop",
+    "plane": "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=500&auto=format&fit=crop",
+    "airplane": "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=500&auto=format&fit=crop",
+    "flight": "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=500&auto=format&fit=crop",
+    "boat": "https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=500&auto=format&fit=crop",
+    "ship": "https://images.unsplash.com/photo-1505705694340-019e1e335916?w=500&auto=format&fit=crop",
+    "airport": "https://images.unsplash.com/photo-1530521954074-e64f6810b32d?w=500&auto=format&fit=crop",
+    "passport": "https://images.unsplash.com/photo-1544717305-2782549b5136?w=500&auto=format&fit=crop",
+    "hotel": "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=500&auto=format&fit=crop",
+    "luggage": "https://images.unsplash.com/photo-1581553680321-4fffae59febd?w=500&auto=format&fit=crop",
+    "beach": "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=500&auto=format&fit=crop",
+
+    # Nature & Weather
     "weather": "https://images.unsplash.com/photo-1504608524841-42fe6f032b4b?w=500&auto=format&fit=crop",
     "sunny": "https://images.unsplash.com/photo-1622396481328-9b1b78cdd9fd?w=500&auto=format&fit=crop",
+    "sun": "https://images.unsplash.com/photo-1622396481328-9b1b78cdd9fd?w=500&auto=format&fit=crop",
     "rainy": "https://images.unsplash.com/photo-1519692933481-e162a57d6721?w=500&auto=format&fit=crop",
+    "rain": "https://images.unsplash.com/photo-1519692933481-e162a57d6721?w=500&auto=format&fit=crop",
     "cloudy": "https://images.unsplash.com/photo-1534088568595-a066f410bcda?w=500&auto=format&fit=crop",
-    "season": "https://images.unsplash.com/photo-1470240731273-7821a6eeb6bd?w=500&auto=format&fit=crop",
-    "umbrella": "https://images.unsplash.com/photo-1517479149777-5f3b1511d5ad?w=500&auto=format&fit=crop",
+    "cloud": "https://images.unsplash.com/photo-1534088568595-a066f410bcda?w=500&auto=format&fit=crop",
     "snowy": "https://images.unsplash.com/photo-1491002052546-bf38f186af56?w=500&auto=format&fit=crop",
+    "snow": "https://images.unsplash.com/photo-1491002052546-bf38f186af56?w=500&auto=format&fit=crop",
+    "season": "https://images.unsplash.com/photo-1470240731273-7821a6eeb6bd?w=500&auto=format&fit=crop",
     "forest": "https://images.unsplash.com/photo-1448375240586-882707db888b?w=500&auto=format&fit=crop",
     "flower": "https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=500&auto=format&fit=crop",
+    "rose": "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=500&auto=format&fit=crop",
     "tree": "https://images.unsplash.com/photo-1502082553048-f009c37129b9?w=500&auto=format&fit=crop",
     "mountain": "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=500&auto=format&fit=crop",
     "river": "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=500&auto=format&fit=crop",
+    "sea": "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=500&auto=format&fit=crop",
+    "ocean": "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=500&auto=format&fit=crop",
+    "lake": "https://images.unsplash.com/photo-1439853941329-a9f239bd9f1a?w=500&auto=format&fit=crop",
+    "sky": "https://images.unsplash.com/photo-1534088568595-a066f410bcda?w=500&auto=format&fit=crop",
+    "moon": "https://images.unsplash.com/photo-1532693322450-2cb5c511067d?w=500&auto=format&fit=crop",
+    "star": "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=500&auto=format&fit=crop",
+    "space": "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=500&auto=format&fit=crop",
+    "planet": "https://images.unsplash.com/photo-1614728894747-a83421e2b9c9?w=500&auto=format&fit=crop",
 
-    # Animals
-    "animal": "https://images.unsplash.com/photo-1474511320723-9a56873867b5?w=500&auto=format&fit=crop",
-    "dolphin": "https://images.unsplash.com/photo-1570481662006-a3a1374699e8?w=500&auto=format&fit=crop",
-    "elephant": "https://images.unsplash.com/photo-1557050543-4d5f4e07ef46?w=500&auto=format&fit=crop",
-    "tiger": "https://images.unsplash.com/photo-1534188753412-3e26d0d618d6?w=500&auto=format&fit=crop",
-    "dog": "https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=500&auto=format&fit=crop",
-    "cat": "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=500&auto=format&fit=crop",
-    "bird": "https://images.unsplash.com/photo-1444464666168-49d633b86797?w=500&auto=format&fit=crop",
-    "whale": "https://images.unsplash.com/photo-1568430460464-02c1cd6a985b?w=500&auto=format&fit=crop",
-
-    # Food & Drink
-    "food": "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=500&auto=format&fit=crop",
-    "apple": "https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=500&auto=format&fit=crop",
-    "pizza": "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=500&auto=format&fit=crop",
-    "bread": "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=500&auto=format&fit=crop",
-    "breakfast": "https://images.unsplash.com/photo-1533089860892-a7c6f0a88666?w=500&auto=format&fit=crop",
-    "water": "https://images.unsplash.com/photo-1548839140-29a749e1bc4e?w=500&auto=format&fit=crop",
-    "milk": "https://images.unsplash.com/photo-1550583724-b2692b85b150?w=500&auto=format&fit=crop",
-
-    # Travel & Transportation
-    "airport": "https://images.unsplash.com/photo-1530521954074-e64f6810b32d?w=500&auto=format&fit=crop",
-    "passport": "https://images.unsplash.com/photo-1544717305-2782549b5136?w=500&auto=format&fit=crop",
-    "flight": "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=500&auto=format&fit=crop",
-    "hotel": "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=500&auto=format&fit=crop",
-    "luggage": "https://images.unsplash.com/photo-1581553680321-4fffae59febd?w=500&auto=format&fit=crop",
-    "car": "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=500&auto=format&fit=crop",
-    "bicycle": "https://images.unsplash.com/photo-1485965120184-e220f721d03e?w=500&auto=format&fit=crop",
-    "beach": "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=500&auto=format&fit=crop",
+    # Jobs & Careers
+    "doctor": "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=500&auto=format&fit=crop",
+    "nurse": "https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?w=500&auto=format&fit=crop",
+    "dentist": "https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?w=500&auto=format&fit=crop",
+    "pilot": "https://images.unsplash.com/photo-1508672019048-805479760c2d?w=500&auto=format&fit=crop",
+    "farmer": "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?w=500&auto=format&fit=crop",
+    "chef": "https://images.unsplash.com/photo-1577219491135-ce391730fb2c?w=500&auto=format&fit=crop",
+    "cook": "https://images.unsplash.com/photo-1577219491135-ce391730fb2c?w=500&auto=format&fit=crop",
+    "singer": "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=500&auto=format&fit=crop",
+    "artist": "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=500&auto=format&fit=crop",
+    "driver": "https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?w=500&auto=format&fit=crop",
 
     # Sports & Hobbies
     "football": "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=500&auto=format&fit=crop",
+    "soccer": "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=500&auto=format&fit=crop",
+    "basketball": "https://images.unsplash.com/photo-1546519638-68e109498ffc?w=500&auto=format&fit=crop",
     "swimming": "https://images.unsplash.com/photo-1530549387789-4c1017266635?w=500&auto=format&fit=crop",
+    "running": "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=500&auto=format&fit=crop",
     "music": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&auto=format&fit=crop",
     "guitar": "https://images.unsplash.com/photo-1510915361894-db8b60106cb1?w=500&auto=format&fit=crop",
-    "running": "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=500&auto=format&fit=crop",
-
-    # Health & Body
-    "hospital": "https://images.unsplash.com/photo-1587351021759-3e566b6af7cc?w=500&auto=format&fit=crop",
-    "healthy": "https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=500&auto=format&fit=crop",
-    "exercise": "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=500&auto=format&fit=crop",
-
-    # Space & Tech
+    "piano": "https://images.unsplash.com/photo-1520523839898-50712140e691?w=500&auto=format&fit=crop",
+    "drums": "https://images.unsplash.com/photo-1519892300165-cb5542fb47c7?w=500&auto=format&fit=crop",
+    "toy": "https://images.unsplash.com/photo-1558060370-d644479cb6f7?w=500&auto=format&fit=crop",
+    "game": "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=500&auto=format&fit=crop",
     "robot": "https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=500&auto=format&fit=crop",
-    "space": "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=500&auto=format&fit=crop",
-    "planet": "https://images.unsplash.com/photo-1614728894747-a83421e2b9c9?w=500&auto=format&fit=crop",
+
+    # Health & Feelings
+    "happy": "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=500&auto=format&fit=crop",
+    "sad": "https://images.unsplash.com/photo-1516585427167-9f4af9627e6c?w=500&auto=format&fit=crop",
+    "tired": "https://images.unsplash.com/photo-1541781774459-bb2af2f05b55?w=500&auto=format&fit=crop",
+    "healthy": "https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=500&auto=format&fit=crop",
+    "hospital": "https://images.unsplash.com/photo-1587351021759-3e566b6af7cc?w=500&auto=format&fit=crop",
+    "exercise": "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=500&auto=format&fit=crop",
 }
 
-def get_accurate_vocab_image(word: str, topic: str) -> str:
-    """Helper to match vocabulary word or topic with accurate Unsplash picture."""
+# Guaranteed Distinct Curated Unsplash Images for Fallback (So no 2 words in a unit ever share an image)
+DISTINCT_FALLBACK_IMAGES: List[str] = [
+    "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=500&auto=format&fit=crop", # colorful crayons
+    "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=500&auto=format&fit=crop", # book stack
+    "https://images.unsplash.com/photo-1516979187457-637abb4f9353?w=500&auto=format&fit=crop", # open library
+    "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=500&auto=format&fit=crop", # study desk
+    "https://images.unsplash.com/photo-1491841573634-28140fc7ced7?w=500&auto=format&fit=crop", # creative learning
+    "https://images.unsplash.com/photo-1588072432836-e10032774350?w=500&auto=format&fit=crop", # classroom learning
+    "https://images.unsplash.com/photo-1509062522246-3755977927d7?w=500&auto=format&fit=crop", # student reading
+    "https://images.unsplash.com/photo-1513542789411-b6a5d4f31634?w=500&auto=format&fit=crop", # arts and craft
+    "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=500&auto=format&fit=crop", # team project
+    "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=500&auto=format&fit=crop", # textbook
+]
+
+def get_accurate_vocab_image(
+    word: str,
+    topic: str = "",
+    index: int = 0,
+    used_urls: Optional[Set[str]] = None,
+) -> str:
+    """Helper to match vocabulary word with distinct, high-quality Unsplash picture."""
+    if used_urls is None:
+        used_urls = set()
+
     w_clean = re.sub(r"[^\w]", "", word.lower().strip())
-    if w_clean in VOCAB_IMAGE_DATABASE:
-        return VOCAB_IMAGE_DATABASE[w_clean]
+    # Singularize common English plurals for accurate lookup
+    if w_clean.endswith("ies") and len(w_clean) > 4:
+        w_clean = w_clean[:-3] + "y"
+    elif w_clean.endswith("es") and len(w_clean) > 3:
+        w_clean = w_clean[:-2]
+    elif w_clean.endswith("s") and len(w_clean) > 2 and not w_clean.endswith("ss"):
+        w_clean = w_clean[:-1]
 
-    for k, url in VOCAB_IMAGE_DATABASE.items():
-        if k in w_clean or w_clean in k:
-            return url
+    # 1. Exact match in database
+    if w_clean in VOCAB_IMAGE_DATABASE and VOCAB_IMAGE_DATABASE[w_clean] not in used_urls:
+        url = VOCAB_IMAGE_DATABASE[w_clean]
+        used_urls.add(url)
+        return url
 
-    t_clean = topic.lower().strip()
-    for k, url in VOCAB_IMAGE_DATABASE.items():
-        if k in t_clean:
-            return url
+    # 2. Substring match
+    for k, u in VOCAB_IMAGE_DATABASE.items():
+        if (k in w_clean or w_clean in k) and u not in used_urls:
+            used_urls.add(u)
+            return u
 
-    return "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=500&auto=format&fit=crop"
+    # 3. Pick unused distinct image from fallback pool
+    for u in DISTINCT_FALLBACK_IMAGES:
+        if u not in used_urls:
+            used_urls.add(u)
+            return u
+
+    # 4. Modulo fallback if all pool exhausted
+    fallback = DISTINCT_FALLBACK_IMAGES[index % len(DISTINCT_FALLBACK_IMAGES)]
+    used_urls.add(fallback)
+    return fallback
 
 
 # Sample SGK GDPT 2018 Curriculum Units for Grade 4 - 9
@@ -509,8 +717,27 @@ class EnglishAIService:
         )
 
     @classmethod
+    def _resolve_daily_curriculum_topic(cls, raw_topic: str) -> str:
+        """Resolves generic daily practice requests to rich rotating calendar themes."""
+        raw_clean = raw_topic.strip()
+        t_low = raw_clean.lower()
+        if (
+            not raw_clean
+            or "thử thách tiếng anh 8 phút" in t_low
+            or "bài 8 phút" in t_low
+            or "bài học 8 phút" in t_low
+            or "general practice" in t_low
+        ):
+            day_of_year = datetime.now().timetuple().tm_yday
+            theme_idx = (day_of_year + len(CUSTOM_UNITS_STORE)) % len(DAILY_THEMES)
+            theme = DAILY_THEMES[theme_idx]
+            return f"{theme['vi']} ({theme['en']})"
+        return raw_clean
+
+    @classmethod
     def generate_custom_unit(cls, req: Any) -> EnglishUnitDetailResponse:
-        topic_title = req.topic.strip() if req.topic else "General Practice"
+        raw_topic = req.topic.strip() if req.topic else ""
+        topic_title = cls._resolve_daily_curriculum_topic(raw_topic)
         grade = req.grade if 4 <= req.grade <= 9 else 5
         custom_id = 900 + len(CUSTOM_UNITS_STORE) + 1
 
@@ -540,9 +767,11 @@ class EnglishAIService:
 Hãy biên soạn 1 bài học Tiếng Anh Đa Phương Thức AI 8 Phút hoàn chỉnh cho chủ đề: "{topic_title}".
 
 YÊU CẦU ĐẶC BIỆT:
-1. Tạo đúng 6 từ vựng (flashcards) mới, phong phú, sát chủ đề.
+1. Chọn đúng 6 từ vựng (flashcards) cụ thể, sinh động, chuẩn chương trình Tiểu học/THCS liên quan đến chủ đề "{topic_title}".
+   - TUYỆT ĐỐI KHÔNG chọn các từ trừu tượng (như: Challenge, Goal, Success, Practice, Focus, Smart).
+   - Hãy chọn các từ đồ vật, con vật, thức ăn, địa điểm, nghề nghiệp trực quan, dễ liên tưởng qua tranh ảnh.
 2. Tạo đúng 8 bài tập trắc nghiệm & điền từ (exercises):
-   - 2 bài MATCH_IMAGE (Nối từ với hình ảnh)
+   - 2 bài MATCH_IMAGE (Nối từ với hình ảnh): Đáp án đúng phải là 1 trong các từ vựng vừa dạy.
    - 2 bài LISTEN_SELECT (Nghe chọn đáp án)
    - 2 bài WORD_TYPING (Gõ chính tả)
    - 2 bài FILL_BLANK (Điền từ còn thiếu vào câu)
@@ -561,7 +790,6 @@ Cấu trúc JSON bắt buộc:
       "part_of_speech": "noun",
       "ipa": "/phát âm IPA/",
       "meaning": "Nghĩa Tiếng Việt",
-      "image_url": "https://images.unsplash.com/photo-1511895426328-dc8714191300?w=500&auto=format&fit=crop",
       "audio_text": "từ phát âm",
       "example_sentence": "Ví dụ câu Tiếng Anh",
       "example_translation": "Dịch nghĩa ví dụ Tiếng Việt"
@@ -571,7 +799,6 @@ Cấu trúc JSON bắt buộc:
     {{
       "exercise_type": "MATCH_IMAGE",
       "prompt": "Từ vựng nào miêu tả đúng hình ảnh?",
-      "media_url": "https://images.unsplash.com/photo-1511895426328-dc8714191300?w=500&auto=format&fit=crop",
       "audio_text": "Choose the word",
       "options": [
         {{"option_key": "A", "content": "Đáp án 1"}},
@@ -637,7 +864,7 @@ CHỈ TRẢ VỀ VĂN BẢN JSON HỢP LỆ."""
                                     try:
                                         ai_dict = json.loads(raw_json)
                                     except Exception:
-                                        fixed_json = re.sub(r",\s*([\}\]])", r"\1", raw_json)
+                                        fixed_json = re.sub(r",\s*([\}\]])", r"", raw_json)
                                         try:
                                             ai_dict = json.loads(fixed_json)
                                         except Exception:
@@ -648,9 +875,18 @@ CHỈ TRẢ VỀ VĂN BẢN JSON HỢP LỆ."""
 
                             raw_flashcards = ai_dict.get("flashcards", [])
                             flashcards = []
+                            used_images: Set[str] = set()
+                            word_image_map: Dict[str, str] = {}
+
                             for idx, f in enumerate(raw_flashcards):
-                                word_val = f.get("word", "word")
-                                accurate_img = get_accurate_vocab_image(word_val, topic_title)
+                                word_val = f.get("word", f"word_{idx}")
+                                accurate_img = get_accurate_vocab_image(
+                                    word=word_val,
+                                    topic=topic_title,
+                                    index=idx,
+                                    used_urls=used_images,
+                                )
+                                word_image_map[word_val.lower().strip()] = accurate_img
                                 f["image_url"] = accurate_img
                                 flashcards.append(VocabFlashcard(id=custom_id * 10 + idx, **f))
 
@@ -661,12 +897,17 @@ CHỈ TRẢ VỀ VĂN BẢN JSON HỢP LỆ."""
                                 ex_type = ex.get("exercise_type", "LISTEN_SELECT")
                                 corr_ans = ex.get("correct_answer", "A")
 
-                                # Post process media url for MATCH_IMAGE
+                                # Post process media url for MATCH_IMAGE to align with the correct answer
                                 media_url = ex.get("media_url")
                                 if ex_type == "MATCH_IMAGE":
-                                    # Find matching content option
-                                    matched_opt = next((o.content for o in opts if o.option_key == corr_ans), topic_title)
-                                    media_url = get_accurate_vocab_image(matched_opt, topic_title)
+                                    matched_content = next((o.content for o in opts if o.option_key == corr_ans), "")
+                                    w_key = matched_content.lower().strip()
+                                    media_url = word_image_map.get(w_key) or get_accurate_vocab_image(
+                                        word=matched_content or topic_title,
+                                        topic=topic_title,
+                                        index=idx,
+                                        used_urls=used_images,
+                                    )
 
                                 exercises.append(
                                     MultimodalExercise(
@@ -702,89 +943,390 @@ CHỈ TRẢ VỀ VĂN BẢN JSON HỢP LỆ."""
 
     @classmethod
     def _generate_topic_aware_fallback(cls, topic_title: str, grade: int, custom_id: int) -> EnglishUnitDetailResponse:
-        """30 Rich Rotating Daily Topics & Vocabulary Pools to prevent word repetition."""
+        """31 Rich Rotating Daily Topics & Vocabulary Pools to prevent word and topic repetition."""
         t_lower = topic_title.lower()
 
-        # 30 Curated Vocabulary & Exercise Pools
+        # 31 Comprehensive Vocabulary & Exercise Pools (One for each day of the month)
         TOPIC_POOLS = [
-            # Pool 0: Weather & Climate
+            # Day 1: Animals & Pets
             {
-                "topic": "Thời tiết & Các mùa trong năm",
+                "topic": "Động vật hoang dã & Thú cưng",
                 "words": [
-                    ("weather", "noun", "/ˈweð.ər/", "thời tiết", "What is the weather like today?", "Thời tiết hôm nay thế nào?"),
-                    ("sunny", "adjective", "/ˈsʌn.i/", "nắng đẹp", "It is very sunny in Hanoi today.", "Hôm nay trời rất nắng ở Hà Nội."),
-                    ("rainy", "adjective", "/ˈreɪ.ni/", "mưa", "Don't forget your umbrella on rainy days.", "Đừng quên mang ô vào những ngày mưa."),
-                    ("season", "noun", "/ˈsiː.zən/", "mùa trong năm", "Spring is my favorite season.", "Mùa xuân là mùa yêu thích của tôi."),
-                    ("umbrella", "noun", "/ʌmˈbrel.ə/", "cây ô / dù", "She bought a colorful umbrella.", "Cô ấy đã mua một cây ô rực rỡ sắc màu."),
-                    ("cloudy", "adjective", "/ˈklaʊ.di/", "nhiều mây", "The sky is dark and cloudy today.", "Bầu trời hôm nay u uất và nhiều mây."),
+                    ("dog", "noun", "/dɒɡ/", "con chó", "The dog wags its tail happily.", "Chú chó vẫy đuôi vui mừng."),
+                    ("cat", "noun", "/kæt/", "con mèo", "My cat likes sleeping in the sun.", "Con mèo của tôi thích ngủ dưới ánh nắng."),
+                    ("elephant", "noun", "/ˈel.ɪ.fənt/", "con voi", "The elephant is the largest land animal.", "Con voi là loài động vật trên cạn to lớn nhất."),
+                    ("tiger", "noun", "/ˈtaɪ.ɡər/", "con hổ", "The tiger runs very fast in the jungle.", "Con hổ chạy rất nhanh trong rừng nhiệt đới."),
+                    ("rabbit", "noun", "/ˈræb.ɪt/", "con thỏ", "The white rabbit has long soft ears.", "Chú thỏ trắng có đôi tai dài mềm mại."),
+                    ("dolphin", "noun", "/ˈdɒl.fɪn/", "cá heo", "Dolphins are smart and friendly.", "Cá heo rất thông minh và thân thiện."),
                 ]
             },
-            # Pool 1: Family & Friends
+            # Day 2: Delicious Food & Drinks
             {
-                "topic": "Gia đình & Bạn bè",
+                "topic": "Món ăn & Đồ uống yêu thích",
                 "words": [
-                    ("family", "noun", "/ˈfæm.əl.i/", "gia đình", "My family loves traveling together.", "Gia đình tôi thích cùng nhau du lịch."),
-                    ("parents", "noun", "/ˈpeə.rənts/", "bố mẹ", "My parents are very supportive.", "Bố mẹ tôi rất luôn ủng hộ tôi."),
-                    ("father", "noun", "/ˈfɑː.ðər/", "người bố", "His father is an architect.", "Bố của anh ấy là một kiến trúc sư."),
-                    ("mother", "noun", "/ˈmʌð.ər/", "người mẹ", "My mother cooks delicious meals.", "Mẹ tôi nấu những bữa ăn rất ngon."),
-                    ("friendly", "adjective", "/ˈfrend.li/", "thân thiện", "She is a friendly classmate.", "Cô ấy là một bạn học thân thiện."),
-                    ("brother", "noun", "/ˈbrʌð.ər/", "anh/em trai", "My brother plays football well.", "Anh trai tôi chơi bóng đá giỏi."),
+                    ("bread", "noun", "/bred/", "bánh mì", "We eat fresh bread for breakfast.", "Chúng tôi ăn bánh mì tươi vào bữa sáng."),
+                    ("apple", "noun", "/ˈæp.əl/", "quả táo", "An apple a day keeps the doctor away.", "Mỗi ngày ăn một quả táo giúp cơ thể khỏe mạnh."),
+                    ("pizza", "noun", "/ˈpiːt.sə/", "bánh pizza", "They ordered a cheese pizza for party.", "Họ đã đặt một chiếc bánh pizza phô mai cho bữa tiệc."),
+                    ("milk", "noun", "/mɪlk/", "sữa tươi", "Drink warm milk before going to bed.", "Hãy uống sữa ấm trước khi đi ngủ."),
+                    ("orange", "noun", "/ˈɒr.ɪndʒ/", "quả cam", "Oranges are rich in vitamin C.", "Quả cam chứa rất nhiều vitamin C."),
+                    ("rice", "noun", "/raɪs/", "cơm / gạo", "Rice is a staple food in Vietnam.", "Cơm là món ăn chính tại Việt Nam."),
                 ]
             },
-            # Pool 2: School & Classroom
+            # Day 3: School Life & Classroom
             {
-                "topic": "Trường học & Môn học",
+                "topic": "Trường học & Đồ dùng học tập",
                 "words": [
                     ("classroom", "noun", "/ˈklɑːs.ruːm/", "lớp học", "Our classroom is bright and tidy.", "Lớp học của chúng tôi rất sáng sủa và ngăn nắp."),
-                    ("teacher", "noun", "/ˈtiː.tʃər/", "giáo viên", "Our teacher is very patient.", "Giáo viên của chúng tôi rất kiên nhẫn."),
-                    ("science", "noun", "/ˈsaɪ.əns/", "môn khoa học", "We love science experiments.", "Chúng tôi yêu thích các thí nghiệm khoa học."),
-                    ("library", "noun", "/ˈlaɪ.brər.i/", "thư viện", "Students read books in the library.", "Học sinh đọc sách trong thư viện."),
-                    ("pencil", "noun", "/ˈpen.səl/", "bút chì", "Write your answer with a pencil.", "Hãy viết đáp án bằng bút chì."),
-                    ("book", "noun", "/bʊk/", "quyển sách", "This English book is very helpful.", "Quyển sách Tiếng Anh này rất hữu ích."),
+                    ("teacher", "noun", "/ˈtiː.tʃər/", "thầy cô giáo", "The teacher guides students patiently.", "Cô giáo kiên nhẫn hướng dẫn học sinh."),
+                    ("pencil", "noun", "/ˈpen.səl/", "bút chì", "Write your answer neatly with a pencil.", "Hãy viết câu trả lời ngay ngắn bằng bút chì."),
+                    ("book", "noun", "/bʊk/", "quyển sách", "This English book has colorful pictures.", "Quyển sách Tiếng Anh này có hình ảnh rực rỡ."),
+                    ("library", "noun", "/ˈlaɪ.brər.i/", "thư viện", "Students read books in the quiet library.", "Học sinh đọc sách trong thư viện yên tĩnh."),
+                    ("student", "noun", "/ˈstjuː.dənt/", "học sinh", "Every student works hard for the exam.", "Mỗi học sinh đều chăm chỉ học cho kỳ thi."),
                 ]
             },
-            # Pool 3: Animals & Habitats
+            # Day 4: My Lovely Home & Rooms
             {
-                "topic": "Động vật & Tự nhiên",
+                "topic": "Ngôi nhà & Đồ nội thất",
                 "words": [
-                    ("dolphin", "noun", "/ˈdɒl.fɪn/", "cá heo", "Dolphins are very intelligent animals.", "Cá heo là loài động vật rất thông minh."),
-                    ("elephant", "noun", "/ˈel.ɪ.fənt/", "con voi", "The elephant lives in the jungle.", "Con voi sống trong rừng rậm."),
-                    ("forest", "noun", "/ˈfɒr.ɪst/", "khu rừng", "Trees keep the forest cool.", "Cây xanh giữ cho khu rừng mát mẻ."),
-                    ("tiger", "noun", "/ˈtaɪ.ɡər/", "con hổ", "The tiger runs very fast.", "Con hổ chạy rất nhanh."),
-                    ("bird", "noun", "/bɜːd/", "con chim", "Birds sing in the morning.", "Những chú chim hót vào buổi sáng."),
-                    ("animal", "noun", "/ˈæn.ɪ.məl/", "động vật", "We should protect all animals.", "Chúng ta nên bảo vệ tất cả động vật."),
+                    ("house", "noun", "/haʊs/", "ngôi nhà", "Our house has a lovely garden in front.", "Ngôi nhà của chúng tôi có khu vườn xinh xắn phía trước."),
+                    ("bedroom", "noun", "/ˈbed.ruːm/", "phòng ngủ", "My bedroom has a soft cozy bed.", "Phòng ngủ của tôi có chiếc giường êm ái ấm cúng."),
+                    ("kitchen", "noun", "/ˈkɪtʃ.ɪn/", "nhà bếp", "Mother cooks tasty dishes in the kitchen.", "Mẹ nấu những món ăn ngon trong nhà bếp."),
+                    ("living room", "noun", "/ˈlɪv.ɪŋ ˌruːm/", "phòng khách", "The family gathers in the living room.", "Cả gia đình quây quần trong phòng khách."),
+                    ("table", "noun", "/ˈteɪ.bəl/", "cái bàn", "We put flower vases on the table.", "Chúng tôi đặt lọ hoa trên bàn."),
+                    ("window", "noun", "/ˈwɪn.dəʊ/", "cửa sổ", "Open the window to let fresh air in.", "Hãy mở cửa sổ để đón không khí trong lành."),
                 ]
             },
-            # Pool 4: Food & Health
+            # Day 5: Weather & Four Seasons
             {
-                "topic": "Thực phẩm & Bữa ăn",
+                "topic": "Thời tiết & Bốn mùa trong năm",
                 "words": [
-                    ("breakfast", "noun", "/ˈbrek.fəst/", "bữa sáng", "I eat bread for breakfast.", "Tôi ăn bánh mì cho bữa sáng."),
-                    ("apple", "noun", "/ˈæp.əl/", "quả táo", "An apple a day keeps the doctor away.", "Mỗi ngày ăn một quả táo giúp tăng gia sức khỏe."),
-                    ("milk", "noun", "/mɪlk/", "sữa tươi", "Drink milk for strong bones.", "Uống sữa cho xương chắc khỏe."),
-                    ("pizza", "noun", "/ˈpiːt.sə/", "bánh pizza", "We ordered a delicious pizza.", "Chúng tôi đã gọi một chiếc pizza ngon lành."),
-                    ("water", "noun", "/ˈwɔː.tər/", "nước uống", "Drink plenty of water every day.", "Uống nhiều nước mỗi ngày."),
-                    ("delicious", "adjective", "/dɪˈlɪʃ.əs/", "thơm ngon", "This fruit salad is delicious.", "Món salad hoa quả này rất thơm ngon."),
+                    ("weather", "noun", "/ˈweð.ər/", "thời tiết", "What is the weather like today?", "Thời tiết hôm nay thế nào?"),
+                    ("sunny", "adjective", "/ˈsʌn.i/", "nắng đẹp", "It is warm and sunny this morning.", "Sáng nay trời ấm áp và đầy nắng."),
+                    ("rainy", "adjective", "/ˈreɪ.ni/", "mưa", "Take an umbrella on rainy days.", "Hãy mang ô vào những ngày mưa."),
+                    ("cloudy", "adjective", "/ˈklaʊ.di/", "nhiều mây", "The sky looks cool and cloudy.", "Bầu trời trông mát mẻ và nhiều mây."),
+                    ("snowy", "adjective", "/ˈsnəʊ.i/", "có tuyết rơi", "Children build snowmen on snowy days.", "Trẻ em đắp người tuyết vào ngày có tuyết rơi."),
+                    ("umbrella", "noun", "/ʌmˈbrel.ə/", "cây ô / dù", "She holds a bright yellow umbrella.", "Cô ấy cầm một cây ô màu vàng rực rỡ."),
                 ]
             },
-            # Pool 5: Travel & Airports
+            # Day 6: Family & Relatives
             {
-                "topic": "Du lịch & Sân bay",
+                "topic": "Gia đình & Người thân yêu",
                 "words": [
-                    ("airport", "noun", "/ˈeə.pɔːt/", "sân bay", "We arrived at the airport early.", "Chúng tôi đã đến sân bay sớm."),
-                    ("passport", "noun", "/ˈpɑːs.pɔːt/", "hộ chiếu", "Keep your passport safe while traveling.", "Hãy giữ hộ chiếu an toàn khi đi du lịch."),
-                    ("flight", "noun", "/flaɪt/", "chuyến bay", "Our flight departs in 30 minutes.", "Chuyến bay của chúng tôi khởi hành trong 30 phút."),
-                    ("hotel", "noun", "/həʊˈtel/", "khách sạn", "We stayed at a cozy hotel.", "Chúng tôi đã ở một khách sạn ấm cúng."),
-                    ("luggage", "noun", "/ˈlʌɡ.ɪdʒ/", "hành lý", "Check your luggage before leaving.", "Kiểm tra hành lý của bạn trước khi đi."),
-                    ("beach", "noun", "/biːtʃ/", "bãi biển", "Children build sandcastles on the beach.", "Trẻ em xây lâu đài cát trên bãi biển."),
+                    ("family", "noun", "/ˈfæm.əl.i/", "gia đình", "My family loves spending time together.", "Gia đình tôi thích dành thời gian bên nhau."),
+                    ("father", "noun", "/ˈfɑː.ðər/", "người bố", "My father teaches me how to ride a bike.", "Bố dạy tôi cách đi xe đạp."),
+                    ("mother", "noun", "/ˈmʌð.ər/", "người mẹ", "My mother always cares for everyone.", "Mẹ luôn luôn chăm sóc chu đáo cho mọi người."),
+                    ("brother", "noun", "/ˈbrʌð.ər/", "anh/em trai", "My brother is good at football.", "Anh trai tôi chơi bóng đá rất giỏi."),
+                    ("sister", "noun", "/ˈsɪs.tər/", "chị/em gái", "My sister draws beautiful landscapes.", "Chị gái tôi vẽ tranh phong cảnh rất đẹp."),
+                    ("parents", "noun", "/ˈpeə.rənts/", "bố mẹ", "I love and respect my parents dearly.", "Tôi vô cùng yêu thương và kính trọng bố mẹ."),
                 ]
-            }
+            },
+            # Day 7: Sports & Outdoor Activities
+            {
+                "topic": "Thể thao & Trò chơi vận động",
+                "words": [
+                    ("football", "noun", "/ˈfʊt.bɔːl/", "bóng đá", "Boys play football in the schoolyard.", "Các bạn nam chơi bóng đá trong sân trường."),
+                    ("basketball", "noun", "/ˈbɑː.skɪt.bɔːl/", "bóng rổ", "Basketball helps us grow taller.", "Môn bóng rổ giúp chúng ta phát triển chiều cao."),
+                    ("swimming", "noun", "/ˈswɪm.ɪŋ/", "bơi lội", "Swimming is great exercise in summer.", "Bơi lội là bài tập rèn luyện tuyệt vời vào mùa hè."),
+                    ("running", "noun", "/ˈrʌn.ɪŋ/", "chạy bộ", "Running every morning keeps us fit.", "Chạy bộ mỗi sáng giúp chúng ta khỏe khoắn."),
+                    ("bicycle", "noun", "/ˈbaɪ.sɪ.kəl/", "xe đạp", "I ride my bicycle to school every day.", "Tôi đạp xe đạp đến trường mỗi ngày."),
+                    ("exercise", "noun", "/ˈek.sə.saɪz/", "tập thể dục", "Daily exercise gives us energy.", "Tập thể dục hàng ngày mang lại cho ta nhiều năng lượng."),
+                ]
+            },
+            # Day 8: Jobs & Dream Careers
+            {
+                "topic": "Nghề nghiệp trong tương lai",
+                "words": [
+                    ("doctor", "noun", "/ˈdɒk.tər/", "bác sĩ", "The doctor helps sick people get well.", "Bác sĩ giúp người bệnh hồi phục sức khỏe."),
+                    ("nurse", "noun", "/nɜːs/", "y tá", "The nurse is kind and caring to patients.", "Cô y tá rất ân cần và chăm sóc bệnh nhân chu đáo."),
+                    ("teacher", "noun", "/ˈtiː.tʃər/", "giáo viên", "A teacher inspires students to learn.", "Giáo viên truyền cảm hứng học tập cho học sinh."),
+                    ("pilot", "noun", "/ˈpaɪ.lət/", "phi công", "The brave pilot flies planes across oceans.", "Người phi công dũng cảm lái máy bay qua các đại dương."),
+                    ("farmer", "noun", "/ˈfɑː.mər/", "nông dân", "Farmers grow rice and fresh vegetables.", "Bác nông dân trồng lúa và rau củ tươi."),
+                    ("chef", "noun", "/ʃef/", "đầu bếp", "The chef prepares delicious banquet dishes.", "Bếp trưởng chế biến những món tiệc thơm ngon."),
+                ]
+            },
+            # Day 9: Clothes & Daily Outfits
+            {
+                "topic": "Trang phục & Quần áo",
+                "words": [
+                    ("shirt", "noun", "/ʃɜːt/", "áo sơ mi", "He wears a clean white shirt to school.", "Cậu ấy mặc chiếc áo sơ mi trắng tinh đến trường."),
+                    ("dress", "noun", "/dres/", "chiếc váy liền", "She chose a lovely pink dress for party.", "Cô bé chọn một chiếc váy hồng xinh xắn cho bữa tiệc."),
+                    ("jacket", "noun", "/ˈdʒæk.ɪt/", "áo khoác", "Put on a warm jacket because it is cold.", "Hãy mặc áo khoác ấm vì trời đang lạnh."),
+                    ("shoes", "noun", "/ʃuːz/", "đôi giày", "He tied the laces of his running shoes.", "Cậu bé buộc dây đôi giày chạy của mình."),
+                    ("hat", "noun", "/hæt/", "cái mũ", "Wear a wide hat to shield from sunlight.", "Đội mũ rộng vành để che ánh nắng mặt trời."),
+                    ("pants", "noun", "/pænts/", "quần dài", "These dark blue pants fit him well.", "Chiếc quần dài màu xanh đậm này rất vừa vặn với cậu ấy."),
+                ]
+            },
+            # Day 10: Fresh Fruits & Vegetables
+            {
+                "topic": "Trái cây & Rau củ quả tươi",
+                "words": [
+                    ("banana", "noun", "/bəˈnɑː.nə/", "quả chuối", "Monkeys love sweet yellow bananas.", "Những chú khỉ rất thích quả chuối vàng ngọt ngào."),
+                    ("grape", "noun", "/ɡreɪp/", "quả nho", "Sweet purple grapes grow in bunches.", "Những chùm nho tím ngọt mọc thành từng chùm."),
+                    ("watermelon", "noun", "/ˈwɔː.təˌmel.ən/", "dưa hấu", "Cold watermelon is perfect on hot days.", "Dưa hấu ướp lạnh là món tuyệt nhất trong ngày hè oi bức."),
+                    ("strawberry", "noun", "/ˈstrɔː.bər.i/", "dâu tây", "Red strawberries are sweet and juicy.", "Những quả dâu tây đỏ mọng nước và ngọt thơm."),
+                    ("tomato", "noun", "/təˈmɑː.təʊ/", "cà chua", "Fresh tomatoes make healthy salads.", "Cà chua tươi làm món salad rất tốt cho sức khỏe."),
+                    ("carrot", "noun", "/ˈkær.ət/", "cà rốt", "Rabbits enjoy eating crunchy orange carrots.", "Những chú thỏ thích ăn cà rốt cam giòn ngọt."),
+                ]
+            },
+            # Day 11: City Life & Transportation
+            {
+                "topic": "Thành phố & Phương tiện giao thông",
+                "words": [
+                    ("car", "noun", "/kɑːr/", "xe ô tô", "My father drives a blue electric car.", "Bố tôi lái một chiếc xe ô tô điện màu xanh."),
+                    ("bus", "noun", "/bʌs/", "xe buýt", "Many people take the bus to work.", "Nhiều người đi làm bằng xe buýt công cộng."),
+                    ("train", "noun", "/treɪn/", "tàu hỏa", "The modern train runs smoothly on tracks.", "Đoàn tàu hiện đại lướt êm ái trên đường ray."),
+                    ("plane", "noun", "/pleɪn/", "máy bay", "The plane took off into the blue sky.", "Chiếc máy bay cất cánh bay vào bầu trời xanh."),
+                    ("boat", "noun", "/bəʊt/", "thuyền", "The wooden boat sails across the river.", "Chiếc thuyền gỗ lướt qua dòng sông."),
+                    ("airport", "noun", "/ˈeə.pɔːt/", "sân bay", "We arrived at the international airport early.", "Chúng tôi đến sân bay quốc tế sớm."),
+                ]
+            },
+            # Day 12: Beach & Summer Vacation
+            {
+                "topic": "Kỳ nghỉ bãi biển & Mùa hè",
+                "words": [
+                    ("beach", "noun", "/biːtʃ/", "bãi biển", "Children build yellow sandcastles on beach.", "Trẻ em xây lâu đài cát vàng trên bãi biển."),
+                    ("sea", "noun", "/siː/", "biển cả", "The calm blue sea looks peaceful today.", "Biển xanh êm đềm trông thật bình yên hôm nay."),
+                    ("ocean", "noun", "/ˈəʊ.ʃən/", "đại dương", "The deep ocean hides many secrets.", "Đại dương sâu thẳm ẩn chứa nhiều điều kỳ bí."),
+                    ("sand", "noun", "/sænd/", "bờ cát", "Walking barefoot on warm sand is relaxing.", "Đi chân trần trên cát ấm thật thư giãn."),
+                    ("hotel", "noun", "/həʊˈtel/", "khách sạn", "We booked a comfortable seaside hotel.", "Chúng tôi đã đặt một khách sạn ven biển tiện nghi."),
+                    ("sun", "noun", "/sʌn/", "mặt trời", "The morning sun shines over the waves.", "Ánh mặt trời buổi sớm chiếu rọi lên những con sóng."),
+                ]
+            },
+            # Day 13: Feelings & Emotions
+            {
+                "topic": "Cảm xúc & Tâm trạng con người",
+                "words": [
+                    ("happy", "adjective", "/ˈhæp.i/", "vui vẻ", "The cheerful child smiled with happy eyes.", "Đứa trẻ vui vẻ mỉm cười với ánh mắt rạng rỡ."),
+                    ("sad", "adjective", "/sæd/", "buồn bã", "Do not be sad when making mistakes.", "Đừng buồn khi mắc lỗi, hãy cố gắng lên."),
+                    ("friendly", "adjective", "/ˈfrend.li/", "thân thiện", "Our new neighbor is extremely friendly.", "Người hàng xóm mới của chúng tôi vô cùng thân thiện."),
+                    ("tired", "adjective", "/taɪəd/", "mệt mỏi", "Take a short nap when you feel tired.", "Hãy chợp mắt một lúc khi bạn cảm thấy mệt mỏi."),
+                    ("healthy", "adjective", "/ˈhel.θi/", "khỏe mạnh", "Eating fruits keeps your body healthy.", "Ăn trái cây giúp cơ thể bạn luôn khỏe mạnh."),
+                    ("kind", "adjective", "/kaɪnd/", "tốt bụng", "A kind word can brighten someone's day.", "Một lời nói tốt bụng có thể làm rạng rỡ ngày của ai đó."),
+                ]
+            },
+            # Day 14: Body Parts & Health
+            {
+                "topic": "Các bộ phận cơ thể & Sức khỏe",
+                "words": [
+                    ("eye", "noun", "/aɪ/", "mắt", "Protect your eyes from screen glare.", "Hãy bảo vệ đôi mắt khỏi ánh sáng màn hình quá chói."),
+                    ("ear", "noun", "/ɪər/", "tai", "We listen to beautiful music with our ears.", "Chúng ta lắng nghe âm nhạc tuyệt vời bằng đôi tai."),
+                    ("nose", "noun", "/nəʊz/", "mũi", "Dogs have a sharp and sensitive nose.", "Loài chó có chiếc mũi vô cùng thính nhạy."),
+                    ("hand", "noun", "/hænd/", "bàn tay", "Wash your hands cleanly before eating.", "Hãy rửa tay thật sạch sẽ trước khi ăn cơm."),
+                    ("hospital", "noun", "/ˈhɒs.pɪ.təl/", "bệnh viện", "The clean hospital provides great healthcare.", "Bệnh viện sạch sẽ mang lại dịch vụ y tế chu đáo."),
+                    ("exercise", "noun", "/ˈek.sə.saɪz/", "tập luyện", "Morning exercise keeps our muscles strong.", "Tập thể dục buổi sáng giúp cơ bắp dẻo dai khỏe mạnh."),
+                ]
+            },
+            # Day 15: Hobbies & Leisure Time
+            {
+                "topic": "Sở thích & Thời gian rảnh rỗi",
+                "words": [
+                    ("music", "noun", "/ˈmjuː.zɪk/", "âm nhạc", "Listening to soft music helps me relax.", "Nghe nhạc nhẹ nhàng giúp tôi thư giãn tinh thần."),
+                    ("guitar", "noun", "/ɡɪˈtɑːr/", "đàn ghi-ta", "He plays the acoustic guitar very well.", "Cậu ấy chơi đàn ghi-ta thùng rất cừ."),
+                    ("piano", "noun", "/piˈæn.əʊ/", "đàn dương cầm", "She practices classical piano every evening.", "Cô bé luyện tập đàn dương cầm mỗi buổi tối."),
+                    ("book", "noun", "/bʊk/", "đọc sách", "Reading an interesting book opens the mind.", "Đọc một cuốn sách hay giúp mở rộng chân trời tri thức."),
+                    ("game", "noun", "/ɡeɪm/", "trò chơi", "Chess is an intellectual strategic board game.", "Cờ vua là một trò chơi cờ trí tuệ mang tính chiến thuật."),
+                    ("toy", "noun", "/tɔɪ/", "đồ chơi", "Children share their toys politely.", "Các bạn nhỏ chia sẻ đồ chơi với nhau rất lịch sự."),
+                ]
+            },
+            # Day 16: Nature & Green Forest
+            {
+                "topic": "Thiên nhiên & Rừng xanh kỳ thú",
+                "words": [
+                    ("forest", "noun", "/ˈfɒr.ɪst/", "khu rừng", "Tall trees create a green canopy in forest.", "Những hàng cây cao tạo nên tán lá xanh ngút ngàn trong rừng."),
+                    ("tree", "noun", "/triː/", "cái cây", "Planting a tree makes the world greener.", "Trồng một cái cây làm cho thế giới thêm xanh tươi."),
+                    ("flower", "noun", "/ˈflaʊ.ər/", "bông hoa", "Spring brings colorful blooming flowers.", "Mùa xuân mang đến muôn hoa khoe sắc rực rỡ."),
+                    ("mountain", "noun", "/ˈmaʊn.tɪn/", "ngọn núi", "Hikers climbed to the top of the mountain.", "Những người leo núi đã lên tới đỉnh núi cao."),
+                    ("river", "noun", "/ˈrɪv.ər/", "dòng sông", "The gentle river flows quietly to sea.", "Dòng sông êm đềm lững lờ trôi ra biển cả."),
+                    ("lake", "noun", "/leɪk/", "hồ nước", "The peaceful lake reflects white clouds.", "Mặt hồ phẳng lặng phản chiếu những đám mây trắng."),
+                ]
+            },
+            # Day 17: Space & Solar System
+            {
+                "topic": "Vũ trụ & Các hành tinh",
+                "words": [
+                    ("space", "noun", "/speɪs/", "không gian vũ trụ", "Telescopes help scientists observe deep space.", "Kính viễn vọng giúp các nhà khoa học quan sát không gian sâu thẳm."),
+                    ("star", "noun", "/stɑːr/", "ngôi sao", "Twinkling stars light up the night sky.", "Những ngôi sao lấp lánh thắp sáng bầu trời đêm."),
+                    ("moon", "noun", "/muːn/", "mặt trăng", "The full moon glows brightly in the dark.", "Mặt trăng tròn tỏa sáng rực rỡ trong bóng đêm."),
+                    ("planet", "noun", "/ˈplæn.ɪt/", "hành tinh", "Earth is our beautiful blue home planet.", "Trái Đất là hành tinh xanh tươi đẹp của chúng ta."),
+                    ("robot", "noun", "/ˈrəʊ.bɒt/", "người máy", "Smart robots explore distant planets.", "Những người máy thông minh khám phá các hành tinh xa xôi."),
+                    ("sky", "noun", "/skaɪ/", "bầu trời", "The clear blue sky fills with sunshine.", "Bầu trời trong xanh ngập tràn ánh nắng ấm áp."),
+                ]
+            },
+            # Day 18: Birthday Party & Celebrations
+            {
+                "topic": "Tiệc sinh nhật & Lễ hội",
+                "words": [
+                    ("cake", "noun", "/keɪk/", "bánh kem", "She blew out the candles on birthday cake.", "Cô bé thổi nến trên chiếc bánh sinh nhật."),
+                    ("chocolate", "noun", "/ˈtʃɒk.lət/", "sô-cô-la", "Delicious chocolate is sweet and rich.", "Sô-cô-la hảo hạng có vị ngọt ngào và béo ngậy."),
+                    ("friend", "noun", "/frend/", "bạn bè", "All friends sang the birthday song together.", "Tất cả bạn bè cùng nhau hát vang bài hát chúc mừng sinh nhật."),
+                    ("happy", "adjective", "/ˈhæp.i/", "vui sướng", "Everyone felt happy at the lively party.", "Mọi người đều cảm thấy vui sướng tại bữa tiệc náo nhiệt."),
+                    ("music", "noun", "/ˈmjuː.zɪk/", "âm nhạc", "Upbeat music made guests dance cheerfully.", "Âm nhạc sôi động khiến khách dự tiệc khiêu vũ vui vẻ."),
+                    ("orange", "noun", "/ˈɒr.ɪndʒ/", "nước cam", "Guests enjoyed sweet chilled orange juice.", "Khách dự tiệc thưởng thức nước cam ép mát lành."),
+                ]
+            },
+            # Day 19: Music & Musical Instruments
+            {
+                "topic": "Âm nhạc & Các loại nhạc cụ",
+                "words": [
+                    ("guitar", "noun", "/ɡɪˈtɑːr/", "đàn ghi-ta", "He strummed joyful chords on his guitar.", "Cậu ấy gảy những hợp âm vui tươi trên cây đàn ghi-ta."),
+                    ("piano", "noun", "/piˈæn.əʊ/", "đàn dương cầm", "The pianist played smooth melodies on piano.", "Nghệ sĩ dương cầm chơi những giai điệu mượt mà trên đàn."),
+                    ("drums", "noun", "/drʌmz/", "bộ trống", "The powerful rhythm comes from the drums.", "Tiết tấu mạnh mẽ bắt nguồn từ bộ trống sôi động."),
+                    ("singer", "noun", "/ˈsɪŋ.ər/", "ca sĩ", "The talented singer has a crystal voice.", "Người ca sĩ tài năng sở hữu giọng hát trong trẻo."),
+                    ("music", "noun", "/ˈmjuː.zɪk/", "bản nhạc", "Good music inspires creative ideas.", "Âm nhạc hay truyền cảm hứng cho những ý tưởng sáng tạo."),
+                    ("teacher", "noun", "/ˈtiː.tʃər/", "thầy dạy nhạc", "Our music teacher teaches us harmony.", "Thầy giáo dạy nhạc dạy chúng tôi cách hòa âm."),
+                ]
+            },
+            # Day 20: A Day at the Zoo
+            {
+                "topic": "Chuyến dạo chơi Vườn bách thú",
+                "words": [
+                    ("lion", "noun", "/ˈlaɪ.ən/", "sư tử", "The majestic lion rests under shady trees.", "Chú sư tử uy nghi nghỉ ngơi dưới bóng râm mát."),
+                    ("monkey", "noun", "/ˈmʌŋ.ki/", "con khỉ", "The agile monkey swings across branches.", "Chú khỉ nhanh nhẹn chuyền mình qua các cành cây."),
+                    ("giraffe", "noun", "/dʒɪˈrɑːf/", "hươu cao cổ", "The tall giraffe eats tender green leaves.", "Chú hươu cao cổ ăn những chiếc lá xanh non trên ngọn cây."),
+                    ("zebra", "noun", "/ˈzeb.rə/", "ngựa vằn", "Zebras have unique black and white stripes.", "Ngựa vằn có những sọc đen trắng độc đáo không con nào giống con nào."),
+                    ("panda", "noun", "/ˈpæn.də/", "gấu trúc", "The lovely panda chews on fresh bamboo.", "Chú gấu trúc đáng yêu nhai những cành tre tươi."),
+                    ("bear", "noun", "/beər/", "con gấu", "The big brown bear catches river fish.", "Chú gấu nâu to lớn bắt cá dưới dòng suối."),
+                ]
+            },
+            # Day 21: Life on the Farm
+            {
+                "topic": "Nông trại miền quê & Động vật nuôi",
+                "words": [
+                    ("cow", "noun", "/kaʊ/", "con bò sữa", "Cows graze peacefully on green pastures.", "Những chú bò sữa thong thả gặm cỏ trên đồng cỏ xanh."),
+                    ("horse", "noun", "/hɔːs/", "con ngựa", "The fast horse gallops across the field.", "Chú ngựa phi nhanh băng qua cánh đồng bát ngát."),
+                    ("sheep", "noun", "/ʃiːp/", "con cừu", "Fluffy white sheep provide warm soft wool.", "Đàn cừu trắng muốt cung cấp lớp lông cừu mềm mại ấm áp."),
+                    ("duck", "noun", "/dʌk/", "con vịt", "Little yellow ducks swim in the farm pond.", "Những chú vịt con màu vàng bơi lội trong ao nông trại."),
+                    ("chicken", "noun", "/ˈtʃɪk.ɪn/", "con gà", "Chickens peck for grains in the barnyard.", "Đàn gà mổ thóc trong sân chuồng nông trại."),
+                    ("farmer", "noun", "/ˈfɑː.mər/", "bác nông dân", "The diligent farmer starts work at dawn.", "Bác nông dân chăm chỉ bắt đầu công việc từ lúc rạng đông."),
+                ]
+            },
+            # Day 22: Supermarket & Shopping Time
+            {
+                "topic": "Đi siêu thị & Mua sắm",
+                "words": [
+                    ("apple", "noun", "/ˈæp.əl/", "quả táo tươi", "We choose crisp red apples at market.", "Chúng tôi chọn những quả táo đỏ giòn tại chợ."),
+                    ("bread", "noun", "/bred/", "bánh mì thơm", "The bakery section smells of warm bread.", "Khu vực lò nướng thơm lừng mùi bánh mì nóng hổi."),
+                    ("milk", "noun", "/mɪlk/", "sữa tươi tiệt trùng", "We bought two bottles of fresh milk.", "Chúng tôi đã mua hai chai sữa tươi thanh trùng."),
+                    ("tomato", "noun", "/təˈmɑː.təʊ/", "cà chua", "Bright red tomatoes fill the shopping cart.", "Những quả cà chua đỏ mọng đầy ắp xe đẩy mua sắm."),
+                    ("bag", "noun", "/bæɡ/", "túi đựng đồ", "Use cloth bags to protect the environment.", "Hãy dùng túi vải để bảo vệ môi trường."),
+                    ("family", "noun", "/ˈfæm.əl.i/", "gia đình", "Our family shops together on Saturday.", "Gia đình chúng tôi cùng nhau đi mua sắm vào thứ Bảy."),
+                ]
+            },
+            # Day 23: Daily Routines & Time
+            {
+                "topic": "Thói quen sinh hoạt & Thời gian",
+                "words": [
+                    ("clock", "noun", "/klɒk/", "đồng hồ", "The wall clock reminds us of study time.", "Chiếc đồng hồ treo tường nhắc nhở chúng ta đến giờ học bài."),
+                    ("breakfast", "noun", "/ˈbrek.fəst/", "bữa điểm tâm", "A healthy breakfast fuels our school day.", "Bữa sáng lành mạnh tiếp thêm năng lượng cho cả ngày học."),
+                    ("school", "noun", "/skuːl/", "trường học", "We walk cheerfully to our lovely school.", "Chúng tôi vui vẻ rảo bước đến ngôi trường thân yêu."),
+                    ("book", "noun", "/bʊk/", "cuốn sách", "I finish one chapter of my book at night.", "Tôi đọc xong một chương sách vào mỗi buổi tối."),
+                    ("bed", "noun", "/bed/", "chiếc giường", "Go to bed early to wake up refreshed.", "Hãy đi ngủ sớm để thức dậy thật tỉnh táo và sảng khoái."),
+                    ("healthy", "adjective", "/ˈhel.θi/", "lối sống lành mạnh", "Good sleep keeps students energetic and healthy.", "Giấc ngủ ngon giữ cho học sinh luôn tràn đầy năng lượng và khỏe mạnh."),
+                ]
+            },
+            # Day 24: Ocean Life & Sea Animals
+            {
+                "topic": "Đại dương & Sinh vật biển",
+                "words": [
+                    ("whale", "noun", "/weɪl/", "cá voi", "The giant blue whale glides through water.", "Chú cá voi xanh khổng lồ lướt đi nhẹ nhàng trong làn nước."),
+                    ("shark", "noun", "/ʃɑːk/", "cá mập", "Sharks are powerful ocean predators.", "Cá mập là những tay săn mồi dũng mãnh của đại dương."),
+                    ("dolphin", "noun", "/ˈdɒl.fɪn/", "cá heo", "Playful dolphins leap above ocean waves.", "Những chú cá heo tinh nghịch nhảy vút lên khỏi ngọn sóng."),
+                    ("turtle", "noun", "/ˈtɜː.təl/", "rùa biển", "The ancient sea turtle swims across reef.", "Chú rùa biển bơi qua rạn san hô rực rỡ sắc màu."),
+                    ("crab", "noun", "/kræb/", "con cua", "The tiny crab scuttles along sandy shore.", "Chú cua nhỏ bò ngang thoăn thoắt dọc bờ cát."),
+                    ("fish", "noun", "/fɪʃ/", "đàn cá", "Schools of colorful fish glitter in light.", "Những đàn cá đủ màu sắc lấp lánh dưới làn nước trong vắt."),
+                ]
+            },
+            # Day 25: Playground & Fun Park
+            {
+                "topic": "Công viên & Trò chơi giải trí",
+                "words": [
+                    ("running", "noun", "/ˈrʌn.ɪŋ/", "chạy nhảy", "Children love running freely in green park.", "Trẻ em thích chạy nhảy tự do trong công viên xanh mát."),
+                    ("bicycle", "noun", "/ˈbaɪ.sɪ.kəl/", "xe đạp", "Riding a bicycle in the park is refreshing.", "Đạp xe trong công viên mang lại cảm giác thật sảng khoái."),
+                    ("friend", "noun", "/frend/", "bạn bè", "We meet close friends at neighborhood park.", "Chúng tôi gặp gỡ những người bạn thân tại công viên gần nhà."),
+                    ("sunny", "adjective", "/ˈsʌn.i/", "nắng đẹp", "A warm sunny afternoon is great for sports.", "Một buổi chiều nắng ấm thật lý tưởng để rèn luyện thể thao."),
+                    ("tree", "noun", "/triː/", "bóng cây xanh", "Old trees provide cool shade for park visitors.", "Những cây cổ thụ che bóng mát cho khách dạo chơi công viên."),
+                    ("happy", "adjective", "/ˈhæp.i/", "vui sướng", "Laughter makes every child feel happy.", "Tiếng cười rộn rã khiến mọi bạn nhỏ đều cảm thấy vui sướng."),
+                ]
+            },
+            # Day 26: Kitchen & Cooking Fun
+            {
+                "topic": "Nhà bếp & Nấu ăn gia đình",
+                "words": [
+                    ("kitchen", "noun", "/ˈkɪtʃ.ɪn/", "nhà bếp", "The clean kitchen smells of spices and herbs.", "Gian bếp sạch sẽ thơm nồng hương gia vị thảo mộc."),
+                    ("soup", "noun", "/suːp/", "món súp", "Warm vegetable soup is comforting on cold days.", "Món súp rau củ nóng hổi xua tan cái lạnh giá."),
+                    ("rice", "noun", "/raɪs/", "cơm nóng", "Steamed white rice accompanies every dish.", "Cơm trắng nóng hổi ăn kèm với các món thật ngon miệng."),
+                    ("egg", "noun", "/eɡ/", "trứng gà", "Boiled eggs give essential natural proteins.", "Trứng gà luộc cung cấp nguồn đạm tự nhiên thiết yếu."),
+                    ("table", "noun", "/ˈteɪ.bəl/", "bàn ăn", "We sit around dining table and share stories.", "Chúng tôi ngồi quanh bàn ăn và chia sẻ những câu chuyện ấm cúng."),
+                    ("cook", "noun", "/kʊk/", "người nấu nướng", "Good cooking brings the entire family together.", "Nấu ăn ngon gắn kết tất cả thành viên trong gia đình lại với nhau."),
+                ]
+            },
+            # Day 27: Toys & Childhood Games
+            {
+                "topic": "Đồ chơi & Trò chơi tuổi thơ",
+                "words": [
+                    ("toy", "noun", "/tɔɪ/", "đồ chơi", "Put your toys neatly in storage box.", "Hãy cất đồ chơi gọn gàng vào hộp sau khi chơi xong."),
+                    ("robot", "noun", "/ˈrəʊ.bɒt/", "chú người máy", "The futuristic robot lights up and talks.", "Chú người máy tương lai phát sáng và biết nói tiếng người."),
+                    ("game", "noun", "/ɡeɪm/", "trò chơi", "Board games teach kids cooperation skills.", "Trò chơi cờ bàn dạy trẻ nhỏ kỹ năng hợp tác cùng nhau."),
+                    ("ball", "noun", "/bɔːl/", "quả bóng", "Kick the soccer ball into the goalpost.", "Hãy sút quả bóng vào lưới thật chuẩn xác."),
+                    ("book", "noun", "/bʊk/", "truyện tranh", "Comic books have exciting superhero adventures.", "Truyện tranh chứa đựng những chuyến phiêu lưu kỳ thú của siêu anh hùng."),
+                    ("friend", "noun", "/frend/", "bạn đồng hành", "Sharing games makes friends even closer.", "Cùng nhau chơi trò chơi giúp bạn bè ngày càng thân thiết hơn."),
+                ]
+            },
+            # Day 28: Fun Science & Experiments
+            {
+                "topic": "Khoa học vui & Thí nghiệm kỳ thú",
+                "words": [
+                    ("science", "noun", "/ˈsaɪ.əns/", "khoa học", "Science helps us understand natural laws.", "Khoa học giúp chúng ta hiểu rõ các quy luật tự nhiên."),
+                    ("computer", "noun", "/kəmˈpjuː.tər/", "máy tính", "Computers process data at incredible speeds.", "Máy vi tính xử lý dữ liệu với tốc độ phi thường."),
+                    ("robot", "noun", "/ˈrəʊ.bɒt/", "người máy tự hành", "Robotic arms build cars in factories.", "Những cánh tay người máy lắp ráp xe hơi trong nhà máy."),
+                    ("star", "noun", "/stɑːr/", "ngôi sao thiên văn", "Astronomers study stars with giant telescopes.", "Các nhà thiên văn học nghiên cứu các vì sao bằng kính viễn vọng lớn."),
+                    ("planet", "noun", "/ˈplæn.ɪt/", "hành tinh xa xôi", "Probes take photos of red planet Mars.", "Các tàu thăm dò chụp ảnh hành tinh đỏ Sao Hỏa."),
+                    ("student", "noun", "/ˈstjuː.dənt/", "nhà khoa học nhí", "Young students ask curious insightful questions.", "Những học sinh nhỏ tuổi luôn đặt ra những câu hỏi tò mò đầy sắc sảo."),
+                ]
+            },
+            # Day 29: Camping & Picnic Adventure
+            {
+                "topic": "Cắm trại & Thám hiểm thiên nhiên",
+                "words": [
+                    ("forest", "noun", "/ˈfɒr.ɪst/", "rừng xanh", "We pitched our canvas tent near forest.", "Chúng tôi dựng lều vải gần bìa rừng xanh mát."),
+                    ("mountain", "noun", "/ˈmaʊn.tɪn/", "đỉnh núi cao", "The mountain trail leads to a clear spring.", "Lối mòn leo núi dẫn đến một con suối trong vắt."),
+                    ("water", "noun", "/ˈwɔː.tər/", "nước uống tinh khiết", "Carry enough clean drinking water on hikes.", "Mang đủ nước uống tinh khiết cho chuyến đi bộ dã ngoại."),
+                    ("tree", "noun", "/triː/", "hàng cây che mát", "Campers rested under the shade of pines.", "Những người cắm trại nghỉ ngơi dưới bóng mát của rặng thông."),
+                    ("bird", "noun", "/bɜːd/", "chim hót", "Forest birds sing sweetly in early morning.", "Những chú chim rừng cất tiếng hót líu lo vào sớm mai."),
+                    ("backpack", "noun", "/ˈbæk.pæk/", "ba lô dã ngoại", "Pack your warm clothes in backpack.", "Hãy xếp quần áo ấm cẩn thận vào trong ba lô."),
+                ]
+            },
+            # Day 30: World Countries & Travel
+            {
+                "topic": "Các quốc gia & Du lịch thế giới",
+                "words": [
+                    ("airplane", "noun", "/ˈeə.pleɪn/", "máy bay đường dài", "The airplane crosses continents overnight.", "Chiếc máy bay vượt qua các lục địa trong đêm."),
+                    ("airport", "noun", "/ˈeə.pɔːt/", "sân bay quốc tế", "Check passport carefully at border control.", "Kiểm tra hộ chiếu cẩn thận tại cổng kiểm soát xuất nhập cảnh."),
+                    ("hotel", "noun", "/həʊˈtel/", "khách sạn nghỉ dưỡng", "The hotel staff greeted travelers warmly.", "Nhân viên khách sạn nồng nhiệt chào đón du khách bốn phương."),
+                    ("city", "noun", "/ˈsɪt.i/", "thành phố lớn", "Historical cities showcase cultural treasures.", "Các thành phố lịch sử lưu giữ những kho báu văn hóa quý báu."),
+                    ("map", "noun", "/mæp/", "bản đồ thế giới", "Check the city map before starting the tour.", "Hãy xem bản đồ thành phố trước khi bắt đầu chuyến tham quan."),
+                    ("luggage", "noun", "/ˈlʌɡ.ɪdʒ/", "hành lý du lịch", "Keep your travel luggage organized and secure.", "Giữ hành lý du lịch của bạn thật gọn gàng và an toàn."),
+                ]
+            },
+            # Day 31: Flowers & Beautiful Garden
+            {
+                "topic": "Khu vườn hoa & Cây cối xanh tươi",
+                "words": [
+                    ("garden", "noun", "/ˈɡɑː.dən/", "khu vườn", "Our backyard garden is peaceful and green.", "Khu vườn sau nhà chúng tôi thật yên bình và xanh tươi."),
+                    ("flower", "noun", "/ˈflaʊ.ər/", "bông hoa tươi", "Bees collect sweet nectar from colorful flowers.", "Những chú ong chăm chỉ lấy mật ngọt từ muôn hoa."),
+                    ("rose", "noun", "/rəʊz/", "hoa hồng đỏ", "The red rose has sweet fragrant perfume.", "Bông hoa hồng đỏ tỏa ngát hương thơm dịu dàng."),
+                    ("butterfly", "noun", "/ˈbʌt.ə.flaɪ/", "bướm xinh", "A painted butterfly rests on sunflower.", "Một chú bướm xinh xắn đậu nhẹ trên bông hoa hướng dương."),
+                    ("tree", "noun", "/triː/", "cây bóng mát", "Fruit trees blossom abundantly in springtime.", "Những cây ăn quả nở hoa xum xuê khi mùa xuân về."),
+                    ("sun", "noun", "/sʌn/", "ánh nắng ấm", "Warm gentle sun nourishes every green plant.", "Ánh mặt trời dịu ấm nuôi dưỡng từng mầm cây xanh tốt."),
+                ]
+            },
         ]
 
-        # Select topic pool based on matching or day rotation
+        # Select topic pool: Match keywords if user searched a specific topic, otherwise rotate by calendar day
         selected_pool = None
         for pool in TOPIC_POOLS:
-            if any(k in t_lower for k in pool["topic"].lower().split()):
+            p_words = [w.strip() for w in pool["topic"].lower().replace("&", " ").split() if len(w.strip()) > 2]
+            if any(pw in t_lower for pw in p_words):
                 selected_pool = pool
                 break
 
@@ -793,6 +1335,7 @@ CHỈ TRẢ VỀ VĂN BẢN JSON HỢP LỆ."""
             selected_pool = TOPIC_POOLS[day_seed]
 
         words = selected_pool["words"]
+        used_images: Set[str] = set()
 
         flashcards = [
             VocabFlashcard(
@@ -801,7 +1344,7 @@ CHỈ TRẢ VỀ VĂN BẢN JSON HỢP LỆ."""
                 part_of_speech=w[1],
                 ipa=w[2],
                 meaning=w[3],
-                image_url=get_accurate_vocab_image(w[0], topic_title),
+                image_url=get_accurate_vocab_image(w[0], topic_title, index=i, used_urls=used_images),
                 audio_text=w[0],
                 example_sentence=w[4],
                 example_translation=w[5],
@@ -809,14 +1352,14 @@ CHỈ TRẢ VỀ VĂN BẢN JSON HỢP LỆ."""
             for i, w in enumerate(words)
         ]
 
-        # 8 Rich Multimodal Exercises (2 MATCH_IMAGE, 2 LISTEN_SELECT, 2 WORD_TYPING, 2 FILL_BLANK)
+        # 8 Rich Multimodal Exercises (Exercises 1 & 2 use the exact distinct flashcard image for that word)
         exercises = [
             # 1. MATCH_IMAGE 1
             MultimodalExercise(
                 id=custom_id * 20 + 1,
                 exercise_type="MATCH_IMAGE",
                 prompt=f"Từ vựng nào miêu tả đúng nghĩa '{words[0][3]}' trong hình?",
-                media_url=get_accurate_vocab_image(words[0][0], topic_title),
+                media_url=flashcards[0].image_url,
                 audio_text=words[0][0],
                 options=[
                     ExerciseOption(option_key="A", content=words[0][0].capitalize()),
@@ -832,7 +1375,7 @@ CHỈ TRẢ VỀ VĂN BẢN JSON HỢP LỆ."""
                 id=custom_id * 20 + 2,
                 exercise_type="MATCH_IMAGE",
                 prompt=f"Hình ảnh trên minh họa chính xác từ Tiếng Anh nào cho '{words[1][3]}':",
-                media_url=get_accurate_vocab_image(words[1][0], topic_title),
+                media_url=flashcards[1].image_url,
                 audio_text=words[1][0],
                 options=[
                     ExerciseOption(option_key="A", content=words[3][0].capitalize()),
@@ -897,7 +1440,7 @@ CHỈ TRẢ VỀ VĂN BẢN JSON HỢP LỆ."""
             MultimodalExercise(
                 id=custom_id * 20 + 7,
                 exercise_type="FILL_BLANK",
-                prompt=f"📝 Điền từ còn thiếu vào câu: '{words[0][4].replace(words[0][0], '_____')}'",
+                prompt=f"📝 Điền từ còn thiếu vào câu: '{re.sub(rf'(?i)\b{re.escape(words[0][0])}\b', '_____', words[0][4])}'",
                 audio_text=words[0][4],
                 options=[],
                 correct_answer=words[0][0],
@@ -907,7 +1450,7 @@ CHỈ TRẢ VỀ VĂN BẢN JSON HỢP LỆ."""
             MultimodalExercise(
                 id=custom_id * 20 + 8,
                 exercise_type="FILL_BLANK",
-                prompt=f"📝 Điền từ còn thiếu vào câu: '{words[1][4].replace(words[1][0], '_____')}'",
+                prompt=f"📝 Điền từ còn thiếu vào câu: '{re.sub(rf'(?i)\b{re.escape(words[1][0])}\b', '_____', words[1][4])}'",
                 audio_text=words[1][4],
                 options=[],
                 correct_answer=words[1][0],
@@ -980,10 +1523,10 @@ CHỈ TRẢ VỀ VĂN BẢN JSON HỢP LỆ."""
 
         return EnglishUnitDetailResponse(
             unit_id=custom_id,
-            title=f"AI Unit: {topic_title}",
+            title=f"Unit 8 Phút: {topic_title}",
             topic=topic_title,
             grade=grade,
-            description=f"Bài ôn tập Tiếng Anh AI 8 Phút chủ đề: {topic_title}.",
+            description=f"Bài ôn tập Tiếng Anh AI 8 Phút chuẩn GDPT 2018 chủ đề: {topic_title}.",
             flashcards=flashcards,
             exercises=exercises,
             speaking_prompts=speaking_prompts,

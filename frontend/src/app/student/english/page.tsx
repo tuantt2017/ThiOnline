@@ -39,16 +39,58 @@ export default function EnglishLearningHubPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isRecalculating, setIsRecalculating] = useState(false);
   const [isStartingDaily, setIsStartingDaily] = useState(false);
+  const [dailyPracticeCounter, setDailyPracticeCounter] = useState(0);
+
+  const DAILY_THEMES = [
+    { en: 'Animals & Pets', vi: 'Động vật hoang dã & Thú cưng' },
+    { en: 'Delicious Food & Drinks', vi: 'Món ăn & Đồ uống yêu thích' },
+    { en: 'School Life & Classroom', vi: 'Trường học & Đồ dùng học tập' },
+    { en: 'My Lovely Home & Rooms', vi: 'Ngôi nhà & Đồ nội thất' },
+    { en: 'Weather & Four Seasons', vi: 'Thời tiết & Bốn mùa trong năm' },
+    { en: 'Family & Relatives', vi: 'Gia đình & Người thân yêu' },
+    { en: 'Sports & Outdoor Activities', vi: 'Thể thao & Trò chơi vận động' },
+    { en: 'Jobs & Dream Careers', vi: 'Nghề nghiệp trong tương lai' },
+    { en: 'Clothes & Daily Outfits', vi: 'Trang phục & Quần áo' },
+    { en: 'Fresh Fruits & Vegetables', vi: 'Trái cây & Rau củ quả tươi' },
+    { en: 'City Life & Transportation', vi: 'Thành phố & Phương tiện giao thông' },
+    { en: 'Beach & Summer Vacation', vi: 'Kỳ nghỉ bãi biển & Mùa hè' },
+    { en: 'Feelings & Emotions', vi: 'Cảm xúc & Tâm trạng con người' },
+    { en: 'Body Parts & Healthy Habits', vi: 'Các bộ phận cơ thể & Sức khỏe' },
+    { en: 'Hobbies & Leisure Time', vi: 'Sở thích & Thời gian rảnh rỗi' },
+    { en: 'Nature & Green Forest', vi: 'Thiên nhiên & Rừng xanh kỳ thú' },
+    { en: 'Space & Solar System', vi: 'Vũ trụ & Các hành tinh' },
+    { en: 'Birthday Party & Celebrations', vi: 'Tiệc sinh nhật & Lễ hội' },
+    { en: 'Music & Musical Instruments', vi: 'Âm nhạc & Các loại nhạc cụ' },
+    { en: 'A Day at the Zoo', vi: 'Chuyến dạo chơi Vườn bách thú' },
+    { en: 'Life on the Farm', vi: 'Nông trại miền quê & Động vật nuôi' },
+    { en: 'Supermarket & Shopping Time', vi: 'Đi siêu thị & Mua sắm' },
+    { en: 'Daily Routines & Time', vi: 'Thói quen sinh hoạt & Thời gian' },
+    { en: 'Ocean Wonders & Marine Life', vi: 'Đại dương & Sinh vật biển' },
+    { en: 'Playground & Fun Park', vi: 'Công viên & Trò chơi giải trí' },
+    { en: 'Kitchen & Cooking Fun', vi: 'Nhà bếp & Nấu ăn gia đình' },
+    { en: 'Toys & Fun Games', vi: 'Đồ chơi & Trò chơi tuổi thơ' },
+    { en: 'Fun Science & Experiments', vi: 'Khoa học vui & Thí nghiệm kỳ thú' },
+    { en: 'Camping & Picnic Adventure', vi: 'Cắm trại & Thám hiểm thiên nhiên' },
+    { en: 'Countries & World Cultures', vi: 'Các quốc gia & Du lịch thế giới' },
+    { en: 'Flowers & Beautiful Garden', vi: 'Khu vườn hoa & Cây cối xanh tươi' },
+  ];
 
   const handleStartDaily8MinPractice = async () => {
     if (isStartingDaily) return;
     setIsStartingDaily(true);
     try {
-      const todayStr = new Date().toLocaleDateString('vi-VN');
-      const randomSeed = Math.floor(Math.random() * 9000) + 1000;
-      const topic = `Thử Thách Tiếng Anh 8 Phút Hàng Ngày (${todayStr}) #${randomSeed}`;
+      const now = new Date();
+      const startOfYear = new Date(now.getFullYear(), 0, 0);
+      const diff = now.getTime() - startOfYear.getTime();
+      const oneDay = 1000 * 60 * 60 * 24;
+      const dayOfYear = Math.floor(diff / oneDay);
+
+      const themeIdx = (dayOfYear + dailyPracticeCounter) % DAILY_THEMES.length;
+      const theme = DAILY_THEMES[themeIdx];
+      const topic = `${theme.vi} (${theme.en})`;
 
       const generated = await api.generateCustomEnglishUnit(topic, data?.grade || 5);
+      setDailyPracticeCounter((prev) => prev + 1);
       const targetId = generated?.unit_id ?? 1;
       router.push(`/student/english/unit/${targetId}`);
     } catch (err: any) {
@@ -339,6 +381,10 @@ export default function EnglishLearningHubPage() {
             <div>
               <div className="flex items-center gap-2 text-purple-700 font-bold text-sm mb-2">
                 <Flame className="w-5 h-5 text-amber-500 animate-pulse" /> AI Daily English Coach (8 Phút Hàng Ngày)
+              </div>
+              <div className="mb-2.5 text-xs font-semibold text-indigo-800 bg-white/95 px-3 py-1.5 rounded-xl border border-indigo-200 shadow-2xs flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                <span>Chủ đề hôm nay: <strong className="text-purple-700">{DAILY_THEMES[Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000) % DAILY_THEMES.length].vi}</strong></span>
               </div>
               <p className="text-xs text-slate-700 leading-relaxed font-medium bg-white/90 p-4 rounded-2xl border border-purple-100 shadow-xs">
                 {data.ai_daily_coaching_advice}
