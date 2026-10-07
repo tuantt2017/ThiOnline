@@ -155,3 +155,49 @@ def test_clean_math_notation():
     assert "9 600 000" in cleaned_numbers
 
 
+def test_history_geography_fallback_no_duplicate_and_correct_subject(db: Session, teacher_user):
+    req = AiQuestionGenerateRequest(
+        subject="Lịch sử & Địa lí",
+        grade=4,
+        count=8,
+        difficulty_distribution=DifficultyDistribution(easy=40, medium=40, hard=20),
+        use_web_context=True,
+        save_as_draft=False,
+    )
+    # Generate questions (via fallback when GEMINI is mock/offline)
+    questions = GeminiQuestionGenerator._fallback_generate_questions(req, "")
+    assert len(questions) == 8
+
+    # 1. No duplicates
+    texts = [q["question_text"] for q in questions]
+    assert len(texts) == len(set(texts)), "Tất cả các câu hỏi phải khác nhau, không được trùng lặp!"
+
+    # 2. No incorrect Vietnamese grammar questions like 'từ ghép' in History & Geography
+    for q in questions:
+        assert "từ ghép" not in q["question_text"].lower()
+        assert "(câu ai #" not in q["question_text"].lower()
+        is_valid, errors = BackendQuestionValidator.validate_question(q)
+        assert is_valid, f"Validation failed for question: {errors}"
+        assert len(q["options"]) == 4
+        assert sum(1 for o in q["options"] if o["is_correct"]) == 1
+
+
+def test_multi_subject_fallback_diversity():
+    subjects = ["Toán", "Tiếng Việt", "Khoa học", "Tiếng Anh", "Tin học", "Đạo đức", "Công nghệ"]
+    for sub in subjects:
+        req = AiQuestionGenerateRequest(
+            subject=sub,
+            grade=4,
+            count=5,
+            difficulty_distribution=DifficultyDistribution(easy=40, medium=40, hard=20),
+        )
+        questions = GeminiQuestionGenerator._fallback_generate_questions(req, "")
+        assert len(questions) == 5
+        texts = [q["question_text"] for q in questions]
+        assert len(texts) == len(set(texts)), f"Môn {sub} có câu hỏi trùng lặp!"
+        for q in questions:
+            is_valid, errors = BackendQuestionValidator.validate_question(q)
+            assert is_valid, f"Môn {sub} có câu hỏi không hợp lệ: {errors}"
+
+
+
