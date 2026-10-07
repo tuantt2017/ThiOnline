@@ -167,3 +167,22 @@ def test_reward_api_endpoints(client, student_user, student_headers, admin_heade
     assert r_delete.status_code == 200
     assert r_delete.json()["deleted"] is True
 
+
+def test_reward_image_proxy_endpoint(client, monkeypatch):
+    # Test invalid url
+    r_bad = client.get("/api/v1/rewards/image-proxy?url=invalid-url")
+    assert r_bad.status_code == 400
+
+    # Test valid image proxy mock
+    class DummyResponse:
+        status_code = 200
+        content = b"RIFF....WEBPVP8 "
+        headers = {"content-type": "image/webp"}
+
+    monkeypatch.setattr("httpx.Client.get", lambda *args, **kwargs: DummyResponse())
+    r_proxy = client.get("/api/v1/rewards/image-proxy?url=https://down-vn.img.susercontent.com/file/vn-11134207-820l4-mibgmon17x1g25.webp")
+    assert r_proxy.status_code == 200
+    assert r_proxy.headers["content-type"] == "image/webp"
+    assert r_proxy.content == b"RIFF....WEBPVP8 "
+
+

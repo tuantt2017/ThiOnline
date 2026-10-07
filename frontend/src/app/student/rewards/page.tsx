@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { api } from '@/lib/api';
 import { RewardItem, GiftRedemption, DiamondTransaction, RewardBalance } from '@/types';
+import { RewardImage } from '@/components/RewardImage';
 
 export default function StudentRewardsPage() {
   const [balance, setBalance] = useState<RewardBalance | null>(null);
@@ -209,17 +210,11 @@ export default function StudentRewardsPage() {
                     >
                       {/* Image container */}
                       <div className="relative h-48 bg-slate-900 overflow-hidden">
-                        {item.image_url ? (
-                          <img
-                            src={item.image_url}
-                            alt={item.title}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-5xl bg-gradient-to-br from-slate-800 to-slate-900 text-cyan-400">
-                            🎁
-                          </div>
-                        )}
+                        <RewardImage
+                          src={item.image_url}
+                          alt={item.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
                         <span className="absolute top-3 left-3 bg-slate-950/80 backdrop-blur-md border border-slate-700 text-cyan-300 text-[11px] font-semibold px-2.5 py-1 rounded-full">
                           {item.category}
                         </span>
@@ -296,20 +291,25 @@ export default function StudentRewardsPage() {
                   {redemptions.map((red) => (
                     <div
                       key={red.id}
-                      className="bg-slate-900/80 border border-slate-700/50 rounded-xl p-4 flex items-center justify-between"
+                      className="bg-slate-900/80 border border-slate-700/50 rounded-xl p-4 flex items-center justify-between gap-4"
                     >
-                      <div className="space-y-1">
-                        <h4 className="font-bold text-sm text-cyan-300">
-                          {red.reward_item?.title || `Vật phẩm #${red.reward_item_id}`}
-                        </h4>
-                        <p className="text-xs text-slate-400">
-                          Trừ {red.diamond_cost} 💎 • Ngày đổi: {new Date(red.created_at).toLocaleDateString('vi-VN')}
-                        </p>
-                        {red.note && (
-                          <p className="text-[11px] text-slate-400 italic">
-                            Ghi chú: {red.note}
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0 border border-slate-700 bg-slate-950">
+                          <RewardImage src={red.reward_item?.image_url} alt="" className="w-full h-full object-cover" />
+                        </div>
+                        <div className="space-y-1">
+                          <h4 className="font-bold text-sm text-cyan-300">
+                            {red.reward_item?.title || `Vật phẩm #${red.reward_item_id}`}
+                          </h4>
+                          <p className="text-xs text-slate-400">
+                            Trừ {red.diamond_cost} 💎 • Ngày đổi: {new Date(red.created_at).toLocaleDateString('vi-VN')}
                           </p>
-                        )}
+                          {red.note && (
+                            <p className="text-[11px] text-slate-400 italic">
+                              Ghi chú: {red.note}
+                            </p>
+                          )}
+                        </div>
                       </div>
 
                       <div>
@@ -392,11 +392,9 @@ export default function StudentRewardsPage() {
             </div>
 
             <div className="flex items-center gap-4 bg-slate-800/80 p-3.5 rounded-xl border border-slate-700">
-              {selectedItem.image_url ? (
-                <img src={selectedItem.image_url} alt="" className="w-16 h-16 object-cover rounded-lg" />
-              ) : (
-                <div className="w-16 h-16 rounded-lg bg-cyan-500/20 text-3xl flex items-center justify-center">🎁</div>
-              )}
+              <div className="w-16 h-16 rounded-lg overflow-hidden shrink-0 border border-slate-700 bg-slate-900">
+                <RewardImage src={selectedItem.image_url} alt={selectedItem.title} className="w-full h-full object-cover" />
+              </div>
               <div>
                 <h4 className="font-bold text-white text-sm">{selectedItem.title}</h4>
                 <p className="text-xs text-cyan-300 font-bold mt-1">Chi phí: {selectedItem.diamond_cost} 💎 Kim Cương</p>

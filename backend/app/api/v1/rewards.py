@@ -1,5 +1,7 @@
+import logging
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status
+import httpx
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 from app.api.deps import get_db, get_current_user, get_current_active_admin
 from app.models.user import User
@@ -16,6 +18,8 @@ from app.schemas.reward import (
 )
 from app.services.reward_service import RewardService
 from app.services.trial_guard_service import TrialGuardService
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -171,3 +175,39 @@ def admin_update_redemption_status(
         "reward_item": redemption.reward_item,
         "user_name": redemption.user.full_name if redemption.user else None,
     }
+
+
+@router.get("/image-proxy", summary="Proxy hình ảnh quà tặng ngoài (như ảnh .webp Shopee/susercontent)")
+def reward_image_proxy(url: str):
+    """
+    Public proxy for external reward images (including .webp, .png, .jpg, .svg)
+    that block hotlinking by checking the browser Referer header (e.g. susercontent.com, Shopee, etc.).
+    """
+    clean_url = url.strip()
+    if not clean_url.startswith(("http://", "https://")):
+        raise HTTPException(status_code=400, detail="URL hình ảnh không hợp lệ")
+
+    try:
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+        }
+        with httpx.Client(timeout=10.0, follow_redirects=True) as client:
+            resp = client.get(clean_url, headers=headers)
+            if resp.status_code != 200:
+                raise HTTPException(status_code=resp.status_code, detail="Không thể tải ảnh từ máy chủ nguồn")
+
+            content_type = resp.headers.get("content-type", "image/webp")
+            return Response(
+                content=resp.content,
+                media_type=content_type,
+                headers={
+                    "Cache-Control": "public, max-age=86400, s-maxage=86400",
+                },
+            )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.warning(f"Lỗi khi proxy ảnh quà tặng {clean_url}: {e}")
+        raise HTTPException(status_code=502, detail="Lỗi kết nối tới máy chủ nguồn ảnh")
+

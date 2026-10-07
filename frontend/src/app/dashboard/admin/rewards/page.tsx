@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { api } from '@/lib/api';
 import { RewardItem, GiftRedemption } from '@/types';
+import { RewardImage } from '@/components/RewardImage';
 
 export default function AdminRewardsPage() {
   const [items, setItems] = useState<RewardItem[]>([]);
@@ -271,7 +272,17 @@ export default function AdminRewardsPage() {
                           {red.user_name || `Học sinh #${red.user_id}`}
                         </td>
                         <td className="py-3.5 px-4 font-bold text-cyan-300">
-                          {red.reward_item?.title || `Vật phẩm #${red.reward_item_id}`}
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-lg overflow-hidden bg-slate-800 flex-shrink-0 border border-slate-700/60">
+                              <RewardImage
+                                src={red.reward_item?.image_url}
+                                alt={red.reward_item?.title || ''}
+                                className="w-full h-full object-cover"
+                                fallbackEmoji="🎁"
+                              />
+                            </div>
+                            <span>{red.reward_item?.title || `Vật phẩm #${red.reward_item_id}`}</span>
+                          </div>
                         </td>
                         <td className="py-3.5 px-4 font-black text-amber-400">
                           {red.diamond_cost} 💎
@@ -345,11 +356,14 @@ export default function AdminRewardsPage() {
               {items.map((item) => (
                 <div key={item.id} className="bg-slate-900 border border-slate-700/80 rounded-xl p-4 flex flex-col justify-between space-y-4">
                   <div className="flex gap-4">
-                    {item.image_url ? (
-                      <img src={item.image_url} alt="" className="w-20 h-20 object-cover rounded-lg bg-slate-800" />
-                    ) : (
-                      <div className="w-20 h-20 rounded-lg bg-cyan-500/20 text-3xl flex items-center justify-center">🎁</div>
-                    )}
+                    <div className="w-20 h-20 rounded-lg overflow-hidden bg-slate-800 flex-shrink-0 border border-slate-700/60">
+                      <RewardImage
+                        src={item.image_url}
+                        alt={item.title}
+                        className="w-full h-full object-cover"
+                        fallbackEmoji="🎁"
+                      />
+                    </div>
                     <div className="flex-1 space-y-1">
                       <div className="flex items-center justify-between">
                         <span className="text-[11px] font-bold text-cyan-400 bg-cyan-950 px-2 py-0.5 rounded-full border border-cyan-800">
@@ -482,16 +496,39 @@ export default function AdminRewardsPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Đường Dẫn Ảnh (URL Image)</label>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Đường Dẫn Ảnh (.webp, .png, .jpg...)</label>
                   <input
                     type="text"
                     value={newItem.image_url}
                     onChange={(e) => setNewItem({ ...newItem, image_url: e.target.value })}
-                    placeholder="https://images.unsplash.com/..."
+                    placeholder="https://down-vn.img.susercontent.com/... hoặc link .webp"
                     className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-cyan-400"
                   />
                 </div>
               </div>
+
+              {newItem.image_url && (
+                <div className="p-3 bg-slate-900/90 rounded-xl border border-slate-700/80 flex items-center gap-3.5">
+                  <div className="w-16 h-16 rounded-lg overflow-hidden bg-slate-800 border border-slate-700 flex-shrink-0 shadow">
+                    <RewardImage
+                      src={newItem.image_url}
+                      alt="Xem trước ảnh quà"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="text-xs space-y-0.5">
+                    <p className="font-bold text-white flex items-center gap-1.5">
+                      <span>🖼️</span> Xem trước hiển thị ảnh
+                    </p>
+                    <p className="text-emerald-400 font-medium text-[11px]">
+                      ✓ Tự động khử chặn hotlink Referer & tương thích định dạng .webp
+                    </p>
+                    <p className="text-slate-400 text-[11px] truncate max-w-sm">
+                      {newItem.image_url}
+                    </p>
+                  </div>
+                </div>
+              )}
 
               <div className="pt-4 flex justify-end gap-3">
                 <button
@@ -593,15 +630,39 @@ export default function AdminRewardsPage() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">Đường Dẫn Ảnh (URL Image)</label>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">Đường Dẫn Ảnh (.webp, .png, .jpg...)</label>
                     <input
                       type="text"
                       value={editForm.image_url}
                       onChange={(e) => setEditForm({ ...editForm, image_url: e.target.value })}
+                      placeholder="https://down-vn.img.susercontent.com/... hoặc link .webp"
                       className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-cyan-400"
                     />
                   </div>
                 </div>
+
+                {editForm.image_url && (
+                  <div className="p-3 bg-slate-950/90 rounded-xl border border-slate-800 flex items-center gap-3.5">
+                    <div className="w-16 h-16 rounded-lg overflow-hidden bg-slate-800 border border-slate-700 flex-shrink-0 shadow">
+                      <RewardImage
+                        src={editForm.image_url}
+                        alt="Xem trước ảnh quà"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="text-xs space-y-0.5">
+                      <p className="font-bold text-white flex items-center gap-1.5">
+                        <span>🖼️</span> Xem trước hiển thị ảnh
+                      </p>
+                      <p className="text-emerald-400 font-medium text-[11px]">
+                        ✓ Tự động khử chặn hotlink Referer & tương thích định dạng .webp
+                      </p>
+                      <p className="text-slate-400 text-[11px] truncate max-w-sm">
+                        {editForm.image_url}
+                      </p>
+                    </div>
+                  </div>
+                )}
 
                 <div>
                   <label className="flex items-center gap-2 text-xs font-semibold text-slate-300 cursor-pointer">
