@@ -165,3 +165,38 @@ def test_pre_filled_hints_generation():
                 assert target_items[h["target_index"]] == h["letter"]
                 assert scrambled_items[h["scrambled_index"]] == h["letter"]
 
+
+def test_word_scramble_infinite_stages_and_collection(client: TestClient, student_headers, db, student_user):
+    """Test Infinite Stages (stage > 15), rank titles, emoji clues, and Vocabulary Album collection API."""
+    # 1. Test infinite stage 16 question
+    res_stage16 = client.get("/api/v1/games/word-scramble/next?subject=Tiếng+Việt&grade=5&stage=16&question_index=1", headers=student_headers)
+    assert res_stage16.status_code == 200
+    data16 = res_stage16.json()
+    assert data16["stage"] == 16
+    assert data16["is_infinite_stage"] is True
+    assert "Đại Tướng" in data16["rank_title"] or "Vô Cực" in data16["rank_title"]
+    assert data16["theme_title"] is not None
+    assert "emoji_clues" in data16
+    assert len(data16["emoji_clues"]) > 0
+
+    # 2. Test answering correctly saves to collection
+    target_word = data16["target_word"]
+    res_verify = client.post(
+        "/api/v1/games/word-scramble/verify",
+        json={"game_id": data16["game_id"], "user_answer": target_word, "streak_count": 0},
+        headers=student_headers,
+    )
+    assert res_verify.status_code == 200
+    verify_data = res_verify.json()
+    assert verify_data["is_correct"] is True
+    assert verify_data["unlocked_new_word"] is True
+
+    # 3. Test retrieving collection from API
+    res_coll = client.get("/api/v1/games/word-scramble/collection?subject=Tiếng+Việt", headers=student_headers)
+    assert res_coll.status_code == 200
+    coll_data = res_coll.json()
+    assert coll_data["total_collected"] >= 1
+    collected_words = [item["word"] for item in coll_data["items"]]
+    assert target_word in collected_words
+
+

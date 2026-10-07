@@ -33,13 +33,14 @@ from app.models.reward import (
     RedemptionStatus,
 )
 from app.models.system_setting import SystemSetting, TrialFeatureUsage
-from app.models.game_progress import UserGameProgress
+from app.models.game_progress import UserGameProgress, UserWordCollection
 
 __all__ = [
     "Base",
     "User",
     "UserRole",
     "UserGameProgress",
+    "UserWordCollection",
     "Document",
     "DocumentChunk",
     "KnowledgeNode",

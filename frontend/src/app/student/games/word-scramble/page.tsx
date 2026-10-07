@@ -5,7 +5,11 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
-import { WordScrambleQuestion, WordScrambleVerifyResponse } from '@/types';
+import {
+  WordScrambleQuestion,
+  WordScrambleVerifyResponse,
+  WordCollectionItem,
+} from '@/types';
 import {
   Crown,
   Sparkles,
@@ -27,6 +31,10 @@ import {
   Flag,
   ChevronRight,
   Star,
+  BookMarked,
+  AlertTriangle,
+  Infinity as InfinityIcon,
+  Search,
 } from 'lucide-react';
 
 interface SelectedTile {
@@ -43,7 +51,7 @@ export default function WordScrambleGamePage() {
   // Controls
   const [subject, setSubject] = useState<'Tiếng Việt' | 'Tiếng Anh'>('Tiếng Việt');
   const [grade, setGrade] = useState<number>(5);
-  const [stage, setStage] = useState<number>(1); // Stage 1 to 15
+  const [stage, setStage] = useState<number>(1); // Stage 1 to 15 or Infinite (16+)
   const [questionIndex, setQuestionIndex] = useState<number>(1); // Question 1 to 10 per stage
 
   // Game state
@@ -52,6 +60,7 @@ export default function WordScrambleGamePage() {
   const [selectedTiles, setSelectedTiles] = useState<(SelectedTile | null)[]>([]);
   const [streak, setStreak] = useState<number>(0);
   const [diamondBalance, setDiamondBalance] = useState<number>(0);
+  const [totalCollected, setTotalCollected] = useState<number>(0);
 
   // Status & Feedback
   const [isFetching, setIsFetching] = useState<boolean>(false);
@@ -61,6 +70,13 @@ export default function WordScrambleGamePage() {
   const [showVictoryModal, setShowVictoryModal] = useState<boolean>(false);
   const [timerSeconds, setTimerSeconds] = useState<number>(90); // 90 Seconds Timer
   const [isPlayingAudio, setIsPlayingAudio] = useState<boolean>(false);
+
+  // Collection Modal States
+  const [showCollectionModal, setShowCollectionModal] = useState<boolean>(false);
+  const [collectionList, setCollectionList] = useState<WordCollectionItem[]>([]);
+  const [loadingCollection, setLoadingCollection] = useState<boolean>(false);
+  const [collectionFilter, setCollectionFilter] = useState<'ALL' | 'COMMON' | 'RARE' | 'LEGENDARY'>('ALL');
+  const [collectionSearch, setCollectionSearch] = useState<string>('');
 
   // Flash Hint States
   const [flashingTileIndex, setFlashingTileIndex] = useState<number | null>(null);
@@ -89,7 +105,7 @@ export default function WordScrambleGamePage() {
     }
   }, [user]);
 
-  // Fetch question for specific subject, grade, stage (1-15) and question_index (1-10)
+  // Fetch question for specific subject, grade, stage and question_index
   const fetchNextQuestion = async (
     targetSub = subject,
     targetGrade = grade,
@@ -176,6 +192,9 @@ export default function WordScrambleGamePage() {
             setStage(s);
             setQuestionIndex(q);
             setStreak(st);
+            if (res.total_words_collected !== undefined) {
+              setTotalCollected(res.total_words_collected);
+            }
           }
 
           try {
@@ -222,7 +241,7 @@ export default function WordScrambleGamePage() {
       is_correct: false,
       target_word: 'HẾT GIỜ',
       user_answer: activeTiles.map((t) => t.letter).join(question.mode === 'sentence' ? ' ' : ''),
-      explanation: '⏰ Đã hết thời gian 90 giây! Hãy thử lại Chặng này để tiếp tục hành trình nhé.',
+      explanation: '⏰ Đã hết thời gian 90 giây! Hãy thử lại câu này để tiếp tục hành trình nhé.',
       current_streak: 0,
       earned_diamonds: 0,
       new_diamond_balance: diamondBalance,
@@ -274,7 +293,7 @@ export default function WordScrambleGamePage() {
     setSelectedTiles((prev) => prev.map((t) => (t?.isHint ? t : null)));
   };
 
-  // Flash Next Letter Hint Handler (Works for both Tiếng Việt and Tiếng Anh)
+  // Flash Next Letter Hint Handler
   const handleFlashNextLetterHint = () => {
     if (!question || !question.target_word || result || isVerifying || isFetching) return;
 
@@ -316,20 +335,36 @@ export default function WordScrambleGamePage() {
     }
   };
 
-  // Audio TTS for English prompt
-  const handlePlayAudio = () => {
-    if (!question?.english_audio_prompt || typeof window === 'undefined') return;
+  // Audio TTS for English prompt or collection items
+  const handlePlayAudio = (textToSpeak?: string, isEng: boolean = true) => {
+    const text = textToSpeak || question?.english_audio_prompt;
+    if (!text || typeof window === 'undefined') return;
     try {
       setIsPlayingAudio(true);
       window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(question.english_audio_prompt);
-      utterance.lang = 'en-US';
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = isEng ? 'en-US' : 'vi-VN';
       utterance.rate = 0.9;
       utterance.onend = () => setIsPlayingAudio(false);
       utterance.onerror = () => setIsPlayingAudio(false);
       window.speechSynthesis.speak(utterance);
     } catch {
       setIsPlayingAudio(false);
+    }
+  };
+
+  // Open Vocabulary Collection Modal
+  const handleOpenCollection = async () => {
+    setShowCollectionModal(true);
+    setLoadingCollection(true);
+    try {
+      const res = await api.getWordScrambleCollection(subject, grade);
+      setCollectionList(res.items || []);
+      setTotalCollected(res.total_collected || 0);
+    } catch (err) {
+      console.error('Failed to load vocabulary collection:', err);
+    } finally {
+      setLoadingCollection(false);
     }
   };
 
@@ -351,6 +386,10 @@ export default function WordScrambleGamePage() {
         setDiamondBalance(res.new_diamond_balance);
       }
 
+      if (res.unlocked_new_word) {
+        setTotalCollected((prev) => prev + 1);
+      }
+
       // Check if student reached Stage 15 Question 10 Victory
       if (res.is_correct && stage === 15 && questionIndex === 10) {
         setTimeout(() => {
@@ -364,18 +403,15 @@ export default function WordScrambleGamePage() {
     }
   };
 
-  // Action for advancing to next question / stage or replaying
+  // Action for advancing to next question / stage
   const handleNextQuestion = () => {
     let nextStage = stage;
     let nextQuestionIndex = questionIndex;
 
     if (questionIndex < 10) {
       nextQuestionIndex = questionIndex + 1;
-    } else if (stage < 15) {
-      nextStage = stage + 1;
-      nextQuestionIndex = 1;
     } else {
-      nextStage = 1;
+      nextStage = stage + 1; // Seamless progression into Infinite Stages (16+)
       nextQuestionIndex = 1;
     }
 
@@ -421,19 +457,58 @@ export default function WordScrambleGamePage() {
     fetchNextQuestion(subject, grade, 1, 1);
   };
 
+  const handleEnterInfiniteArena = () => {
+    setShowVictoryModal(false);
+    setStage(16);
+    setQuestionIndex(1);
+
+    if (user) {
+      const key = `word_scramble_progress_${user.id}_${subject}_${grade}`;
+      try {
+        localStorage.setItem(key, JSON.stringify({ stage: 16, questionIndex: 1, streak }));
+      } catch {}
+      api.saveWordScrambleProgress({
+        subject,
+        grade,
+        stage: 16,
+        question_index: 1,
+        streak,
+      }).catch(() => {});
+    }
+
+    fetchNextQuestion(subject, grade, 16, 1);
+  };
+
   if (isLoading || !user) {
     return (
       <div className="flex-1 min-h-screen flex items-center justify-center p-12 bg-slate-50 text-slate-800">
         <div className="flex items-center gap-3 text-indigo-600 font-bold bg-white px-6 py-4 rounded-2xl shadow-lg border border-slate-100">
           <Loader2 className="w-6 h-6 animate-spin text-indigo-600" />
-          <span>Đang tải hành trình 15 Chặng Vua Từ Vựng SGK...</span>
+          <span>Đang tải hành trình Vua Từ Vựng SGK...</span>
         </div>
       </div>
     );
   }
 
   const isSentenceMode = question?.mode === 'sentence';
-  const overallProgressPercent = Math.round((((stage - 1) * 10 + questionIndex) / 150) * 100);
+  const isInfinite = stage > 15 || !!question?.is_infinite_stage;
+  const overallProgressPercent = isInfinite
+    ? 100
+    : Math.min(100, Math.round((((stage - 1) * 10 + questionIndex) / 150) * 100));
+
+  // Filtered collection list
+  const filteredCollection = collectionList.filter((item) => {
+    if (collectionFilter !== 'ALL' && item.rarity !== collectionFilter) return false;
+    if (collectionSearch.trim()) {
+      const q = collectionSearch.trim().toLowerCase();
+      return (
+        item.word.toLowerCase().includes(q) ||
+        (item.hint && item.hint.toLowerCase().includes(q)) ||
+        (item.lesson && item.lesson.toLowerCase().includes(q))
+      );
+    }
+    return true;
+  });
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-amber-50/60 via-slate-50 to-indigo-50/30 text-slate-800 pb-20 relative select-none">
@@ -445,39 +520,66 @@ export default function WordScrambleGamePage() {
         {/* Top Header Navigation */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white/90 backdrop-blur-md p-4 sm:p-5 rounded-3xl border border-slate-200/80 shadow-md shadow-slate-200/50">
           <div className="flex items-center gap-3">
-            <div className="p-3 bg-gradient-to-br from-amber-400 to-amber-500 text-slate-950 rounded-2xl shadow-md shadow-amber-400/20">
-              <Crown className="w-7 h-7" />
+            <div className={`p-3 rounded-2xl shadow-md ${
+              isInfinite
+                ? 'bg-gradient-to-br from-purple-500 via-indigo-600 to-amber-500 text-white shadow-purple-500/30 animate-pulse'
+                : 'bg-gradient-to-br from-amber-400 to-amber-500 text-slate-950 shadow-amber-400/20'
+            }`}>
+              {isInfinite ? <InfinityIcon className="w-7 h-7" /> : <Crown className="w-7 h-7" />}
             </div>
             <div>
               <div className="inline-flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider text-amber-600">
-                <Sparkles className="w-3.5 h-3.5" /> Chinh Phục 15 Chặng Tri Thức SGK (10 Câu/Chặng)
+                <Sparkles className="w-3.5 h-3.5" />
+                {isInfinite
+                  ? `♾️ ĐẤU TRƯỜNG VÔ CỰC • CHẶNG ${stage}`
+                  : 'Chinh Phục 15 Chặng Tri Thức SGK (10 Câu/Chặng)'}
               </div>
-              <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-                Vua Từ Vựng SGK
+              <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+                <span>Vua Từ Vựng SGK</span>
+                <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300 font-extrabold">
+                  {question?.rank_title || (isInfinite ? '⚔️ Đại Tướng Vô Cực' : '🥉 Học Giả Tập Sự')}
+                </span>
               </h1>
             </div>
           </div>
 
           {/* Stats Badges */}
-          <div className="flex items-center gap-3">
-            {/* Stage & Question Counter */}
-            <div className="flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-indigo-50 border border-indigo-200 text-indigo-700 font-extrabold text-xs shadow-sm">
+          <div className="flex flex-wrap items-center gap-2.5">
+            {/* Stage Counter */}
+            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-2xl border text-xs font-extrabold shadow-sm ${
+              isInfinite
+                ? 'bg-purple-50 border-purple-300 text-purple-800'
+                : 'bg-indigo-50 border-indigo-200 text-indigo-700'
+            }`}>
               <Flag className="w-4 h-4 text-indigo-600" />
-              <span>Chặng {stage}/15 • Câu {questionIndex}/10</span>
+              <span>
+                {isInfinite ? `Chặng Vô Cực ${stage}` : `Chặng ${stage}/15`} • Câu {questionIndex}/10
+              </span>
             </div>
+
+            {/* Vocabulary Album Button */}
+            <button
+              type="button"
+              onClick={handleOpenCollection}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-200 text-indigo-800 font-extrabold text-xs hover:from-indigo-100 hover:to-blue-100 transition shadow-sm"
+              title="Mở Sổ Tay Vua Từ Vựng để xem các từ ngữ bạn đã thu thập"
+            >
+              <BookMarked className="w-4 h-4 text-indigo-600" />
+              <span>Sổ Tay: {totalCollected} 📖</span>
+            </button>
 
             {/* Diamond Balance */}
             <Link
               href="/student/rewards"
-              className="flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 font-extrabold text-xs hover:bg-amber-100/80 transition shadow-sm"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 font-extrabold text-xs hover:bg-amber-100/80 transition shadow-sm"
             >
-              <Diamond className="w-4 h-4 text-amber-500 fill-amber-500 animate-pulse" />
+              <Diamond className="w-4 h-4 text-amber-500 fill-amber-500" />
               <span>{diamondBalance} 💎</span>
             </Link>
 
             {/* Win Streak */}
             <div
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-orange-50 border border-orange-200 text-orange-700 font-extrabold text-xs shadow-sm"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-orange-50 border border-orange-200 text-orange-700 font-extrabold text-xs shadow-sm"
               title="Thưởng 1 💎 Kim Cương khi đạt 7 câu đúng liên tiếp (Tối đa nhận 2 💎/ngày)"
             >
               <Flame className="w-4 h-4 text-orange-500 fill-orange-500" />
@@ -486,27 +588,37 @@ export default function WordScrambleGamePage() {
           </div>
         </div>
 
-        {/* Stage Progress Stepper (1-15 & 1-10) */}
+        {/* Stage Progress Stepper & Theme Banner */}
         <div className="bg-white p-4 rounded-3xl border border-slate-200/80 shadow-sm space-y-2">
-          <div className="flex items-center justify-between text-xs font-bold text-slate-600">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs font-bold text-slate-600 gap-1.5">
             <span className="flex items-center gap-1.5 text-indigo-600">
               <Trophy className="w-4 h-4 text-amber-500" />
               <span>
-                Tiến Độ: <strong>Chặng {stage}/15</strong> (Câu {questionIndex}/10)
+                {isInfinite ? (
+                  <>
+                    <strong className="text-purple-700">Đấu Trường Vô Cực: Chặng {stage}</strong> (Câu {questionIndex}/10)
+                  </>
+                ) : (
+                  <>
+                    Tiến Độ: <strong>Chặng {stage}/15</strong> (Câu {questionIndex}/10)
+                  </>
+                )}
               </span>
             </span>
-            <span className="text-slate-500 font-semibold">
-              {stage <= 5
-                ? '⭐ Cấp Độ Cơ Bản (Từ ghép 2 tiếng)'
-                : stage <= 10
-                ? '🔥🔥 Cấp Độ Trung Bình (Cụm từ 2-3 tiếng)'
-                : '👑 Cấp Độ Thách Thức (Thành ngữ / Câu nói SGK)'}
+            <span className="text-amber-800 font-extrabold flex items-center gap-1">
+              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+              <span>{question?.theme_title || 'Chủ điểm: Khám Phá Tri Thức SGK'}</span>
             </span>
           </div>
+
           {/* Progress Bar */}
           <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden p-0.5 border border-slate-200">
             <div
-              className="h-full bg-gradient-to-r from-amber-400 via-orange-500 to-indigo-600 rounded-full transition-all duration-500"
+              className={`h-full rounded-full transition-all duration-500 ${
+                isInfinite
+                  ? 'bg-gradient-to-r from-purple-500 via-indigo-500 to-amber-400 animate-pulse'
+                  : 'bg-gradient-to-r from-amber-400 via-orange-500 to-indigo-600'
+              }`}
               style={{ width: `${overallProgressPercent}%` }}
             />
           </div>
@@ -577,10 +689,12 @@ export default function WordScrambleGamePage() {
               <div className="space-y-1">
                 <h3 className="text-base font-extrabold text-slate-900 flex items-center justify-center gap-2">
                   <Loader2 className="w-4 h-4 animate-spin text-amber-500" />
-                  <span>Đang tải Chặng {stage}/15 - Câu {questionIndex}/10...</span>
+                  <span>
+                    Đang tải {isInfinite ? `Chặng Vô Cực ${stage}` : `Chặng ${stage}/15`} - Câu {questionIndex}/10...
+                  </span>
                 </h3>
                 <p className="text-xs text-slate-500">
-                  AI đang biên soạn từ vựng SGK Lớp {grade} môn {subject} không trùng lặp cho học sinh
+                  AI đang tuyển chọn từ vựng SGK Lớp {grade} môn {subject} phong phú, độc đáo...
                 </p>
               </div>
             </div>
@@ -588,7 +702,7 @@ export default function WordScrambleGamePage() {
             <>
               {/* Stage Top Bar: Mode Banner, Timer & Actions */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-100 gap-3">
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <span className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg border border-indigo-200/60 font-bold text-xs">
                     {isSentenceMode ? '🧩 Sắp Xếp Câu / Thành Ngữ' : '🔤 Xếp Chữ Cái (Từ ghép)'}
                   </span>
@@ -596,12 +710,29 @@ export default function WordScrambleGamePage() {
                     Cần xếp: <strong className="text-amber-600">{question.letter_count}</strong>{' '}
                     {isSentenceMode ? 'tiếng/từ' : 'chữ cái'}
                   </span>
+                  {question.has_distractors && (
+                    <span className="px-2 py-0.5 rounded-full bg-rose-50 text-rose-600 border border-rose-200 text-[10px] font-extrabold flex items-center gap-1">
+                      <AlertTriangle className="w-3 h-3 text-rose-500" />
+                      <span>Có chữ gây nhiễu!</span>
+                    </span>
+                  )}
+                  {question.rarity && (
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
+                      question.rarity === 'LEGENDARY'
+                        ? 'bg-amber-100 text-amber-800 border border-amber-300'
+                        : question.rarity === 'RARE'
+                        ? 'bg-purple-100 text-purple-800 border border-purple-300'
+                        : 'bg-slate-100 text-slate-700'
+                    }`}>
+                      {question.rarity === 'LEGENDARY' ? '👑 Huyền Thoại' : question.rarity === 'RARE' ? '⭐ Hiếm' : '🌱 Phổ Biến'}
+                    </span>
+                  )}
                 </div>
 
-                {/* Countdown Timer (90s) */}
-                <div className="flex items-center gap-3">
+                {/* Countdown Timer (90s) & Buttons */}
+                <div className="flex items-center gap-2.5">
                   <div
-                    className={`flex items-center gap-2 px-3 py-1.5 rounded-xl font-mono text-xs font-extrabold border transition ${
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-mono text-xs font-extrabold border transition ${
                       timerSeconds <= 20
                         ? 'bg-rose-50 text-rose-600 border-rose-200 animate-pulse'
                         : 'bg-slate-100 text-amber-700 border-slate-200'
@@ -615,17 +746,17 @@ export default function WordScrambleGamePage() {
                   <button
                     type="button"
                     onClick={handleFlashNextLetterHint}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-400 text-slate-950 font-black text-xs hover:brightness-105 active:scale-95 transition shadow-sm border border-amber-300 animate-pulse"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-400 text-slate-950 font-black text-xs hover:brightness-105 active:scale-95 transition shadow-sm border border-amber-300"
                     title="Nhấp để làm nháy sáng ô chữ/tiếng tiếp theo cần chọn"
                   >
-                    <Sparkles className="w-3.5 h-3.5 fill-slate-950 animate-spin" />
-                    <span>Gợi Ý Chữ Nháy Sáng</span>
+                    <Sparkles className="w-3.5 h-3.5 fill-slate-950" />
+                    <span>Gợi Ý Nháy Sáng</span>
                   </button>
 
                   {subject === 'Tiếng Anh' && question.english_audio_prompt && (
                     <button
                       type="button"
-                      onClick={handlePlayAudio}
+                      onClick={() => handlePlayAudio()}
                       disabled={isPlayingAudio}
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-teal-50 text-teal-700 border border-teal-200 text-xs font-bold hover:bg-teal-100 transition shadow-xs"
                     >
@@ -644,11 +775,28 @@ export default function WordScrambleGamePage() {
                 </div>
               </div>
 
-              {/* Hint Quick Banner & Pre-filled Hint Badge */}
-              <div className="space-y-2">
+              {/* Hint Quick Banner & Visual Emoji Clues */}
+              <div className="space-y-3">
                 {flashHintMessage && (
                   <div className="p-3 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-400 text-slate-950 font-black text-xs text-center shadow-md animate-bounce border border-amber-300">
                     {flashHintMessage}
+                  </div>
+                )}
+
+                {/* VISUAL EMOJI CLUES (Gợi ý hình tượng AI) */}
+                {question.emoji_clues && question.emoji_clues.length > 0 && (
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 rounded-2xl bg-gradient-to-r from-amber-50/90 via-orange-50/80 to-indigo-50/90 border border-amber-200/90 shadow-sm gap-2">
+                    <div className="flex items-center gap-2 text-xs font-bold text-amber-900">
+                      <span className="p-1.5 bg-amber-200/60 rounded-lg text-sm">💡</span>
+                      <span>Gợi ý hình tượng liên tưởng (AI Clue):</span>
+                    </div>
+                    <div className="flex items-center gap-2 justify-center bg-white/80 px-4 py-1.5 rounded-xl border border-amber-200 shadow-xs">
+                      {question.emoji_clues.map((em, idx) => (
+                        <span key={idx} className="text-2xl hover:scale-125 transition-transform" title="Emoji gợi ý">
+                          {em}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 )}
 
@@ -656,7 +804,7 @@ export default function WordScrambleGamePage() {
                   <div className="flex items-center justify-center gap-2 py-2 px-4 rounded-2xl bg-gradient-to-r from-amber-100 via-amber-50 to-orange-100 border border-amber-300 text-amber-900 text-xs font-bold shadow-xs">
                     <Sparkles className="w-4 h-4 text-amber-600 animate-spin" />
                     <span>
-                      💡 Thử thách điền từ: Đã gợi ý sẵn <strong>{question.pre_filled_hints.length}</strong>{' '}
+                      💡 Thử thách: Đã mở sẵn <strong>{question.pre_filled_hints.length}</strong>{' '}
                       {isSentenceMode ? 'từ/tiếng' : 'chữ cái'} trong khay đáp án!
                     </span>
                   </div>
@@ -753,10 +901,17 @@ export default function WordScrambleGamePage() {
 
               {/* SCRAMBLED TILES SELECTION GRID */}
               <div className="space-y-2 pt-2">
-                <div className="text-xs font-bold text-slate-500 px-1">
-                  {isSentenceMode
-                    ? 'Các Tiếng / Từ Đảo Lộn (Bấm Để Chọn):'
-                    : 'Các Ký Tự Đảo Lộn (Bấm Để Chọn):'}
+                <div className="flex items-center justify-between text-xs font-bold text-slate-500 px-1">
+                  <span>
+                    {isSentenceMode
+                      ? 'Các Tiếng / Từ Đảo Lộn (Bấm Để Chọn):'
+                      : 'Các Ký Tự Đảo Lộn (Bấm Để Chọn):'}
+                  </span>
+                  {question.has_distractors && (
+                    <span className="text-[11px] text-amber-600 italic">
+                      * Chú ý: Bàn có chứa chữ thừa gây nhiễu, hãy chọn đúng số ô đáp án!
+                    </span>
+                  )}
                 </div>
 
                 <div className="flex flex-wrap items-center justify-center gap-3 py-2">
@@ -804,7 +959,9 @@ export default function WordScrambleGamePage() {
                     ) : (
                       <>
                         <Zap className="w-5 h-5 fill-slate-950" />
-                        <span>Nộp Đáp Án Câu {questionIndex}/10 (Chặng {stage})</span>
+                        <span>
+                          Nộp Đáp Án Câu {questionIndex}/10 ({isInfinite ? `Chặng Vô Cực ${stage}` : `Chặng ${stage}`})
+                        </span>
                       </>
                     )}
                   </button>
@@ -831,16 +988,21 @@ export default function WordScrambleGamePage() {
                       </div>
                     )}
 
-                    <div className="flex-1 space-y-1">
-                      <div className="text-base font-black flex items-center gap-2 text-slate-900">
+                    <div className="flex-1 space-y-1.5">
+                      <div className="text-base font-black flex flex-wrap items-center gap-2 text-slate-900">
                         <span>
                           {result.is_correct
-                            ? `🎉 CHÍNH XÁC! HOÀN THÀNH CÂU ${questionIndex}/10 (CHẶNG ${stage})`
+                            ? `🎉 CHÍNH XÁC! HOÀN THÀNH CÂU ${questionIndex}/10 (${isInfinite ? `CHẶNG VÔ CỰC ${stage}` : `CHẶNG ${stage}`})`
                             : `❌ CHƯA CHÍNH XÁC (CÂU ${questionIndex}/10)`}
                         </span>
                         {result.earned_diamonds > 0 && (
                           <span className="inline-flex items-center gap-1 text-xs px-2.5 py-0.5 rounded-full bg-amber-400 text-slate-950 font-extrabold animate-bounce">
                             <Award className="w-3.5 h-3.5" /> +{result.earned_diamonds} 💎 Thưởng Streak!
+                          </span>
+                        )}
+                        {result.unlocked_new_word && (
+                          <span className="inline-flex items-center gap-1 text-xs px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-800 border border-indigo-300 font-extrabold">
+                            <BookMarked className="w-3.5 h-3.5 text-indigo-600" /> +1 Mở Khóa Sổ Tay!
                           </span>
                         )}
                       </div>
@@ -875,11 +1037,22 @@ export default function WordScrambleGamePage() {
                       ) : (
                         <button
                           type="button"
-                          onClick={() => setShowVictoryModal(true)}
-                          className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-black text-xs shadow-md shadow-amber-200 transition flex items-center gap-2"
+                          onClick={() => {
+                            if (stage === 15) {
+                              setShowVictoryModal(true);
+                            } else {
+                              handleNextQuestion();
+                            }
+                          }}
+                          className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 via-indigo-600 to-amber-500 text-white font-black text-xs shadow-md shadow-purple-200 transition flex items-center gap-2"
                         >
-                          <Trophy className="w-4 h-4" />
-                          <span>Xem Vinh Danh Hoàn Thành Xuất Sắc 15 Chặng</span>
+                          <InfinityIcon className="w-4 h-4" />
+                          <span>
+                            {stage === 15
+                              ? '🏆 Xem Vinh Danh 15 Chặng'
+                              : `🚀 Tiếp Tục Chặng Vô Cực ${stage + 1}`}
+                          </span>
+                          <ChevronRight className="w-4 h-4" />
                         </button>
                       )
                     ) : (
@@ -907,7 +1080,7 @@ export default function WordScrambleGamePage() {
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2 text-amber-600 font-extrabold text-sm">
                 <Lightbulb className="w-5 h-5 fill-amber-500 text-amber-500" />
-                <span>Gợi Ý Tri Thức SGK - Chặng {stage}</span>
+                <span>Gợi Ý Tri Thức SGK - {isInfinite ? `Chặng Vô Cực ${stage}` : `Chặng ${stage}`}</span>
               </div>
               <button
                 type="button"
@@ -952,6 +1125,176 @@ export default function WordScrambleGamePage() {
         </div>
       )}
 
+      {/* VOCABULARY ALBUM MODAL (SỔ TAY VUA TỪ VỰNG) */}
+      {showCollectionModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-md p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-2xl bg-white border border-slate-200 rounded-3xl p-6 sm:p-7 space-y-5 shadow-2xl relative max-h-[85vh] flex flex-col">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2.5 bg-gradient-to-br from-indigo-500 to-purple-600 text-white rounded-2xl shadow-sm">
+                  <BookMarked className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base sm:text-lg font-black text-slate-900">
+                    Sổ Tay Vua Từ Vựng SGK
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Đã mở khóa <strong>{collectionList.length}</strong> từ vựng {subject} Lớp {grade}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowCollectionModal(false)}
+                className="text-slate-400 hover:text-slate-700 text-base font-bold p-1 rounded-xl hover:bg-slate-100 transition"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Filter Tabs & Search */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-2xl text-xs font-bold">
+                <button
+                  type="button"
+                  onClick={() => setCollectionFilter('ALL')}
+                  className={`px-3 py-1.5 rounded-xl transition ${
+                    collectionFilter === 'ALL' ? 'bg-white text-indigo-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  Tất Cả ({collectionList.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCollectionFilter('COMMON')}
+                  className={`px-3 py-1.5 rounded-xl transition ${
+                    collectionFilter === 'COMMON' ? 'bg-white text-emerald-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  🌱 Thường
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCollectionFilter('RARE')}
+                  className={`px-3 py-1.5 rounded-xl transition ${
+                    collectionFilter === 'RARE' ? 'bg-white text-purple-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  ⭐ Hiếm
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCollectionFilter('LEGENDARY')}
+                  className={`px-3 py-1.5 rounded-xl transition ${
+                    collectionFilter === 'LEGENDARY' ? 'bg-white text-amber-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  👑 Huyền Thoại
+                </button>
+              </div>
+
+              <div className="relative">
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={collectionSearch}
+                  onChange={(e) => setCollectionSearch(e.target.value)}
+                  placeholder="Tìm kiếm từ đã mở khóa..."
+                  className="w-full sm:w-48 pl-8 pr-3 py-1.5 text-xs bg-slate-100 border border-slate-200 rounded-xl focus:outline-none focus:border-indigo-400"
+                />
+              </div>
+            </div>
+
+            {/* List / Cards Container */}
+            <div className="flex-1 overflow-y-auto pr-1 space-y-3 min-h-[240px]">
+              {loadingCollection ? (
+                <div className="py-12 flex flex-col items-center justify-center space-y-2 text-slate-400">
+                  <Loader2 className="w-6 h-6 animate-spin text-indigo-600" />
+                  <span className="text-xs">Đang tải thẻ bài từ vựng...</span>
+                </div>
+              ) : filteredCollection.length === 0 ? (
+                <div className="py-12 text-center text-slate-400 space-y-2">
+                  <BookOpen className="w-10 h-10 mx-auto text-slate-300" />
+                  <p className="text-xs font-semibold">
+                    {collectionList.length === 0
+                      ? 'Bạn chưa mở khóa từ vựng nào. Hãy hoàn thành các câu đố để lưu từ vào sổ tay nhé!'
+                      : 'Không tìm thấy từ vựng nào khớp với bộ lọc.'}
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {filteredCollection.map((item) => (
+                    <div
+                      key={item.id}
+                      className={`p-3.5 rounded-2xl border transition shadow-xs flex flex-col justify-between space-y-2 ${
+                        item.rarity === 'LEGENDARY'
+                          ? 'bg-gradient-to-br from-amber-50 to-orange-50/60 border-amber-300'
+                          : item.rarity === 'RARE'
+                          ? 'bg-gradient-to-br from-purple-50 to-indigo-50/60 border-purple-200'
+                          : 'bg-white border-slate-200'
+                      }`}
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
+                            item.rarity === 'LEGENDARY'
+                              ? 'bg-amber-200 text-amber-900'
+                              : item.rarity === 'RARE'
+                              ? 'bg-purple-200 text-purple-900'
+                              : 'bg-slate-100 text-slate-700'
+                          }`}>
+                            {item.rarity === 'LEGENDARY' ? '👑 Huyền Thoại' : item.rarity === 'RARE' ? '⭐ Hiếm' : '🌱 Phổ Biến'}
+                          </span>
+
+                          {item.emoji_clues && item.emoji_clues.length > 0 && (
+                            <span className="text-base tracking-widest">{item.emoji_clues.join('')}</span>
+                          )}
+                        </div>
+
+                        <div className="flex items-center justify-between pt-1">
+                          <h4 className="font-black text-sm text-slate-900">{item.word}</h4>
+                          <button
+                            type="button"
+                            onClick={() => handlePlayAudio(item.word, item.subject === 'Tiếng Anh')}
+                            className="p-1 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-white/80 transition"
+                            title="Nghe phát âm"
+                          >
+                            <Volume2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+
+                        {item.hint && (
+                          <p className="text-[11px] text-slate-600 leading-snug line-clamp-2">
+                            {item.hint}
+                          </p>
+                        )}
+                      </div>
+
+                      {item.lesson && (
+                        <div className="text-[10px] text-slate-400 font-semibold pt-1 border-t border-slate-100 truncate">
+                          📖 {item.lesson}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="pt-2 border-t border-slate-100 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setShowCollectionModal(false)}
+                className="px-5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition"
+              >
+                Đóng Sổ Tay
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* STAGE 15 VICTORY MODAL */}
       {showVictoryModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-md p-4 animate-in zoom-in-95 duration-200">
@@ -970,7 +1313,7 @@ export default function WordScrambleGamePage() {
                 Chúc Mừng Tân Vua Từ Vựng SGK!
               </h2>
               <p className="text-xs text-slate-600 max-w-sm mx-auto leading-relaxed">
-                Bạn đã vượt qua xuất sắc cả 15 Chặng xếp từ và sắp xếp thành ngữ môn {subject} Lớp {grade}!
+                Bạn đã vượt qua xuất sắc cả 15 Chặng xếp từ và sắp xếp thành ngữ môn {subject} Lớp {grade}! Giờ đây bạn đã đủ điều kiện tiến vào <strong>Đấu Trường Vô Cực</strong> để thử thách các cấp bậc huyền thoại cao hơn!
               </p>
             </div>
 
@@ -997,13 +1340,23 @@ export default function WordScrambleGamePage() {
             </div>
 
             {/* Action Buttons */}
-            <div className="space-y-2 pt-2">
+            <div className="space-y-2.5 pt-2">
+              {/* Enter Infinite Arena Button */}
+              <button
+                type="button"
+                onClick={handleEnterInfiniteArena}
+                className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-purple-600 via-indigo-600 to-amber-500 hover:brightness-110 text-white font-black text-sm shadow-xl shadow-purple-300 transition flex items-center justify-center gap-2"
+              >
+                <InfinityIcon className="w-5 h-5" />
+                <span>🔥 MỞ KHÓA ĐẤU TRƯỜNG VÔ CỰC (CHẶNG 16+)</span>
+              </button>
+
               <button
                 type="button"
                 onClick={handleRestartJourney}
-                className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-sm shadow-lg shadow-amber-200 transition flex items-center justify-center gap-2"
+                className="w-full py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition flex items-center justify-center gap-1.5"
               >
-                <RotateCcw className="w-4 h-4" />
+                <RotateCcw className="w-3.5 h-3.5" />
                 <span>Chơi Lại Từ Chặng 1</span>
               </button>
 
@@ -1014,7 +1367,7 @@ export default function WordScrambleGamePage() {
                   const nextSub = subject === 'Tiếng Việt' ? 'Tiếng Anh' : 'Tiếng Việt';
                   setSubject(nextSub);
                 }}
-                className="w-full py-3.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-extrabold text-xs transition"
+                className="w-full py-2.5 rounded-2xl text-slate-500 hover:text-slate-800 font-semibold text-xs transition"
               >
                 Chuyển Sang Môn {subject === 'Tiếng Việt' ? '🇬🇧 Tiếng Anh' : '🇻🇳 Tiếng Việt'}
               </button>

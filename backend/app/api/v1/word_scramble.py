@@ -10,6 +10,7 @@ from app.schemas.word_scramble import (
     WordScrambleVerifyResponse,
     WordScrambleProgressResponse,
     WordScrambleProgressSaveRequest,
+    WordCollectionResponse,
 )
 from app.services.word_scramble_service import WordScrambleService
 
@@ -20,13 +21,13 @@ router = APIRouter(prefix="/games/word-scramble", tags=["word-scramble-game"])
 def get_next_word_scramble_question(
     subject: Optional[str] = Query("Tiếng Việt", description="Môn học (Tiếng Việt hoặc Tiếng Anh)"),
     grade: Optional[int] = Query(None, ge=4, le=9, description="Khối lớp (4-9)"),
-    stage: Optional[int] = Query(1, ge=1, le=15, description="Chặng hiện tại (1-15)"),
+    stage: Optional[int] = Query(1, ge=1, le=999, description="Chặng hiện tại (1-15 hoặc >15 cho Đấu Trường Vô Cực)"),
     question_index: Optional[int] = Query(1, ge=1, le=10, description="Thứ tự câu hỏi trong chặng (1-10)"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     """
-    Get next scrambled word/sentence question from SGK curriculum (Grade 4-9) for stage 1-15.
+    Get next scrambled word/sentence question from SGK curriculum (Grade 4-9) for stage 1-15 and infinite stages.
     """
     return WordScrambleService.get_next_question(
         db=db,
@@ -45,7 +46,7 @@ def verify_word_scramble_answer(
     current_user: User = Depends(get_current_user),
 ):
     """
-    Verify student's assembled word answer and update win streak / award diamonds.
+    Verify student's assembled word answer and update win streak / award diamonds / unlock to collection.
     """
     return WordScrambleService.verify_answer(
         db=db,
@@ -94,3 +95,21 @@ def save_word_scramble_progress(
         streak=req.streak or 0,
     )
     return WordScrambleProgressResponse(**res)
+
+
+@router.get("/collection", response_model=WordCollectionResponse)
+def get_word_scramble_collection(
+    subject: Optional[str] = Query(None, description="Lọc theo môn (Tiếng Việt / Tiếng Anh)"),
+    grade: Optional[int] = Query(None, ge=4, le=9, description="Lọc theo khối lớp (4-9)"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Retrieves student's unlocked vocabulary collection (Vocabulary Album).
+    """
+    return WordScrambleService.get_user_collection(
+        db=db,
+        student=current_user,
+        subject=subject,
+        grade=grade,
+    )

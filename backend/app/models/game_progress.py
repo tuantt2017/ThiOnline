@@ -30,3 +30,30 @@ class UserGameProgress(Base):
 
     def __repr__(self) -> str:
         return f"<UserGameProgress user_id={self.user_id} subject='{self.subject}' grade={self.grade} stage={self.stage} q={self.question_index}>"
+
+
+class UserWordCollection(Base):
+    __tablename__ = "user_word_collections"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    word = Column(String(255), nullable=False)
+    subject = Column(String(50), nullable=False, default="Tiếng Việt")
+    grade = Column(Integer, nullable=False, default=5)
+    hint = Column(String(500), nullable=True)
+    lesson = Column(String(255), nullable=True)
+    emoji_clues = Column(String(255), nullable=True)
+    rarity = Column(String(50), nullable=False, default="COMMON")
+    unlocked_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        server_default=func.now(),
+        nullable=False,
+    )
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "word", "subject", name="uq_user_word_collection"),
+    )
+
+    def __repr__(self) -> str:
+        return f"<UserWordCollection user_id={self.user_id} word='{self.word}' rarity='{self.rarity}'>"

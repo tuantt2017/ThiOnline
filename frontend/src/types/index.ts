@@ -809,10 +809,16 @@ export interface WordScrambleQuestion {
   mode?: 'word' | 'sentence';
   stage?: number;
   total_stages?: number;
+  is_infinite_stage?: boolean;
+  rank_title?: string;
+  theme_title?: string | null;
   question_index?: number;
   total_questions_per_stage?: number;
   scrambled_letters: string[];
   letter_count: number;
+  has_distractors?: boolean;
+  emoji_clues?: string[] | null;
+  rarity?: 'COMMON' | 'RARE' | 'LEGENDARY';
   hint_meaning: string;
   hint_sgk_lesson?: string | null;
   first_letter_hint?: string | null;
@@ -840,6 +846,9 @@ export interface WordScrambleVerifyResponse {
   current_streak: number;
   earned_diamonds: number;
   new_diamond_balance?: number | null;
+  unlocked_new_word?: boolean;
+  rarity?: string;
+  emoji_clues?: string[] | null;
 }
 
 export interface WordScrambleProgressResponse {
@@ -848,6 +857,9 @@ export interface WordScrambleProgressResponse {
   stage: number;
   question_index: number;
   streak: number;
+  is_infinite_stage?: boolean;
+  rank_title?: string;
+  total_words_collected?: number;
 }
 
 export interface WordScrambleProgressSaveRequest {
@@ -856,6 +868,25 @@ export interface WordScrambleProgressSaveRequest {
   stage: number;
   question_index: number;
   streak?: number;
+}
+
+export interface WordCollectionItem {
+  id: number;
+  word: string;
+  subject: string;
+  grade: number;
+  hint?: string | null;
+  lesson?: string | null;
+  emoji_clues?: string[] | null;
+  rarity: 'COMMON' | 'RARE' | 'LEGENDARY';
+  unlocked_at?: string | null;
+}
+
+export interface WordCollectionResponse {
+  total_collected: number;
+  subject: string;
+  grade: number;
+  items: WordCollectionItem[];
 }
 
 

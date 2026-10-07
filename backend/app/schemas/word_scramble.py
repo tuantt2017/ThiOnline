@@ -6,13 +6,19 @@ class WordScrambleQuestionResponse(BaseModel):
     game_id: str = Field(..., description="ID phiên câu hỏi")
     subject: str = Field(..., description="Môn học (Tiếng Việt / Tiếng Anh)")
     grade: int = Field(..., description="Khối lớp (4-9)")
-    mode: str = Field("word", description="Chế độ xếp: 'word' (xếp chữ cái, tối đa 2 tiếng) hoặc 'sentence' (xếp từ/tiếng thành câu)")
-    stage: int = Field(1, description="Chặng hiện tại (1-15)")
-    total_stages: int = Field(15, description="Tổng số chặng trong hành trình (15)")
+    mode: str = Field("word", description="Chế độ xếp: 'word' (xếp chữ cái) hoặc 'sentence' (xếp từ/tiếng thành câu)")
+    stage: int = Field(1, description="Chặng hiện tại (1-15 hoặc >15 cho Chặng Vô Cực)")
+    total_stages: int = Field(15, description="Tổng số chặng cơ bản trong hành trình (15)")
+    is_infinite_stage: bool = Field(False, description="Đang ở chế độ Đấu Trường Vô Cực (Chặng > 15)")
+    rank_title: str = Field("Học Giả Tập Sự", description="Danh hiệu cấp bậc của người chơi")
+    theme_title: Optional[str] = Field(None, description="Chủ đề chặng hiện tại")
     question_index: int = Field(1, description="Thứ tự câu hỏi trong chặng (1-10)")
     total_questions_per_stage: int = Field(10, description="Tổng số câu hỏi mỗi chặng (10)")
-    scrambled_letters: List[str] = Field(..., description="Danh sách các ký tự / tiếng đảo lộn")
-    letter_count: int = Field(..., description="Số lượng ký tự / tiếng")
+    scrambled_letters: List[str] = Field(..., description="Danh sách các ký tự / tiếng đảo lộn (có thể gồm chữ gây nhiễu)")
+    letter_count: int = Field(..., description="Số lượng ký tự / tiếng cần điền của đáp án")
+    has_distractors: bool = Field(False, description="Có ký tự gây nhiễu trong khay lựa chọn không")
+    emoji_clues: Optional[List[str]] = Field(None, description="Danh sách Emoji gợi mở liên tưởng")
+    rarity: str = Field("COMMON", description="Phẩm cấp từ vựng: COMMON, RARE, LEGENDARY")
     hint_meaning: str = Field(..., description="Gợi ý nghĩa của từ / ngữ cảnh")
     hint_sgk_lesson: Optional[str] = Field(None, description="Vị trí bài học SGK GDPT 2018")
     first_letter_hint: Optional[str] = Field(None, description="Gợi ý ký tự đầu tiên")
@@ -36,19 +42,44 @@ class WordScrambleVerifyResponse(BaseModel):
     current_streak: int = Field(..., description="Chuỗi câu trả lời đúng liên tiếp mới")
     earned_diamonds: int = Field(default=0, description="Số kim cương được thưởng lượt này (nếu có)")
     new_diamond_balance: Optional[int] = Field(None, description="Số dư kim cương mới nhất")
+    unlocked_new_word: bool = Field(default=False, description="Vừa mở khóa từ mới vào Sổ tay")
+    rarity: str = Field(default="COMMON", description="Phẩm cấp thẻ từ: COMMON / RARE / LEGENDARY")
+    emoji_clues: Optional[List[str]] = Field(None, description="Emoji gợi ý của từ")
 
 
 class WordScrambleProgressResponse(BaseModel):
     subject: str = Field("Tiếng Việt", description="Môn học")
     grade: int = Field(5, description="Khối lớp")
-    stage: int = Field(1, description="Chặng hiện tại (1-15)")
+    stage: int = Field(1, description="Chặng hiện tại (1-15 hoặc >15)")
     question_index: int = Field(1, description="Câu hỏi hiện tại trong chặng (1-10)")
     streak: int = Field(0, description="Chuỗi thắng hiện tại")
+    is_infinite_stage: bool = Field(False, description="Đang ở chế độ Vô Cực")
+    rank_title: str = Field("Học Giả Tập Sự", description="Danh hiệu cấp bậc")
+    total_words_collected: int = Field(0, description="Tổng số từ vựng đã sưu tầm")
 
 
 class WordScrambleProgressSaveRequest(BaseModel):
     subject: str = Field(..., description="Môn học (Tiếng Việt / Tiếng Anh)")
     grade: int = Field(..., description="Khối lớp (4-9)")
-    stage: int = Field(..., description="Chặng (1-15)")
+    stage: int = Field(..., description="Chặng (1-15 hoặc >15)")
     question_index: int = Field(..., description="Câu hỏi (1-10)")
     streak: Optional[int] = Field(0, description="Chuỗi thắng hiện tại")
+
+
+class WordCollectionItem(BaseModel):
+    id: int
+    word: str
+    subject: str
+    grade: int
+    hint: Optional[str] = None
+    lesson: Optional[str] = None
+    emoji_clues: Optional[List[str]] = None
+    rarity: str = "COMMON"
+    unlocked_at: Optional[str] = None
+
+
+class WordCollectionResponse(BaseModel):
+    total_collected: int
+    subject: str
+    grade: int
+    items: List[WordCollectionItem]
