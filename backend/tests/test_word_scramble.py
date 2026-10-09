@@ -200,3 +200,49 @@ def test_word_scramble_infinite_stages_and_collection(client: TestClient, studen
     assert target_word in collected_words
 
 
+def test_word_scramble_stage_batch_preparation_and_cache(client: TestClient, student_headers, db, student_user):
+    """Test single-call stage batch generation, caching, and /prepare-stage endpoint."""
+    # 1. Direct service test
+    words, is_cached_1, _ = WordScrambleService.prepare_stage_words(
+        user_id=student_user.id,
+        subject="Tiếng Việt",
+        grade=5,
+        stage=4,
+        force_refresh=True,
+    )
+    assert len(words) >= 5
+    assert is_cached_1 is False
+
+    # Second call for same stage must be cached (0 latency)
+    words2, is_cached_2, _ = WordScrambleService.prepare_stage_words(
+        user_id=student_user.id,
+        subject="Tiếng Việt",
+        grade=5,
+        stage=4,
+        force_refresh=False,
+    )
+    assert len(words2) == len(words)
+    assert is_cached_2 is True
+
+    # 2. Test API /prepare-stage
+    res_prep = client.post(
+        "/api/v1/games/word-scramble/prepare-stage",
+        json={"subject": "Tiếng Việt", "grade": 5, "stage": 4, "force_refresh": False},
+        headers=student_headers,
+    )
+    assert res_prep.status_code == 200
+    data_prep = res_prep.json()
+    assert data_prep["status"] == "ready"
+    assert data_prep["stage"] == 4
+    assert data_prep["total_words"] >= 5
+    assert data_prep["is_cached"] is True
+
+    # 3. Test force_refresh on /next
+    res_next_fresh = client.get(
+        "/api/v1/games/word-scramble/next?subject=Tiếng+Việt&grade=5&stage=4&question_index=1&force_refresh=true",
+        headers=student_headers,
+    )
+    assert res_next_fresh.status_code == 200
+    assert res_next_fresh.json()["game_id"].startswith("wsg_")
+
+

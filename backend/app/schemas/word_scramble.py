@@ -83,3 +83,24 @@ class WordCollectionResponse(BaseModel):
     subject: str
     grade: int
     items: List[WordCollectionItem]
+
+
+class WordScramblePrepareStageRequest(BaseModel):
+    subject: str = Field(..., description="Môn học (Tiếng Việt / Tiếng Anh)")
+    grade: Optional[int] = Field(None, description="Khối lớp (4-9)")
+    stage: int = Field(..., description="Chặng (1-15 hoặc >15)")
+    force_refresh: Optional[bool] = Field(False, description="Bắt buộc tạo mới bộ từ AI dù đã có cache")
+
+
+class WordScramblePrepareStageResponse(BaseModel):
+    status: str = Field("ready", description="Trạng thái chuẩn bị: 'ready'")
+    subject: str
+    grade: int
+    stage: int
+    total_words: int
+    theme_title: str
+    rank_title: str
+    is_cached: bool
+    is_ai_generated: bool
+    message: str
+

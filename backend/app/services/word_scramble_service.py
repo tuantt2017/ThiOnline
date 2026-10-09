@@ -31,6 +31,9 @@ USER_RECENT_WORDS: Dict[int, List[str]] = {}
 # In-Memory User Stage & Question Progress Registry (persists stage across sessions)
 USER_STAGE_PROGRESS: Dict[int, Dict[str, Dict[str, Any]]] = {}
 
+# In-Memory Cache for Pre-generated Stage Word Batches (key: f"{user_id}_{subject}_{grade}_{stage}")
+USER_STAGE_WORDS_CACHE: Dict[str, List[Dict[str, Any]]] = {}
+
 ENGLISH_BLACKLIST_WORDS = {
     "ENVIRONMENT", "BEAUTIFUL", "COMMUNITY", "TECHNOLOGY", "FRIENDSHIP",
     "FAMILY", "SCHOOL", "DOCTOR", "TEACHER", "PLAYGROUND", "STUDENT",
@@ -613,6 +616,278 @@ YÊU CẦU ĐẦU RA JSON CHÍNH XÁC:
 
         return None
 
+    @staticmethod
+    def get_rank_title(stage: int) -> str:
+        return get_rank_title(stage)
+
+    @staticmethod
+    def get_theme_title(stage: int, subject: str) -> str:
+        return get_theme_title(stage, subject)
+
+    @classmethod
+    def _generate_stage_words_with_gemini(
+        cls,
+        subject: str,
+        grade: int,
+        stage: int = 1,
+        count: int = 10,
+        recent_words: Optional[List[str]] = None,
+    ) -> Optional[List[Dict[str, Any]]]:
+        """
+        Calls Google Gemini AI to generate an entire batch of words/phrases (count=10)
+        for a specific Chặng (Stage 1-15 or Infinite Arena) in ONE SINGLE API CALL.
+        """
+        if not GeminiKnowledgeService.is_gemini_configured():
+            return None
+
+        api_key = settings.GEMINI_API_KEY.strip() if settings.GEMINI_API_KEY else ""
+        if not api_key:
+            return None
+
+        is_english = "anh" in subject.lower() or "english" in subject.lower()
+        sub_name = "Tiếng Anh" if is_english else "Tiếng Việt"
+        recent_str = ", ".join(recent_words[-50:]) if recent_words else "Không có"
+        is_infinite = stage > 15
+        theme_title = get_theme_title(stage, subject)
+
+        if stage <= 5:
+            req_type = "từ ghép hoặc từ vựng ngắn 2 tiếng (Ví dụ: 'TRUNG THỰC', 'YÊU THƯƠNG', 'TEACHER', 'FAMILY', 'LUNG LINH', 'RỰC RỠ')"
+        elif stage <= 10:
+            req_type = "từ ghép 2-3 tiếng, từ láy giàu hình ảnh/cảm xúc hoặc cụm từ quen thuộc (Ví dụ: 'BẢO VỆ MÔI TRƯỜNG', 'COMMUNITY', 'TÔN SƯ TRỌNG ĐẠO', 'BÁT NGÁT', 'CẦN MẪN')"
+        elif stage <= 15:
+            req_type = "câu thành ngữ, tục ngữ dài hoặc câu nói hay SGK 3-5 tiếng (Ví dụ: 'UỐNG NƯỚC NHỚ NGUỒN', 'ĂN QUẢ NHỚ KẺ TRỒNG CÂY', 'PRACTICE MAKES PERFECT', 'ACTIONS SPEAK LOUDER')"
+        else:
+            req_type = "ĐẤU TRƯỜNG VÔ CỰC: thành ngữ, tục ngữ thâm thúy, từ láy đỉnh cao, danh ngôn trí tuệ hoặc cụm từ sâu sắc 3-6 tiếng"
+
+        if is_english:
+            prompt = f"""Bạn là một từ điển Tiếng Anh AI thông minh biên soạn từ vựng SGK & Tiếng Anh chuẩn Quốc tế Lớp {grade} cho Chặng {stage}{" (ĐẤU TRƯỜNG VÔ CỰC)" if is_infinite else ""}.
+Chủ điểm chặng: {theme_title}.
+Hãy tạo một danh sách gồm {count} từ/cụm từ Tiếng Anh hay, độc đáo, phong phú cho toàn bộ Chặng {stage}.
+Yêu cầu cấp độ: {req_type}.
+
+YÊU CẦU BẮT BUỘC CHO MỖI TỪ/CỤM TỪ:
+1. Trường `word` BẮT BUỘC là TIẾNG ANH viết IN HOA, chỉ gồm các ký tự chữ cái A-Z và khoảng trắng (nếu là cụm từ). Tuyệt đối không chứa dấu câu hay ký tự lạ.
+2. Trường `hint` giải thích nghĩa từ/cụm từ bằng Tiếng Việt ngắn gọn 1 câu dễ hiểu cho học sinh Lớp {grade}.
+3. Trường `lesson`: bài học gợi ý (ví dụ: 'English Grade {grade} - Unit {stage}').
+4. Trường `emoji_clues`: mảng gồm 2-3 emoji gợi ý sinh động nghĩa của từ (VD: ["⭐", "🚀"]).
+5. Trường `rarity`: một trong ba giá trị "COMMON", "RARE", "LEGENDARY".
+6. KHÔNG trùng lặp các từ trong danh sách và TUYỆT ĐỐI KHÔNG TRÙNG VỚI: {recent_str}.
+
+TRẢ VỀ DUY NHẤT MỘT JSON ARRAY gồm đúng {count} phần tử:
+[
+  {{
+    "word": "ENGLISH_WORD_OR_PHRASE",
+    "hint": "Gợi ý nghĩa ngắn gọn...",
+    "lesson": "English Grade {grade} - Unit {stage}",
+    "emoji_clues": ["⭐", "🚀"],
+    "rarity": "COMMON"
+  }}
+]
+"""
+        else:
+            prompt = f"""Bạn là một chuyên gia ngôn ngữ học & biên soạn từ điển SGK Tiếng Việt Lớp {grade} (GDPT 2018) cho Chặng {stage}{" (ĐẤU TRƯỜNG VÔ CỰC)" if is_infinite else ""}.
+Chủ điểm chặng: {theme_title}.
+Hãy tạo một danh sách gồm {count} từ/cụm từ hay, độc đáo, phong phú cho toàn bộ Chặng {stage}.
+Yêu cầu cấp độ: {req_type}.
+
+ĐẶC BIỆT LƯU Ý:
+- Đa dạng hóa vốn từ vựng phong phú, ưu tiên từ láy hay, từ giàu hình ảnh/cảm xúc/thiên nhiên/khoa học/văn học/thành ngữ phù hợp với chủ điểm chặng.
+- KHÔNG trùng lặp các từ trong danh sách.
+- TUYỆT ĐỐI KHÔNG TRÙNG VỚI CÁC TỪ ĐÃ XUẤT HIỆN: {recent_str}.
+
+YÊU CẦU BẮT BUỘC CHO MỖI PHẦN TỬ:
+1. Trường `word`: từ ghép/từ láy/thành ngữ TIẾNG VIỆT có nghĩa (viết IN HOA, có dấu đầy đủ, chỉ gồm chữ cái và khoảng trắng, không chứa dấu câu thừa).
+2. Trường `hint`: giải thích nghĩa bằng Tiếng Việt ngắn gọn 1 câu gợi ý hay, súc tích, dễ hiểu cho học sinh Lớp {grade}.
+3. Trường `lesson`: tên chủ điểm hoặc bài học (ví dụ: 'SGK Tiếng Việt {grade} - {theme_title}').
+4. Trường `emoji_clues`: mảng chứa 2-3 emoji gợi ý sinh động cho nghĩa của từ (VD: ["🐝", "🍯", "🌸"]).
+5. Trường `rarity`: một trong ba giá trị "COMMON", "RARE", "LEGENDARY".
+
+TRẢ VỀ DUY NHẤT MỘT JSON ARRAY gồm đúng {count} phần tử:
+[
+  {{
+    "word": "TỪ_HOẶC_CÂU_TIẾNG_VIỆT_IN_HOA",
+    "hint": "Định nghĩa/gợi ý ngắn gọn 1 câu...",
+    "lesson": "SGK Tiếng Việt {grade} - {theme_title}",
+    "emoji_clues": ["✨", "🌈"],
+    "rarity": "COMMON"
+  }}
+]
+"""
+
+        models_to_try = [
+            settings.GEMINI_MODEL,
+            "gemini-2.5-flash",
+            "gemini-3.6-flash",
+            "gemini-3.7-flash",
+            "gemini-3.5-flash-lite",
+            "gemini-flash-lite-latest",
+            "gemini-3.5-flash",
+            "gemini-3.8-flash",
+            "gemini-flash-latest",
+        ]
+        models_to_try = list(dict.fromkeys([m.strip() for m in models_to_try if m and m.strip()]))
+
+        try:
+            with httpx.Client(timeout=25.0) as client:
+                for model_name in models_to_try:
+                    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
+                    payload = {
+                        "contents": [{"parts": [{"text": prompt}]}],
+                        "generationConfig": {
+                            "temperature": 0.95,
+                            "responseMimeType": "application/json",
+                        },
+                    }
+                    try:
+                        resp = client.post(url, json=payload)
+                        if resp.status_code == 200:
+                            data = resp.json()
+                            candidates = data.get("candidates", [])
+                            if candidates:
+                                text_content = candidates[0]["content"]["parts"][0]["text"]
+                                cleaned = re.sub(r"^```(?:json)?\s*", "", text_content.strip())
+                                cleaned = re.sub(r"\s*```$", "", cleaned.strip())
+                                parsed = json.loads(cleaned)
+
+                                if isinstance(parsed, dict) and "words" in parsed and isinstance(parsed["words"], list):
+                                    parsed = parsed["words"]
+
+                                if not isinstance(parsed, list):
+                                    continue
+
+                                valid_items = []
+                                target_bank = ENGLISH_SGK_WORDS if is_english else VIETNAMESE_SGK_WORDS
+
+                                for raw_item in parsed:
+                                    if not isinstance(raw_item, dict):
+                                        continue
+                                    word_val = str(raw_item.get("word", "")).strip().upper()
+                                    hint_val = str(raw_item.get("hint", "")).strip()
+                                    lesson_val = str(raw_item.get("lesson", "")).strip()
+                                    emoji_clues = raw_item.get("emoji_clues", [])
+                                    rarity_val = raw_item.get("rarity", "COMMON")
+
+                                    if not word_val or not hint_val:
+                                        continue
+                                    if is_english and not cls._is_valid_english_word(word_val):
+                                        continue
+                                    if not is_english and not cls._is_valid_vietnamese_word(word_val):
+                                        continue
+                                    if recent_words and word_val in recent_words:
+                                        continue
+                                    if any(x["word"] == word_val for x in valid_items):
+                                        continue
+
+                                    if not isinstance(emoji_clues, list) or not emoji_clues:
+                                        emoji_clues = ["✨", "💡"]
+
+                                    valid_item = {
+                                        "word": word_val,
+                                        "grade": grade,
+                                        "hint": hint_val,
+                                        "lesson": lesson_val or f"SGK {sub_name} Lớp {grade} - Chặng {stage}",
+                                        "emoji_clues": emoji_clues,
+                                        "rarity": rarity_val if rarity_val in ["COMMON", "RARE", "LEGENDARY"] else "COMMON",
+                                    }
+                                    valid_items.append(valid_item)
+
+                                    # Enrich global bank
+                                    if not any(x["word"] == word_val for x in target_bank):
+                                        target_bank.append(valid_item)
+
+                                if len(valid_items) >= 5:
+                                    logger.info(f"Gemini {model_name} sinh thành công {len(valid_items)} từ cho Chặng {stage} {subject} Lớp {grade}")
+                                    return valid_items
+                    except Exception as exc:
+                        logger.warning(f"Gemini {model_name} khi sinh bộ từ chặng gặp lỗi: {exc}")
+        except Exception as main_exc:
+            logger.warning(f"Lỗi kết nối Gemini AI khi sinh bộ từ chặng: {main_exc}")
+
+        return None
+
+    @classmethod
+    def get_fallback_stage_words(
+        cls,
+        subject: str,
+        grade: int,
+        stage: int = 1,
+        count: int = 10,
+        recent_words: Optional[List[str]] = None,
+    ) -> List[Dict[str, Any]]:
+        """Selects up to count words from the curated bank as fallback."""
+        is_english = "anh" in subject.lower() or "english" in subject.lower()
+        source_bank = ENGLISH_SGK_WORDS if is_english else VIETNAMESE_SGK_WORDS
+        recent = recent_words or []
+
+        if stage <= 5:
+            stage_pool = [x for x in source_bank if len(x["word"].split()) <= 2]
+        elif stage >= 11:
+            stage_pool = [x for x in source_bank if len(x["word"].split()) >= 3]
+        else:
+            stage_pool = source_bank
+
+        if not stage_pool:
+            stage_pool = source_bank
+
+        filtered = [item for item in stage_pool if item.get("grade") == grade and item["word"] not in recent]
+        if len(filtered) < count:
+            extra = [item for item in stage_pool if item["word"] not in recent and item not in filtered]
+            filtered.extend(extra)
+        if len(filtered) < count:
+            last_10 = recent[-10:] if len(recent) >= 10 else recent
+            extra = [item for item in stage_pool if item["word"] not in last_10 and item not in filtered]
+            filtered.extend(extra)
+        if len(filtered) < count:
+            filtered.extend([item for item in stage_pool if item not in filtered])
+
+        if len(filtered) >= count:
+            return random.sample(filtered, count)
+        return filtered
+
+    @classmethod
+    def prepare_stage_words(
+        cls,
+        user_id: int,
+        subject: str,
+        grade: int,
+        stage: int = 1,
+        force_refresh: bool = False,
+    ) -> tuple[List[Dict[str, Any]], bool, bool]:
+        """
+        Retrieves or generates a batch of 10 words for the given user, subject, grade, stage.
+        Returns: (stage_words, is_cached, is_ai_generated)
+        """
+        cache_key = f"{user_id}_{subject}_{grade}_{stage}"
+        recent = USER_RECENT_WORDS.get(user_id, [])
+
+        if not force_refresh and cache_key in USER_STAGE_WORDS_CACHE:
+            cached = USER_STAGE_WORDS_CACHE[cache_key]
+            if len(cached) >= 5:
+                return cached, True, True
+
+        # 1. Call Gemini once to generate batch of words for this stage
+        ai_words = cls._generate_stage_words_with_gemini(
+            subject=subject,
+            grade=grade,
+            stage=stage,
+            count=10,
+            recent_words=recent,
+        )
+
+        if ai_words and len(ai_words) >= 5:
+            if len(ai_words) < 10:
+                needed = 10 - len(ai_words)
+                existing = [x["word"] for x in ai_words] + recent
+                fallback_fill = cls.get_fallback_stage_words(subject, grade, stage, count=needed, recent_words=existing)
+                ai_words.extend(fallback_fill[:needed])
+            USER_STAGE_WORDS_CACHE[cache_key] = ai_words
+            return ai_words, False, True
+
+        # 2. Fallback to curated dictionary if Gemini is unavailable
+        fallback_words = cls.get_fallback_stage_words(subject, grade, stage, count=10, recent_words=recent)
+        USER_STAGE_WORDS_CACHE[cache_key] = fallback_words
+        return fallback_words, False, False
+
     @classmethod
     def get_next_question(
         cls,
@@ -622,12 +897,11 @@ YÊU CẦU ĐẦU RA JSON CHÍNH XÁC:
         grade: Optional[int] = None,
         stage: int = 1,
         question_index: int = 1,
+        force_refresh: bool = False,
     ) -> WordScrambleQuestionResponse:
         """
         Generates a word scramble game session tailored to student grade, subject & stage (Chặng 1-15 hoặc Chặng Vô Cực 16+).
-        Automatically classifies mode:
-        - 1-2 words: 'word' mode (scrambles letters, optional distractors).
-        - 3+ words: 'sentence' mode (scrambles whole words).
+        Pre-generates 10 questions per stage with Gemini AI in a single call for lightning-fast gameplay.
         """
         TrialGuardService.check_and_increment_trial_usage(db, student, "game_vua_tu_vung")
 
@@ -644,41 +918,33 @@ YÊU CẦU ĐẦU RA JSON CHÍNH XÁC:
                 curr_q_index = max(1, min(10, saved_p.get("question_index", 1)))
 
         user_id = student.id
-        recent_words = USER_RECENT_WORDS.get(user_id, [])
         is_infinite = current_stage > 15
 
-        # Try generating a fresh word with Gemini AI tailored to Stage
-        selected_item = cls._generate_word_with_gemini(target_subject, applied_grade, stage=current_stage, recent_words=recent_words)
+        # 1. Prepare / Retrieve batch of 10 stage words (Generated in ONE single Gemini API call!)
+        stage_words, is_cached, is_ai = cls.prepare_stage_words(
+            user_id=user_id,
+            subject=target_subject,
+            grade=applied_grade,
+            stage=current_stage,
+            force_refresh=force_refresh,
+        )
 
-        # Fallback to expanded clean curated bank
-        if not selected_item:
-            source_bank = ENGLISH_SGK_WORDS if target_subject == "Tiếng Anh" else VIETNAMESE_SGK_WORDS
-
-            # Filter by stage requirements
-            if current_stage <= 5:
-                stage_pool = [x for x in source_bank if len(x["word"].split()) <= 2]
-            elif current_stage >= 11:
-                stage_pool = [x for x in source_bank if len(x["word"].split()) >= 3]
+        # 2. Select word corresponding to question_index (1 to 10), ensuring no immediate repeat
+        recent_words = USER_RECENT_WORDS.get(user_id, [])
+        candidate = stage_words[(curr_q_index - 1) % len(stage_words)]
+        if candidate["word"].upper() in recent_words:
+            unserved = [w for w in stage_words if w["word"].upper() not in recent_words]
+            if unserved:
+                selected_item = unserved[0]
             else:
-                stage_pool = source_bank
-
-            if not stage_pool:
-                stage_pool = source_bank
-
-            filtered = [item for item in stage_pool if item["grade"] == applied_grade and item["word"] not in recent_words]
-            if not filtered:
-                filtered = [item for item in stage_pool if item["word"] not in recent_words]
-            if not filtered:
-                last_10 = recent_words[-10:] if len(recent_words) >= 10 else recent_words
-                filtered = [item for item in stage_pool if item["word"] not in last_10]
-            if not filtered:
-                filtered = stage_pool
-
-            selected_item = random.choice(filtered)
+                selected_item = candidate
+        else:
+            selected_item = candidate
 
         target_word = selected_item["word"].upper()
         emoji_clues = selected_item.get("emoji_clues", ["✨", "💡"])
         rarity = selected_item.get("rarity", "COMMON")
+
 
         # Update user recent words memory (up to 300 words history)
         if user_id not in USER_RECENT_WORDS:

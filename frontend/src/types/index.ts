@@ -889,6 +889,26 @@ export interface WordCollectionResponse {
   items: WordCollectionItem[];
 }
 
+export interface WordScramblePrepareStageRequest {
+  subject: string;
+  grade?: number;
+  stage: number;
+  force_refresh?: boolean;
+}
+
+export interface WordScramblePrepareStageResponse {
+  status: string;
+  subject: string;
+  grade: number;
+  stage: number;
+  total_words: number;
+  theme_title: string;
+  rank_title: string;
+  is_cached: boolean;
+  is_ai_generated: boolean;
+  message: string;
+}
+
 
 export interface RewardBalance {
   diamond_balance: number;

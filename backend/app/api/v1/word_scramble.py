@@ -11,10 +11,44 @@ from app.schemas.word_scramble import (
     WordScrambleProgressResponse,
     WordScrambleProgressSaveRequest,
     WordCollectionResponse,
+    WordScramblePrepareStageRequest,
+    WordScramblePrepareStageResponse,
 )
 from app.services.word_scramble_service import WordScrambleService
 
 router = APIRouter(prefix="/games/word-scramble", tags=["word-scramble-game"])
+
+
+@router.post("/prepare-stage", response_model=WordScramblePrepareStageResponse)
+def prepare_word_scramble_stage(
+    req: WordScramblePrepareStageRequest,
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Pre-generates 10 questions for a stage with Gemini AI in a single call or retrieves from stage cache.
+    """
+    grade = req.grade or current_user.grade or 5
+    words, is_cached, is_ai = WordScrambleService.prepare_stage_words(
+        user_id=current_user.id,
+        subject=req.subject,
+        grade=grade,
+        stage=req.stage,
+        force_refresh=bool(req.force_refresh),
+    )
+    theme_title = WordScrambleService.get_theme_title(req.stage, req.subject)
+    rank_title = WordScrambleService.get_rank_title(req.stage)
+    return WordScramblePrepareStageResponse(
+        status="ready",
+        subject=req.subject,
+        grade=grade,
+        stage=req.stage,
+        total_words=len(words),
+        theme_title=theme_title,
+        rank_title=rank_title,
+        is_cached=is_cached,
+        is_ai_generated=is_ai,
+        message="Bộ từ vựng của chặng đã sẵn sàng!" if is_cached else "Gemini AI đã biên soạn thành công 10 từ vựng cho chặng!",
+    )
 
 
 @router.get("/next", response_model=WordScrambleQuestionResponse)
@@ -23,6 +57,7 @@ def get_next_word_scramble_question(
     grade: Optional[int] = Query(None, ge=4, le=9, description="Khối lớp (4-9)"),
     stage: Optional[int] = Query(1, ge=1, le=999, description="Chặng hiện tại (1-15 hoặc >15 cho Đấu Trường Vô Cực)"),
     question_index: Optional[int] = Query(1, ge=1, le=10, description="Thứ tự câu hỏi trong chặng (1-10)"),
+    force_refresh: Optional[bool] = Query(False, description="Tạo mới bộ 10 từ vựng AI cho chặng này"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -36,6 +71,7 @@ def get_next_word_scramble_question(
         grade=grade,
         stage=stage or 1,
         question_index=question_index or 1,
+        force_refresh=bool(force_refresh),
     )
 
 

@@ -110,7 +110,8 @@ export default function WordScrambleGamePage() {
     targetSub = subject,
     targetGrade = grade,
     targetStage = stage,
-    targetQuestionIndex = questionIndex
+    targetQuestionIndex = questionIndex,
+    forceRefresh = false
   ) => {
     setIsFetching(true);
     setQuestion(null); // Clear old question immediately
@@ -126,7 +127,7 @@ export default function WordScrambleGamePage() {
     if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
 
     try {
-      const q = await api.getWordScrambleQuestion(targetSub, targetGrade, targetStage, targetQuestionIndex);
+      const q = await api.getWordScrambleQuestion(targetSub, targetGrade, targetStage, targetQuestionIndex, forceRefresh);
       setQuestion(q);
       setScrambledList(q.scrambled_letters);
 
@@ -436,6 +437,36 @@ export default function WordScrambleGamePage() {
     fetchNextQuestion(subject, grade, nextStage, nextQuestionIndex);
   };
 
+  // Jump to specific stage (1 to 15 or Infinite 16+)
+  const handleSelectStage = (selectedStage: number) => {
+    if (isFetching || isVerifying) return;
+    setStage(selectedStage);
+    setQuestionIndex(1);
+
+    if (user) {
+      const key = `word_scramble_progress_${user.id}_${subject}_${grade}`;
+      try {
+        localStorage.setItem(key, JSON.stringify({ stage: selectedStage, questionIndex: 1, streak }));
+      } catch {}
+      api.saveWordScrambleProgress({
+        subject,
+        grade,
+        stage: selectedStage,
+        question_index: 1,
+        streak,
+      }).catch(() => {});
+    }
+
+    fetchNextQuestion(subject, grade, selectedStage, 1);
+  };
+
+  // Re-generate 10 fresh AI words for current stage with Gemini
+  const handleRefreshStageAiWords = () => {
+    if (isFetching || isVerifying) return;
+    fetchNextQuestion(subject, grade, stage, 1, true);
+    setQuestionIndex(1);
+  };
+
   const handleRestartJourney = () => {
     setStage(1);
     setQuestionIndex(1);
@@ -589,8 +620,8 @@ export default function WordScrambleGamePage() {
         </div>
 
         {/* Stage Progress Stepper & Theme Banner */}
-        <div className="bg-white p-4 rounded-3xl border border-slate-200/80 shadow-sm space-y-2">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs font-bold text-slate-600 gap-1.5">
+        <div className="bg-white p-4 sm:p-5 rounded-3xl border border-slate-200/80 shadow-sm space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs font-bold text-slate-600 gap-2">
             <span className="flex items-center gap-1.5 text-indigo-600">
               <Trophy className="w-4 h-4 text-amber-500" />
               <span>
@@ -605,10 +636,25 @@ export default function WordScrambleGamePage() {
                 )}
               </span>
             </span>
-            <span className="text-amber-800 font-extrabold flex items-center gap-1">
-              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-              <span>{question?.theme_title || 'Chủ điểm: Khám Phá Tri Thức SGK'}</span>
-            </span>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-amber-800 font-extrabold flex items-center gap-1">
+                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                <span>{question?.theme_title || 'Chủ điểm: Khám Phá Tri Thức SGK'}</span>
+              </span>
+
+              {/* Regenerate Stage AI Words Button */}
+              <button
+                type="button"
+                onClick={handleRefreshStageAiWords}
+                disabled={isFetching}
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 text-[11px] font-black transition shadow-xs active:scale-95 disabled:opacity-50"
+                title="Yêu cầu Gemini AI tạo 1 bộ 10 từ mới toanh cho chặng này"
+              >
+                <RefreshCw className={`w-3 h-3 text-amber-600 ${isFetching ? 'animate-spin' : ''}`} />
+                <span>Đổi Bộ Từ AI 🎲</span>
+              </button>
+            </div>
           </div>
 
           {/* Progress Bar */}
@@ -621,6 +667,54 @@ export default function WordScrambleGamePage() {
               }`}
               style={{ width: `${overallProgressPercent}%` }}
             />
+          </div>
+
+          {/* Interactive Stage Selector Bar */}
+          <div className="pt-2 border-t border-slate-100">
+            <div className="flex items-center justify-between pb-1.5">
+              <span className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider flex items-center gap-1">
+                <Flag className="w-3 h-3 text-indigo-500" />
+                <span>Bản Đồ Chặng (AI tạo sẵn 10 từ cho mỗi chặng):</span>
+              </span>
+              <span className="text-[10px] text-slate-400 font-semibold hidden sm:inline">
+                Click vào chặng để AI chuẩn bị từ vựng
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
+              {Array.from({ length: 15 }, (_, i) => i + 1).map((sNum) => {
+                const isActive = stage === sNum;
+                return (
+                  <button
+                    key={sNum}
+                    type="button"
+                    onClick={() => handleSelectStage(sNum)}
+                    disabled={isFetching}
+                    className={`flex-shrink-0 px-2.5 py-1 rounded-xl font-black text-xs transition border ${
+                      isActive
+                        ? 'bg-amber-500 text-slate-950 border-amber-500 shadow-md scale-105 ring-2 ring-amber-300'
+                        : 'bg-slate-50 text-slate-700 hover:bg-amber-50 border-slate-200 hover:border-amber-300'
+                    }`}
+                  >
+                    C.{sNum}
+                  </button>
+                );
+              })}
+              {/* Infinite Arena Shortcut Button */}
+              <button
+                type="button"
+                onClick={() => handleSelectStage(16)}
+                disabled={isFetching}
+                className={`flex-shrink-0 px-2.5 py-1 rounded-xl font-black text-xs transition border flex items-center gap-1 ${
+                  stage >= 16
+                    ? 'bg-purple-600 text-white border-purple-600 shadow-md scale-105 ring-2 ring-purple-300'
+                    : 'bg-purple-50 text-purple-700 hover:bg-purple-100 border-purple-200'
+                }`}
+                title="Đấu Trường Vô Cực (Chặng 16+)"
+              >
+                <InfinityIcon className="w-3 h-3" />
+                <span>Vô Cực</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -686,19 +780,24 @@ export default function WordScrambleGamePage() {
               <div className="p-4 bg-amber-50 text-amber-600 rounded-full animate-bounce shadow-md border border-amber-200">
                 <Sparkles className="w-8 h-8" />
               </div>
-              <div className="space-y-1">
+              <div className="space-y-1.5 max-w-md mx-auto">
                 <h3 className="text-base font-extrabold text-slate-900 flex items-center justify-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin text-amber-500" />
+                  <Loader2 className="w-5 h-5 animate-spin text-amber-500" />
                   <span>
-                    Đang tải {isInfinite ? `Chặng Vô Cực ${stage}` : `Chặng ${stage}/15`} - Câu {questionIndex}/10...
+                    {questionIndex === 1
+                      ? `Gemini AI đang tạo 1 list 10 từ cho Chặng ${stage}...`
+                      : `Đang tải ${isInfinite ? `Chặng Vô Cực ${stage}` : `Chặng ${stage}/15`} - Câu ${questionIndex}/10...`}
                   </span>
                 </h3>
-                <p className="text-xs text-slate-500">
-                  AI đang tuyển chọn từ vựng SGK Lớp {grade} môn {subject} phong phú, độc đáo...
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  {questionIndex === 1
+                    ? '⚡ Chỉ mất 1 lần gọi AI tạo sẵn 1 thể toàn bộ 10 từ của chặng. Các câu 2 đến 10 sẽ mở tức thì không cần chờ!'
+                    : '⚡ Lấy từ bộ từ vựng đã được AI tạo sẵn cho chặng này (phản hồi tức thì).'}
                 </p>
               </div>
             </div>
           ) : (
+
             <>
               {/* Stage Top Bar: Mode Banner, Timer & Actions */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-100 gap-3">
