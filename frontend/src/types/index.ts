@@ -808,6 +808,7 @@ export interface WordScrambleQuestion {
   grade: number;
   mode?: 'word' | 'sentence';
   stage?: number;
+  max_unlocked_stage?: number;
   total_stages?: number;
   is_infinite_stage?: boolean;
   rank_title?: string;
@@ -855,6 +856,7 @@ export interface WordScrambleProgressResponse {
   subject: string;
   grade: number;
   stage: number;
+  max_unlocked_stage?: number;
   question_index: number;
   streak: number;
   is_infinite_stage?: boolean;
@@ -866,6 +868,7 @@ export interface WordScrambleProgressSaveRequest {
   subject: string;
   grade: number;
   stage: number;
+  max_unlocked_stage?: number;
   question_index: number;
   streak?: number;
 }

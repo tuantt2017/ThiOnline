@@ -895,8 +895,8 @@ TRẢ VỀ DUY NHẤT MỘT JSON ARRAY gồm đúng {count} phần tử:
         student: User,
         subject: str = "Tiếng Việt",
         grade: Optional[int] = None,
-        stage: int = 1,
-        question_index: int = 1,
+        stage: Optional[int] = None,
+        question_index: Optional[int] = None,
         force_refresh: bool = False,
     ) -> WordScrambleQuestionResponse:
         """
@@ -907,17 +907,24 @@ TRẢ VỀ DUY NHẤT MỘT JSON ARRAY gồm đúng {count} phần tử:
 
         applied_grade = grade or student.grade or 5
         target_subject = "Tiếng Anh" if "anh" in subject.lower() or "english" in subject.lower() else "Tiếng Việt"
-        current_stage = max(1, stage)
-        curr_q_index = max(1, min(10, question_index))
+        user_id = student.id
 
-        # Auto-resume from DB progress if stage=1 and question_index=1
-        if stage == 1 and question_index == 1:
-            saved_p = cls.get_user_progress(db=db, student=student, subject=target_subject, grade=applied_grade)
+        # Retrieve saved progress and highest unlocked stage
+        saved_p = cls.get_user_progress(db=db, student=student, subject=target_subject, grade=applied_grade)
+        max_unlocked_stage = max(1, saved_p.get("max_unlocked_stage", saved_p.get("stage", 1)))
+
+        # Determine requested or resumed stage
+        if stage is None or (stage == 1 and question_index == 1):
             if saved_p and (saved_p.get("stage", 1) > 1 or saved_p.get("question_index", 1) > 1):
                 current_stage = max(1, saved_p.get("stage", 1))
                 curr_q_index = max(1, min(10, saved_p.get("question_index", 1)))
+            else:
+                current_stage = 1
+                curr_q_index = 1
+        else:
+            current_stage = max(1, stage)
+            curr_q_index = max(1, min(10, question_index or 1))
 
-        user_id = student.id
         is_infinite = current_stage > 15
 
         # 1. Prepare / Retrieve batch of 10 stage words (Generated in ONE single Gemini API call!)
@@ -984,6 +991,7 @@ TRẢ VỀ DUY NHẤT MỘT JSON ARRAY gồm đúng {count} phần tử:
             grade=applied_grade,
             mode=scrambled_data["mode"],
             stage=current_stage,
+            max_unlocked_stage=max_unlocked_stage,
             total_stages=15,
             is_infinite_stage=is_infinite,
             rank_title=rank_title,
@@ -1003,6 +1011,7 @@ TRẢ VỀ DUY NHẤT MỘT JSON ARRAY gồm đúng {count} phần tử:
             pre_filled_hints=scrambled_data.get("pre_filled_hints", []),
             target_word=target_word,
         )
+
 
     @classmethod
     def verify_answer(
@@ -1089,12 +1098,17 @@ TRẢ VỀ DUY NHẤT MỘT JSON ARRAY gồm đúng {count} phần tử:
             curr_stage = session.get("stage", 1)
             curr_q_index = session.get("question_index", 1)
 
+            saved_p = cls.get_user_progress(db=db, student=student, subject=target_subject, grade=session.get("grade", 5))
+            existing_max = max(1, saved_p.get("max_unlocked_stage", saved_p.get("stage", 1)))
+
             if curr_q_index < 10:
                 next_stage = curr_stage
                 next_q_index = curr_q_index + 1
+                new_max_unlocked = existing_max
             else:
-                next_stage = curr_stage + 1  # Seamlessly advance to next stage (including 16+ Infinite stages!)
+                next_stage = curr_stage + 1  # Completed question 10 -> Unlock next stage!
                 next_q_index = 1
+                new_max_unlocked = max(existing_max, next_stage)
 
             cls.save_user_progress(
                 db=db,
@@ -1104,6 +1118,7 @@ TRẢ VỀ DUY NHẤT MỘT JSON ARRAY gồm đúng {count} phần tử:
                 stage=next_stage,
                 question_index=next_q_index,
                 streak=new_streak,
+                max_unlocked_stage=new_max_unlocked,
             )
         else:
             cls.save_user_progress(
@@ -1229,14 +1244,19 @@ TRẢ VỀ DUY NHẤT MỘT JSON ARRAY gồm đúng {count} phần tử:
                     .first()
                 )
                 if prog:
+                    user_dict = USER_STAGE_PROGRESS.get(user_id, {}) if user_id else {}
+                    sub_progress = user_dict.get(target_subject, {})
+                    curr_stage = min(sub_progress.get("stage", prog.stage), prog.stage)
+
                     saved_data = {
                         "subject": target_subject,
                         "grade": grade,
-                        "stage": prog.stage,
+                        "stage": curr_stage,
+                        "max_unlocked_stage": max(1, prog.stage),
                         "question_index": prog.question_index,
                         "streak": prog.streak,
-                        "is_infinite_stage": prog.stage > 15,
-                        "rank_title": get_rank_title(prog.stage),
+                        "is_infinite_stage": curr_stage > 15,
+                        "rank_title": get_rank_title(curr_stage),
                         "total_words_collected": total_words_collected,
                     }
                     if user_id not in USER_STAGE_PROGRESS:
@@ -1254,6 +1274,7 @@ TRẢ VỀ DUY NHẤT MỘT JSON ARRAY gồm đúng {count} phần tử:
                 "subject": target_subject,
                 "grade": grade,
                 "stage": 1,
+                "max_unlocked_stage": 1,
                 "question_index": 1,
                 "streak": 0,
                 "is_infinite_stage": False,
@@ -1262,6 +1283,8 @@ TRẢ VỀ DUY NHẤT MỘT JSON ARRAY gồm đúng {count} phần tử:
             }
         else:
             sub_progress["total_words_collected"] = total_words_collected
+            if "max_unlocked_stage" not in sub_progress:
+                sub_progress["max_unlocked_stage"] = max(1, sub_progress.get("stage", 1))
             sub_progress["is_infinite_stage"] = sub_progress.get("stage", 1) > 15
             sub_progress["rank_title"] = get_rank_title(sub_progress.get("stage", 1))
 
@@ -1277,6 +1300,7 @@ TRẢ VỀ DUY NHẤT MỘT JSON ARRAY gồm đúng {count} phần tử:
         stage: int = 1,
         question_index: int = 1,
         streak: int = 0,
+        max_unlocked_stage: Optional[int] = None,
     ) -> Dict[str, Any]:
         """Saves persistent game progress for student by subject & grade to Database."""
         target_subject = "Tiếng Anh" if "anh" in subject.lower() or "english" in subject.lower() else "Tiếng Việt"
@@ -1284,6 +1308,32 @@ TRẢ VỀ DUY NHẤT MỘT JSON ARRAY gồm đúng {count} phần tử:
 
         bounded_stage = max(1, stage)
         bounded_q_idx = max(1, min(10, question_index))
+        # Retrieve previous max unlocked stage
+        prev_max = 1
+        if db and user_id:
+            try:
+                existing_prog = (
+                    db.query(UserGameProgress)
+                    .filter(
+                        UserGameProgress.user_id == user_id,
+                        UserGameProgress.game_type == "word_scramble",
+                        UserGameProgress.subject == target_subject,
+                        UserGameProgress.grade == grade,
+                    )
+                    .first()
+                )
+                if existing_prog and existing_prog.stage:
+                    prev_max = max(prev_max, existing_prog.stage)
+            except Exception:
+                pass
+
+        user_dict = USER_STAGE_PROGRESS.get(user_id, {}) if user_id else {}
+        prev_data = user_dict.get(target_subject, {})
+        prev_max = max(prev_max, prev_data.get("max_unlocked_stage", prev_data.get("stage", 1)))
+
+        resolved_max_unlocked = max(bounded_stage, prev_max)
+        if max_unlocked_stage is not None:
+            resolved_max_unlocked = max(resolved_max_unlocked, max_unlocked_stage)
 
         total_words_collected = 0
         if db and user_id:
@@ -1299,24 +1349,7 @@ TRẢ VỀ DUY NHẤT MỘT JSON ARRAY gồm đúng {count} phần tử:
             except Exception:
                 pass
 
-        saved_data = {
-            "subject": target_subject,
-            "grade": grade,
-            "stage": bounded_stage,
-            "question_index": bounded_q_idx,
-            "streak": max(0, streak),
-            "is_infinite_stage": bounded_stage > 15,
-            "rank_title": get_rank_title(bounded_stage),
-            "total_words_collected": total_words_collected,
-        }
-
-        # 1. Update in-memory cache
-        if user_id:
-            if user_id not in USER_STAGE_PROGRESS:
-                USER_STAGE_PROGRESS[user_id] = {}
-            USER_STAGE_PROGRESS[user_id][target_subject] = saved_data
-
-        # 2. Persist to Database
+        # 1. Persist to Database: prog.stage always keeps resolved_max_unlocked (never downgrades!)
         if db and user_id:
             try:
                 prog = (
@@ -1330,7 +1363,8 @@ TRẢ VỀ DUY NHẤT MỘT JSON ARRAY gồm đúng {count} phần tử:
                     .first()
                 )
                 if prog:
-                    prog.stage = bounded_stage
+                    resolved_max_unlocked = max(resolved_max_unlocked, prog.stage)
+                    prog.stage = resolved_max_unlocked
                     prog.question_index = bounded_q_idx
                     prog.streak = max(0, streak)
                 else:
@@ -1339,7 +1373,7 @@ TRẢ VỀ DUY NHẤT MỘT JSON ARRAY gồm đúng {count} phần tử:
                         game_type="word_scramble",
                         subject=target_subject,
                         grade=grade,
-                        stage=bounded_stage,
+                        stage=resolved_max_unlocked,
                         question_index=bounded_q_idx,
                         streak=max(0, streak),
                     )
@@ -1350,4 +1384,23 @@ TRẢ VỀ DUY NHẤT MỘT JSON ARRAY gồm đúng {count} phần tử:
                 db.rollback()
                 logger.warning(f"Lỗi khi lưu UserGameProgress vào Database: {exc}")
 
+        saved_data = {
+            "subject": target_subject,
+            "grade": grade,
+            "stage": bounded_stage,
+            "max_unlocked_stage": resolved_max_unlocked,
+            "question_index": bounded_q_idx,
+            "streak": max(0, streak),
+            "is_infinite_stage": bounded_stage > 15,
+            "rank_title": get_rank_title(bounded_stage),
+            "total_words_collected": total_words_collected,
+        }
+
+        # 2. Update in-memory cache
+        if user_id:
+            if user_id not in USER_STAGE_PROGRESS:
+                USER_STAGE_PROGRESS[user_id] = {}
+            USER_STAGE_PROGRESS[user_id][target_subject] = saved_data
+
         return saved_data
+

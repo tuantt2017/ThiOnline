@@ -35,6 +35,7 @@ import {
   AlertTriangle,
   Infinity as InfinityIcon,
   Search,
+  Lock,
 } from 'lucide-react';
 
 interface SelectedTile {
@@ -52,6 +53,7 @@ export default function WordScrambleGamePage() {
   const [subject, setSubject] = useState<'Tiếng Việt' | 'Tiếng Anh'>('Tiếng Việt');
   const [grade, setGrade] = useState<number>(5);
   const [stage, setStage] = useState<number>(1); // Stage 1 to 15 or Infinite (16+)
+  const [maxUnlockedStage, setMaxUnlockedStage] = useState<number>(1); // Highest unlocked stage
   const [questionIndex, setQuestionIndex] = useState<number>(1); // Question 1 to 10 per stage
 
   // Game state
@@ -131,6 +133,13 @@ export default function WordScrambleGamePage() {
       setQuestion(q);
       setScrambledList(q.scrambled_letters);
 
+      if (q.max_unlocked_stage) {
+        setMaxUnlockedStage((prev) => Math.max(prev, q.max_unlocked_stage!));
+      }
+      if (q.stage && q.stage !== targetStage) {
+        setStage(q.stage);
+      }
+
       // Pre-fill answer tray with hint tiles if present
       const initial: (SelectedTile | null)[] = Array(q.letter_count).fill(null);
       if (q.pre_filled_hints && q.pre_filled_hints.length > 0) {
@@ -161,6 +170,7 @@ export default function WordScrambleGamePage() {
     const loadAndFetch = async () => {
       const key = `word_scramble_progress_${user.id}_${subject}_${grade}`;
       let s = 1;
+      let maxS = 1;
       let q = 1;
       let st = streak;
 
@@ -170,13 +180,18 @@ export default function WordScrambleGamePage() {
         if (cached) {
           const parsed = JSON.parse(cached);
           if (parsed.stage) s = parsed.stage;
+          if (parsed.maxUnlockedStage) maxS = parsed.maxUnlockedStage;
+          else if (parsed.stage) maxS = Math.max(maxS, parsed.stage);
           if (parsed.questionIndex) q = parsed.questionIndex;
           if (parsed.streak !== undefined) st = parsed.streak;
         }
       } catch {}
 
+      if (s > maxS) s = maxS;
+
       if (isMounted) {
         setStage(s);
+        setMaxUnlockedStage(maxS);
         setQuestionIndex(q);
         setStreak(st);
       }
@@ -185,12 +200,18 @@ export default function WordScrambleGamePage() {
       try {
         const res = await api.getWordScrambleProgress(subject, grade);
         if (res && res.stage) {
-          s = res.stage;
+          if (res.max_unlocked_stage) {
+            maxS = Math.max(maxS, res.max_unlocked_stage);
+          } else {
+            maxS = Math.max(maxS, res.stage);
+          }
+          s = Math.min(res.stage, maxS);
           q = res.question_index;
           st = res.streak;
 
           if (isMounted) {
             setStage(s);
+            setMaxUnlockedStage(maxS);
             setQuestionIndex(q);
             setStreak(st);
             if (res.total_words_collected !== undefined) {
@@ -199,7 +220,7 @@ export default function WordScrambleGamePage() {
           }
 
           try {
-            localStorage.setItem(key, JSON.stringify({ stage: s, questionIndex: q, streak: st }));
+            localStorage.setItem(key, JSON.stringify({ stage: s, maxUnlockedStage: maxS, questionIndex: q, streak: st }));
           } catch {}
         }
       } catch (err) {
@@ -391,6 +412,24 @@ export default function WordScrambleGamePage() {
         setTotalCollected((prev) => prev + 1);
       }
 
+      // Check if student completed question 10 of current stage -> unlock next stage
+      if (res.is_correct && questionIndex === 10) {
+        const nextUnlocked = stage + 1;
+        setMaxUnlockedStage((prev) => {
+          const updated = Math.max(prev, nextUnlocked);
+          if (user) {
+            const key = `word_scramble_progress_${user.id}_${subject}_${grade}`;
+            try {
+              localStorage.setItem(
+                key,
+                JSON.stringify({ stage, maxUnlockedStage: updated, questionIndex, streak: res.current_streak })
+              );
+            } catch {}
+          }
+          return updated;
+        });
+      }
+
       // Check if student reached Stage 15 Question 10 Victory
       if (res.is_correct && stage === 15 && questionIndex === 10) {
         setTimeout(() => {
@@ -416,19 +455,25 @@ export default function WordScrambleGamePage() {
       nextQuestionIndex = 1;
     }
 
+    const updatedMaxUnlocked = Math.max(maxUnlockedStage, nextStage);
     setStage(nextStage);
+    setMaxUnlockedStage(updatedMaxUnlocked);
     setQuestionIndex(nextQuestionIndex);
 
     // Save progress to LocalStorage & Backend
     if (user) {
       const key = `word_scramble_progress_${user.id}_${subject}_${grade}`;
       try {
-        localStorage.setItem(key, JSON.stringify({ stage: nextStage, questionIndex: nextQuestionIndex, streak }));
+        localStorage.setItem(
+          key,
+          JSON.stringify({ stage: nextStage, maxUnlockedStage: updatedMaxUnlocked, questionIndex: nextQuestionIndex, streak })
+        );
       } catch {}
       api.saveWordScrambleProgress({
         subject,
         grade,
         stage: nextStage,
+        max_unlocked_stage: updatedMaxUnlocked,
         question_index: nextQuestionIndex,
         streak,
       }).catch(() => {});
@@ -440,18 +485,26 @@ export default function WordScrambleGamePage() {
   // Jump to specific stage (1 to 15 or Infinite 16+)
   const handleSelectStage = (selectedStage: number) => {
     if (isFetching || isVerifying) return;
+    if (selectedStage > maxUnlockedStage) {
+      alert(`Chặng ${selectedStage} đang khóa! Bạn cần hoàn thành các chặng trước để mở khóa nhé.`);
+      return;
+    }
     setStage(selectedStage);
     setQuestionIndex(1);
 
     if (user) {
       const key = `word_scramble_progress_${user.id}_${subject}_${grade}`;
       try {
-        localStorage.setItem(key, JSON.stringify({ stage: selectedStage, questionIndex: 1, streak }));
+        localStorage.setItem(
+          key,
+          JSON.stringify({ stage: selectedStage, maxUnlockedStage, questionIndex: 1, streak })
+        );
       } catch {}
       api.saveWordScrambleProgress({
         subject,
         grade,
         stage: selectedStage,
+        max_unlocked_stage: maxUnlockedStage,
         question_index: 1,
         streak,
       }).catch(() => {});
@@ -474,12 +527,16 @@ export default function WordScrambleGamePage() {
     if (user) {
       const key = `word_scramble_progress_${user.id}_${subject}_${grade}`;
       try {
-        localStorage.setItem(key, JSON.stringify({ stage: 1, questionIndex: 1, streak: 0 }));
+        localStorage.setItem(
+          key,
+          JSON.stringify({ stage: 1, maxUnlockedStage, questionIndex: 1, streak: 0 })
+        );
       } catch {}
       api.saveWordScrambleProgress({
         subject,
         grade,
         stage: 1,
+        max_unlocked_stage: maxUnlockedStage,
         question_index: 1,
         streak: 0,
       }).catch(() => {});
@@ -490,18 +547,24 @@ export default function WordScrambleGamePage() {
 
   const handleEnterInfiniteArena = () => {
     setShowVictoryModal(false);
+    const updatedMaxUnlocked = Math.max(maxUnlockedStage, 16);
     setStage(16);
+    setMaxUnlockedStage(updatedMaxUnlocked);
     setQuestionIndex(1);
 
     if (user) {
       const key = `word_scramble_progress_${user.id}_${subject}_${grade}`;
       try {
-        localStorage.setItem(key, JSON.stringify({ stage: 16, questionIndex: 1, streak }));
+        localStorage.setItem(
+          key,
+          JSON.stringify({ stage: 16, maxUnlockedStage: updatedMaxUnlocked, questionIndex: 1, streak })
+        );
       } catch {}
       api.saveWordScrambleProgress({
         subject,
         grade,
         stage: 16,
+        max_unlocked_stage: updatedMaxUnlocked,
         question_index: 1,
         streak,
       }).catch(() => {});
@@ -683,37 +746,82 @@ export default function WordScrambleGamePage() {
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
               {Array.from({ length: 15 }, (_, i) => i + 1).map((sNum) => {
                 const isActive = stage === sNum;
+                const isLocked = sNum > maxUnlockedStage;
+                const isCompleted = sNum < maxUnlockedStage;
                 return (
                   <button
                     key={sNum}
                     type="button"
                     onClick={() => handleSelectStage(sNum)}
-                    disabled={isFetching}
-                    className={`flex-shrink-0 px-2.5 py-1 rounded-xl font-black text-xs transition border ${
-                      isActive
+                    disabled={isFetching || isLocked}
+                    title={
+                      isLocked
+                        ? `Chặng ${sNum} đang khóa - Hãy hoàn thành Chặng ${sNum - 1} trước`
+                        : isCompleted
+                        ? `Chặng ${sNum} (Đã hoàn thành - Bấm để luyện lại)`
+                        : `Chặng ${sNum} (Chặng hiện tại)`
+                    }
+                    className={`flex-shrink-0 px-2.5 py-1 rounded-xl font-black text-xs transition border flex items-center gap-1 ${
+                      isLocked
+                        ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed opacity-60'
+                        : isActive
                         ? 'bg-amber-500 text-slate-950 border-amber-500 shadow-md scale-105 ring-2 ring-amber-300'
+                        : isCompleted
+                        ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-200'
                         : 'bg-slate-50 text-slate-700 hover:bg-amber-50 border-slate-200 hover:border-amber-300'
                     }`}
                   >
-                    C.{sNum}
+                    {isLocked ? (
+                      <>
+                        <Lock className="w-3 h-3 text-slate-400" />
+                        <span>C.{sNum}</span>
+                      </>
+                    ) : isCompleted ? (
+                      <>
+                        <span>C.{sNum}</span>
+                        <span className="text-[10px] text-emerald-600 font-bold">✓</span>
+                      </>
+                    ) : (
+                      <span>C.{sNum}</span>
+                    )}
                   </button>
                 );
               })}
               {/* Infinite Arena Shortcut Button */}
-              <button
-                type="button"
-                onClick={() => handleSelectStage(16)}
-                disabled={isFetching}
-                className={`flex-shrink-0 px-2.5 py-1 rounded-xl font-black text-xs transition border flex items-center gap-1 ${
-                  stage >= 16
-                    ? 'bg-purple-600 text-white border-purple-600 shadow-md scale-105 ring-2 ring-purple-300'
-                    : 'bg-purple-50 text-purple-700 hover:bg-purple-100 border-purple-200'
-                }`}
-                title="Đấu Trường Vô Cực (Chặng 16+)"
-              >
-                <InfinityIcon className="w-3 h-3" />
-                <span>Vô Cực</span>
-              </button>
+              {(() => {
+                const isInfiniteLocked = maxUnlockedStage < 16;
+                return (
+                  <button
+                    type="button"
+                    onClick={() => handleSelectStage(16)}
+                    disabled={isFetching || isInfiniteLocked}
+                    title={
+                      isInfiniteLocked
+                        ? 'Đấu Trường Vô Cực đang khóa - Vượt qua Chặng 15 để mở khóa!'
+                        : 'Đấu Trường Vô Cực (Chặng 16+)'
+                    }
+                    className={`flex-shrink-0 px-2.5 py-1 rounded-xl font-black text-xs transition border flex items-center gap-1 ${
+                      isInfiniteLocked
+                        ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed opacity-60'
+                        : stage >= 16
+                        ? 'bg-purple-600 text-white border-purple-600 shadow-md scale-105 ring-2 ring-purple-300'
+                        : 'bg-purple-50 text-purple-700 hover:bg-purple-100 border-purple-200'
+                    }`}
+                  >
+                    {isInfiniteLocked ? (
+                      <>
+                        <Lock className="w-3 h-3 text-slate-400" />
+                        <span>Vô Cực</span>
+                      </>
+                    ) : (
+                      <>
+                        <InfinityIcon className="w-3 h-3" />
+                        <span>Vô Cực</span>
+                      </>
+                    )}
+                  </button>
+                );
+              })()}
             </div>
           </div>
         </div>

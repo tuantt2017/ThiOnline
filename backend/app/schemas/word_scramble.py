@@ -8,6 +8,7 @@ class WordScrambleQuestionResponse(BaseModel):
     grade: int = Field(..., description="Khối lớp (4-9)")
     mode: str = Field("word", description="Chế độ xếp: 'word' (xếp chữ cái) hoặc 'sentence' (xếp từ/tiếng thành câu)")
     stage: int = Field(1, description="Chặng hiện tại (1-15 hoặc >15 cho Chặng Vô Cực)")
+    max_unlocked_stage: int = Field(1, description="Chặng cao nhất học sinh đã mở khóa")
     total_stages: int = Field(15, description="Tổng số chặng cơ bản trong hành trình (15)")
     is_infinite_stage: bool = Field(False, description="Đang ở chế độ Đấu Trường Vô Cực (Chặng > 15)")
     rank_title: str = Field("Học Giả Tập Sự", description="Danh hiệu cấp bậc của người chơi")
@@ -51,6 +52,7 @@ class WordScrambleProgressResponse(BaseModel):
     subject: str = Field("Tiếng Việt", description="Môn học")
     grade: int = Field(5, description="Khối lớp")
     stage: int = Field(1, description="Chặng hiện tại (1-15 hoặc >15)")
+    max_unlocked_stage: int = Field(1, description="Chặng cao nhất đã mở khóa")
     question_index: int = Field(1, description="Câu hỏi hiện tại trong chặng (1-10)")
     streak: int = Field(0, description="Chuỗi thắng hiện tại")
     is_infinite_stage: bool = Field(False, description="Đang ở chế độ Vô Cực")
@@ -62,8 +64,10 @@ class WordScrambleProgressSaveRequest(BaseModel):
     subject: str = Field(..., description="Môn học (Tiếng Việt / Tiếng Anh)")
     grade: int = Field(..., description="Khối lớp (4-9)")
     stage: int = Field(..., description="Chặng (1-15 hoặc >15)")
+    max_unlocked_stage: Optional[int] = Field(None, description="Chặng cao nhất đã mở khóa")
     question_index: int = Field(..., description="Câu hỏi (1-10)")
     streak: Optional[int] = Field(0, description="Chuỗi thắng hiện tại")
+
 
 
 class WordCollectionItem(BaseModel):

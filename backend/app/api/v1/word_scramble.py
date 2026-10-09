@@ -55,8 +55,8 @@ def prepare_word_scramble_stage(
 def get_next_word_scramble_question(
     subject: Optional[str] = Query("Tiếng Việt", description="Môn học (Tiếng Việt hoặc Tiếng Anh)"),
     grade: Optional[int] = Query(None, ge=4, le=9, description="Khối lớp (4-9)"),
-    stage: Optional[int] = Query(1, ge=1, le=999, description="Chặng hiện tại (1-15 hoặc >15 cho Đấu Trường Vô Cực)"),
-    question_index: Optional[int] = Query(1, ge=1, le=10, description="Thứ tự câu hỏi trong chặng (1-10)"),
+    stage: Optional[int] = Query(None, ge=1, le=999, description="Chặng hiện tại (1-15 hoặc >15 cho Đấu Trường Vô Cực)"),
+    question_index: Optional[int] = Query(None, ge=1, le=10, description="Thứ tự câu hỏi trong chặng (1-10)"),
     force_refresh: Optional[bool] = Query(False, description="Tạo mới bộ 10 từ vựng AI cho chặng này"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -69,8 +69,8 @@ def get_next_word_scramble_question(
         student=current_user,
         subject=subject,
         grade=grade,
-        stage=stage or 1,
-        question_index=question_index or 1,
+        stage=stage,
+        question_index=question_index,
         force_refresh=bool(force_refresh),
     )
 
@@ -129,6 +129,7 @@ def save_word_scramble_progress(
         stage=req.stage,
         question_index=req.question_index,
         streak=req.streak or 0,
+        max_unlocked_stage=req.max_unlocked_stage,
     )
     return WordScrambleProgressResponse(**res)
 
