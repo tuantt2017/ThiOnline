@@ -246,3 +246,28 @@ def test_word_scramble_stage_batch_preparation_and_cache(client: TestClient, stu
     assert res_next_fresh.json()["game_id"].startswith("wsg_")
 
 
+def test_word_scramble_infinite_proverb_diversity(db, student_user):
+    """Test that infinite mode ca dao / tục ngữ stages have high theme variety and avoid cliché overused proverbs."""
+    from app.services.word_scramble_service import OVERUSED_CLICHE_PROVERBS
+
+    # 1. Verify that infinite mode has at least 25 diverse themes
+    themes_set = set()
+    for s in range(16, 46):
+        t = WordScrambleService.get_theme_title(s, "Tiếng Việt")
+        themes_set.add(t)
+    assert len(themes_set) >= 25
+
+    # 2. Test fallback pool for stage 16 (Infinite Ca Dao) does not select cliché proverbs
+    words = WordScrambleService.get_fallback_stage_words(
+        subject="Tiếng Việt",
+        grade=6,
+        stage=16,
+        count=10,
+        recent_words=[],
+    )
+    assert len(words) == 10
+    for w in words:
+        # None of the fallback words in endless ca dao stage should be in the cliché blacklist
+        assert w["word"] not in OVERUSED_CLICHE_PROVERBS
+
+

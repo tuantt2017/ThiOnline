@@ -45,6 +45,24 @@ ENGLISH_BLACKLIST_WORDS = {
     "VOCABULARY", "OPPORTUNITY", "ACHIEVEMENT", "EXPLORATION", "PERFORMANCE",
 }
 
+# Danh sách các câu ca dao, tục ngữ quá phổ biến hay bị AI lặp lại nhàm chán
+OVERUSED_CLICHE_PROVERBS = [
+    "UỐNG NƯỚC NHỚ NGUỒN",
+    "ĂN QUẢ NHỚ KẺ TRỒNG CÂY",
+    "LÁ LÀNH ĐÙM LÁ RÁCH",
+    "MỘT CÂY LÀM CHẲNG NÊN NON",
+    "CÓ CÔNG MÀI SẮT CÓ NGÀY NÊN KIM",
+    "BẦU ƠI THƯƠNG LẤY BÍ CÙNG",
+    "TIÊN HỌC LỄ HẬU HỌC VĂN",
+    "ĐI MỘT NGÀY ĐÀNG HỌC MỘT SÀNG KHÔN",
+    "THẤT BẠI LÀ MẸ THÀNH CÔNG",
+    "HỌC ĐI ĐÔI VỚI HÀNH",
+    "TÔN SƯ TRỌNG ĐẠO",
+    "HỌC THẦY KHÔNG BẰNG HỌC BẠN",
+    "THẮNG KHÔNG KIÊU BẠI KHÔNG NẢN",
+    "GẦN MỰC THÌ ĐEN GẦN ĐÈN THÌ SÁNG",
+]
+
 
 def get_rank_title(stage: int) -> str:
     """Returns gamified player rank title based on current stage."""
@@ -89,11 +107,21 @@ def get_theme_title(stage: int, subject: str) -> str:
             return f"Chủ điểm: {themes[stage - 1]}"
         else:
             inf_themes = [
-                "Đấu Trường Vô Cực: Global Idioms & Proverbs",
-                "Đấu Trường Vô Cực: Advanced Literature & Science",
-                "Đấu Trường Vô Cực: World History & Legends",
-                "Đấu Trường Vô Cực: Philosophical Insights",
-                "Đấu Trường Vô Cực: International Heritage",
+                "Đấu Trường Vô Cực: Global Idioms & Famous Proverbs",
+                "Đấu Trường Vô Cực: Advanced Literature & Masterpieces",
+                "Đấu Trường Vô Cực: World History & Great Legends",
+                "Đấu Trường Vô Cực: Philosophical Insights & Life Wisdom",
+                "Đấu Trường Vô Cực: International Cultural Heritage",
+                "Đấu Trường Vô Cực: Wonders of the Natural World",
+                "Đấu Trường Vô Cực: Cutting-edge Science & Technology",
+                "Đấu Trường Vô Cực: Space Exploration & Astronomy",
+                "Đấu Trường Vô Cực: Environmental Protection & Green Earth",
+                "Đấu Trường Vô Cực: Human Virtues, Empathy & Kindness",
+                "Đấu Trường Vô Cực: Leadership, Ambition & Courage",
+                "Đấu Trường Vô Cực: Culinary Arts & Global Festivals",
+                "Đấu Trường Vô Cực: Creative Arts, Music & Architecture",
+                "Đấu Trường Vô Cực: Friendship & Universal Community",
+                "Đấu Trường Vô Cực: Ultimate Lexical Mastery",
             ]
             return inf_themes[(stage - 16) % len(inf_themes)]
     else:
@@ -118,11 +146,36 @@ def get_theme_title(stage: int, subject: str) -> str:
             return f"Chủ điểm: {themes[stage - 1]}"
         else:
             inf_themes = [
-                "Đấu Trường Vô Cực: Ca Dao & Tục Ngữ Bất Hủ",
-                "Đấu Trường Vô Cực: Từ Láy & Từ Gợi Hình Đỉnh Cao",
-                "Đấu Trường Vô Cực: Điển Cố Văn Học & Triết Lý Sống",
-                "Đấu Trường Vô Cực: Khám Phá Văn Hóa & Tinh Hoa Dân Tộc",
-                "Đấu Trường Vô Cực: Danh Lam Thắng Cảnh Hùng Vĩ",
+                "Đấu Trường Vô Cực: Ca Dao Tình Cha Nghĩa Mẹ & Công Ơn Sinh Thành",
+                "Đấu Trường Vô Cực: Từ Láy Tượng Hình & Nghệ Thuật Miêu Tả Cảnh Sắc",
+                "Đấu Trường Vô Cực: Tục Ngữ Ý Chí Vượt Khó, Nghị Lực & Kiên Trì",
+                "Đấu Trường Vô Cực: Thành Ngữ Điển Tích & Tinh Hoa Hán Việt Sâu Sắc",
+                "Đấu Trường Vô Cực: Ca Dao Đạo Thầy Trò & Tinh Thần Hiếu Học",
+                "Đấu Trường Vô Cực: Từ Láy Gợi Tả Cảm Xúc, Tâm Trạng & Tiếng Lòng",
+                "Đấu Trường Vô Cực: Tục Ngữ Đối Nhân Xử Thế & Lời Ăn Tiếng Nói",
+                "Đấu Trường Vô Cực: Non Sông Gấm Vóc & Địa Danh Danh Thắng Hùng Vĩ",
+                "Đấu Trường Vô Cực: Ca Dao Tình Làng Nghĩa Xóm & Đoàn Kết Tương Trợ",
+                "Đấu Trường Vô Cực: Tục Ngữ Kinh Nghiệm Thời Tiết & Lao Động Sản Xuất",
+                "Đấu Trường Vô Cực: Từ Vựng Khoa Học, Thiên Văn & Khám Phá Vũ Trụ",
+                "Đấu Trường Vô Cực: Ca Dao Tình Yêu Quê Hương & Tự Hào Non Nước",
+                "Đấu Trường Vô Cực: Tục Ngữ Về Trung Thực, Trọng Danh Dự & Nhân Cách",
+                "Đấu Trường Vô Cực: Tinh Hoa Văn Hóa Ẩm Thực & Lễ Hội Dân Tộc",
+                "Đấu Trường Vô Cực: Ca Dao Tình Anh Em Ruột Thịt & Gia Đình Thuận Hòa",
+                "Đấu Trường Vô Cực: Tục Ngữ Cần Cù, Tiết Kiệm & Lo Xa Bền Vững",
+                "Đấu Trường Vô Cực: Từ Láy Gợi Âm Thanh Tự Nhiên & Cuộc Sống Rộn Rã",
+                "Đấu Trường Vô Cực: Ca Dao Tình Bạn Tri Kỷ & Nghĩa Tình Thủy Chung",
+                "Đấu Trường Vô Cực: Tục Ngữ Đúc Kết Trí Tuệ & Kinh Nghiệm Sống Dân Gian",
+                "Đấu Trường Vô Cực: Điển Cố Truyện Thơ Cổ Điển & Văn Học Bất Hủ",
+                "Đấu Trường Vô Cực: Ca Dao Lao Động Đồng Quê & Đất Đai Màu Mỡ",
+                "Đấu Trường Vô Cực: Tục Ngữ Về Lòng Khiêm Tốn & Tinh Thần Cầu Tiến",
+                "Đấu Trường Vô Cực: Lịch Sử Hào Hùng & Khí Phách Anh Hùng Dân Tộc",
+                "Đấu Trường Vô Cực: Ca Dao Khuyên Răn Đạo Đức & Lối Sống Lành Mạnh",
+                "Đấu Trường Vô Cực: Tinh Hoa Ngôn Từ Hiện Đại & Đỉnh Cao Văn Học SGK",
+                "Đấu Trường Vô Cực: Tục Ngữ Về Sức Khỏe, Sinh Hoạt & Nếp Sống Đẹp",
+                "Đấu Trường Vô Cực: Ca Dao Về Tinh Thần Lạc Quan & Yêu Đời",
+                "Đấu Trường Vô Cực: Thành Ngữ Về Trí Tuệ, Mưu Lược & Tài Năng",
+                "Đấu Trường Vô Cực: Khám Phá Biển Đảo Quê Hương & Rừng Vàng Biển Bạc",
+                "Đấu Trường Vô Cực: Đại Đỉnh Cao: Đại Sứ Ngôn Từ Toàn Năng",
             ]
             return inf_themes[(stage - 16) % len(inf_themes)]
 
@@ -227,6 +280,69 @@ VIETNAMESE_SGK_WORDS: List[Dict[str, Any]] = [
     {"word": "GẦN MỰC THÌ ĐEN GẦN ĐÈN THÌ SÁNG", "grade": 8, "hint": "Lời khuyên chọn lựa bạn tốt và môi trường sống lành mạnh.", "lesson": "SGK Ngữ Văn 8", "emoji_clues": ["💡", "🕯️", "🌟"], "rarity": "LEGENDARY"},
     {"word": "ĐẠI ĐOÀN KẾT DÂN TỘC", "grade": 9, "hint": "Sức mạnh bệ phóng giúp đất nước vượt qua khó khăn vươn xa.", "lesson": "SGK Ngữ Văn 9", "emoji_clues": ["🤝", "🇻🇳", "🎆"], "rarity": "LEGENDARY"},
     {"word": "KHÁT VỌNG CỐNG HIẾN", "grade": 9, "hint": "Mong muốn đem hết tài năng và sức lực phụng sự cho quê hương đất nước.", "lesson": "SGK Ngữ Văn 9", "emoji_clues": ["🚀", "💖", "🇻🇳"], "rarity": "LEGENDARY"},
+
+    # --- KHO TÀNG CA DAO, TỤC NGỮ ĐA CHỦ ĐỀ MỞ RỘNG (Dành cho Chặng 8-15 & Đấu Trường Vô Cực) ---
+    # Chủ đề 1: Công cha nghĩa mẹ, gia đình thuận hòa
+    {"word": "CÔNG CHA NHƯ NÚI THÁI SƠN", "grade": 6, "hint": "Ca dao ca ngợi công lao to lớn trời biển của người cha.", "lesson": "SGK Ngữ Văn 6 - Ca dao tình cảm gia đình", "emoji_clues": ["⛰️", "👨", "❤️"], "rarity": "LEGENDARY"},
+    {"word": "NGHĨA MẸ NHƯ NƯỚC TRONG NGUỒN CHẢY RA", "grade": 6, "hint": "Ca dao ca ngợi tình yêu thương bao la vô tận của người mẹ hiền.", "lesson": "SGK Ngữ Văn 6 - Ca dao tình cảm gia đình", "emoji_clues": ["🌊", "👩", "💖"], "rarity": "LEGENDARY"},
+    {"word": "ANH EM NHƯ THỂ TAY CHÂN", "grade": 6, "hint": "Ca dao khuyên anh em ruột thịt gắn bó khăng khít, yêu thương đùm bọc.", "lesson": "SGK Ngữ Văn 6", "emoji_clues": ["🧑‍🤝‍🧑", "🤝", "🏠"], "rarity": "LEGENDARY"},
+    {"word": "CHỊ NGÃ EM NÂNG", "grade": 6, "hint": "Tục ngữ khuyên răn tình chị em luôn sẵn sàng tương trợ, đỡ đần lẫn nhau.", "lesson": "SGK Ngữ Văn 6", "emoji_clues": ["👭", "🤲", "🌸"], "rarity": "RARE"},
+    {"word": "CON HƠN CHA LÀ NHÀ CÓ PHÚC", "grade": 7, "hint": "Tục ngữ thể hiện niềm tự hào khi con cái thành đạt, giỏi giang hơn cha mẹ.", "lesson": "SGK Ngữ Văn 7", "emoji_clues": ["👨‍👦", "🏆", "🏡"], "rarity": "LEGENDARY"},
+    {"word": "KHÔN NGOAN ĐỐI ĐÁP NGƯỜI NGOÀI", "grade": 7, "hint": "Ca dao nhắc nhở anh em trong một nhà phải biết hòa thuận, nhường nhịn.", "lesson": "SGK Ngữ Văn 7", "emoji_clues": ["🐔", "🌾", "🤝"], "rarity": "LEGENDARY"},
+    {"word": "GÀ CÙNG MỘT MẸ CHỚ HOÀI ĐÁ NHAU", "grade": 7, "hint": "Lời ca dao khuyên nhủ người cùng huyết thống chớ nên tranh chấp, bất hòa.", "lesson": "SGK Ngữ Văn 7", "emoji_clues": ["🐣", "❤️", "🕊️"], "rarity": "LEGENDARY"},
+    {"word": "CƠM CHA ÁO MẸ CHỮ THẦY", "grade": 7, "hint": "Ca dao nhắc nhở 3 công ơn to lớn nhất đời người: cha mẹ và thầy cô.", "lesson": "SGK Ngữ Văn 7", "emoji_clues": ["🍚", "👕", "👨‍🏫"], "rarity": "LEGENDARY"},
+
+    # Chủ đề 2: Tôn sư trọng đạo, học vấn rèn luyện
+    {"word": "KHÔNG THẦY ĐỐ MÀY LÀM NÊN", "grade": 6, "hint": "Tục ngữ khẳng định vai trò chỉ dẫn vô cùng quan trọng của người thầy.", "lesson": "SGK Ngữ Văn 6 - Tôn sư trọng đạo", "emoji_clues": ["👨‍🏫", "📚", "🎯"], "rarity": "LEGENDARY"},
+    {"word": "HỌC THẦY CHẲNG TÀY HỌC BẠN", "grade": 6, "hint": "Tục ngữ khuyên ngoài học hỏi thầy cô, cần tích cực trao đổi cùng bạn bè.", "lesson": "SGK Ngữ Văn 6", "emoji_clues": ["🧑‍🎓", "📖", "💬"], "rarity": "LEGENDARY"},
+    {"word": "MUỐN BIẾT PHẢI HỎI MUỐN GIỎI PHẢI HỌC", "grade": 6, "hint": "Tục ngữ đúc kết phương pháp học tập chủ động, không ngại tìm tòi.", "lesson": "SGK Ngữ Văn 6", "emoji_clues": ["❓", "🧠", "✨"], "rarity": "LEGENDARY"},
+    {"word": "DỐT ĐẾN ĐÂU HỌC LÂU CŨNG BIẾT", "grade": 6, "hint": "Tục ngữ cổ vũ tinh thần kiên trì học tập, bền bỉ ắt có ngày tiến bộ.", "lesson": "SGK Ngữ Văn 6", "emoji_clues": ["📖", "⏳", "💡"], "rarity": "LEGENDARY"},
+    {"word": "VĂN ÔN VÕ LUYỆN", "grade": 7, "hint": "Thành ngữ nhấn mạnh việc thường xuyên ôn tập và rèn luyện kỹ năng hàng ngày.", "lesson": "SGK Ngữ Văn 7", "emoji_clues": ["✍️", "🥋", "🔄"], "rarity": "RARE"},
+    {"word": "NHẤT TỰ VI SƯ BÁN TỰ VI SƯ", "grade": 7, "hint": "Một chữ cũng là thầy, nửa chữ cũng là thầy - đạo lý tôn kính người dạy dỗ.", "lesson": "SGK Ngữ Văn 7", "emoji_clues": ["📜", "🙏", "🎓"], "rarity": "LEGENDARY"},
+    {"word": "NGỌC KIA CHẲNG MÀI CHẲNG SÁNG", "grade": 7, "hint": "Ca dao ví người không chịu rèn luyện học tập thì không thể thành tài.", "lesson": "SGK Ngữ Văn 7", "emoji_clues": ["💎", "✨", "🔨"], "rarity": "LEGENDARY"},
+
+    # Chủ đề 3: Ý chí, nghị lực, kiên trì
+    {"word": "CHỚ THẤY SÓNG CẢ MÀ RÃ TAY CHÈO", "grade": 7, "hint": "Lời khuyên không nản lòng chùn bước trước gian nan thử thách lớn.", "lesson": "SGK Ngữ Văn 7 - Rèn luyện ý chí", "emoji_clues": ["🌊", "🚣", "💪"], "rarity": "LEGENDARY"},
+    {"word": "LỬA THỬ VÀNG GIAN NAN THỬ SỨC", "grade": 7, "hint": "Tục ngữ ví hoàn cảnh khó khăn chính là thước đo bản lĩnh và phẩm chất con người.", "lesson": "SGK Ngữ Văn 7", "emoji_clues": ["🔥", "🪙", "🛡️"], "rarity": "LEGENDARY"},
+    {"word": "NƯỚC CHẢY ĐÁ MÒN", "grade": 6, "hint": "Tục ngữ diễn tả sự bền bỉ, kiên nhẫn lâu dài thì việc khó đến đâu cũng thành.", "lesson": "SGK Ngữ Văn 6", "emoji_clues": ["💧", "🪨", "⏳"], "rarity": "LEGENDARY"},
+    {"word": "KIẾN THA LÂU CŨNG ĐẦY TỔ", "grade": 6, "hint": "Tục ngữ khuyên kiên trì tích lũy từng chút một sẽ tạo nên thành quả lớn.", "lesson": "SGK Ngữ Văn 6", "emoji_clues": ["🐜", "🌾", "🍯"], "rarity": "LEGENDARY"},
+    {"word": "GÓP GIÓ THÀNH BÃO", "grade": 6, "hint": "Thành ngữ chỉ việc gom góp sức lực nhỏ bé từ nhiều người sẽ tạo nên sức mạnh vĩ đại.", "lesson": "SGK Ngữ Văn 6", "emoji_clues": ["🍃", "🌪️", "👥"], "rarity": "RARE"},
+    {"word": "CẦN CÙ BÙ THÔNG MINH", "grade": 6, "hint": "Tục ngữ khẳng định đức tính chăm chỉ, cần mẫn có thể bù đắp mọi thiếu sót.", "lesson": "SGK Ngữ Văn 6", "emoji_clues": ["✍️", "🐝", "💡"], "rarity": "LEGENDARY"},
+
+    # Chủ đề 4: Đối nhân xử thế, lời ăn tiếng nói, khiêm tốn
+    {"word": "LỜI NÓI CHẲNG MẤT TIỀN MUA", "grade": 7, "hint": "Ca dao khuyên cần suy nghĩ cẩn trọng, dùng từ ngữ nhã nhặn khi giao tiếp.", "lesson": "SGK Ngữ Văn 7 - Nghệ thuật ứng xử", "emoji_clues": ["🗣️", "💬", "🌸"], "rarity": "LEGENDARY"},
+    {"word": "LỰA LỜI MÀ NÓI CHO VỪA LÒNG NHAU", "grade": 7, "hint": "Lời ca dao khuyên bảo nên chọn lời hay ý đẹp để tạo hòa khí trong quan hệ.", "lesson": "SGK Ngữ Văn 7", "emoji_clues": ["🗣️", "🤝", "💖"], "rarity": "LEGENDARY"},
+    {"word": "ĂN TRÔNG NỒI NGỒI TRÔNG HƯỚNG", "grade": 7, "hint": "Tục ngữ dạy phép lịch sự, tế nhị và biết quan sát xung quanh khi ứng xử.", "lesson": "SGK Ngữ Văn 7", "emoji_clues": ["🍲", "👀", "🪑"], "rarity": "LEGENDARY"},
+    {"word": "HỌC ĂN HỌC NÓI HỌC GÓI HỌC MỞ", "grade": 7, "hint": "Tục ngữ khuyên con người phải học từ những điều nhỏ nhặt, chu toàn trong cuộc sống.", "lesson": "SGK Ngữ Văn 7", "emoji_clues": ["🍚", "🗣️", "📦"], "rarity": "LEGENDARY"},
+    {"word": "ĐÓI CHO SẠCH RÁCH CHO THƠM", "grade": 7, "hint": "Tục ngữ răn dạy dù nghèo khổ vẫn phải giữ vững phẩm giá và nhân cách trong sạch.", "lesson": "SGK Ngữ Văn 7", "emoji_clues": ["🧼", "👕", "🛡️"], "rarity": "LEGENDARY"},
+    {"word": "GIẤY RÁCH PHẢI GIỮ LẤY LỀ", "grade": 7, "hint": "Tục ngữ nhắc nhở truyền thống gia phong, nền nếp dù hoàn cảnh có khó khăn.", "lesson": "SGK Ngữ Văn 7", "emoji_clues": ["📜", "🏛️", "✨"], "rarity": "LEGENDARY"},
+    {"word": "CÂY NGAY KHÔNG SỢ CHẾT ĐỨNG", "grade": 6, "hint": "Tục ngữ khẳng định người sống ngay thẳng, thật thà không bao giờ sợ bị vu oan.", "lesson": "SGK Ngữ Văn 6", "emoji_clues": ["🌲", "🛡️", "☀️"], "rarity": "LEGENDARY"},
+    {"word": "TỐT GỖ HƠN TỐT NƯỚC SƠN", "grade": 6, "hint": "Tục ngữ khuyên coi trọng vẻ đẹp tâm hồn và thực chất hơn vẻ ngoài bóng bẩy.", "lesson": "SGK Ngữ Văn 6", "emoji_clues": ["🪵", "🎨", "💖"], "rarity": "LEGENDARY"},
+    {"word": "LỜI CHÀO CAO HƠN MÂM CỖ", "grade": 6, "hint": "Tục ngữ coi trọng thái độ niềm nở, lễ phép và sự tôn trọng người khác.", "lesson": "SGK Ngữ Văn 6", "emoji_clues": ["🙇", "🍲", "🤝"], "rarity": "RARE"},
+    {"word": "MỘT ĐIỀU NHỊN CHÍN ĐIỀU LÀNH", "grade": 7, "hint": "Tục ngữ khuyên nhường nhịn, kiềm chế cơn nóng giận để giữ bình an và hòa thuận.", "lesson": "SGK Ngữ Văn 7", "emoji_clues": ["🕊️", "🧘", "🤝"], "rarity": "LEGENDARY"},
+
+    # Chủ đề 5: Tình bạn, đoàn kết, tương thân tương ái
+    {"word": "THƯƠNG NGƯỜI NHƯ THỂ THƯƠNG THÂN", "grade": 5, "hint": "Tục ngữ thể hiện truyền thống nhân ái, yêu thương người khác như chính bản thân mình.", "lesson": "SGK Tiếng Việt 5 - Lòng nhân ái", "emoji_clues": ["❤️", "🤲", "🤗"], "rarity": "LEGENDARY"},
+    {"word": "MỘT CON NGỰA ĐAU CẢ TÀU BỎ CỎ", "grade": 5, "hint": "Tục ngữ nói lên tinh thần gắn kết, sẻ chia nỗi đau chung trong tập thể.", "lesson": "SGK Tiếng Việt 5", "emoji_clues": ["🐎", "🌾", "💔"], "rarity": "LEGENDARY"},
+    {"word": "BÁN ANH EM XA MUA LÁNG GIỀNG GẦN", "grade": 6, "hint": "Tục ngữ nhấn mạnh sự quan trọng của tình làng nghĩa xóm, lân cận tối lửa tắt đèn có nhau.", "lesson": "SGK Ngữ Văn 6", "emoji_clues": ["🏡", "🤝", "🏘️"], "rarity": "LEGENDARY"},
+    {"word": "NHIỄU ĐIỀU PHỦ LẤY GIÁ GƯƠNG", "grade": 5, "hint": "Ca dao nhắc nhở người cùng một bọc, cùng một nước phải biết chở che nhau.", "lesson": "SGK Tiếng Việt 5", "emoji_clues": ["🧣", "🪞", "🇻🇳"], "rarity": "LEGENDARY"},
+    {"word": "Ở HIỀN GẶP LÀNH", "grade": 5, "hint": "Tục ngữ thể hiện niềm tin người có lòng nhân hậu, sống tốt sẽ nhận được điều may mắn.", "lesson": "SGK Tiếng Việt 5", "emoji_clues": ["🌱", "✨", "🍀"], "rarity": "COMMON"},
+
+    # Chủ đề 6: Lao động, mùa màng, thiên nhiên
+    {"word": "TẤC ĐẤT TẤC VÀNG", "grade": 5, "hint": "Tục ngữ khẳng định giá trị quý giá vô bờ của đất đai canh tác nông nghiệp.", "lesson": "SGK Tiếng Việt 5 - Lao động sản xuất", "emoji_clues": ["🌱", "🪙", "🚜"], "rarity": "LEGENDARY"},
+    {"word": "NHẤT NƯỚC NHÌ PHÂN TAM CẦN TỨ GIỐNG", "grade": 7, "hint": "Tục ngữ đúc kết 4 yếu tố trọng yếu nhất quyết định năng suất lúa nước.", "lesson": "SGK Ngữ Văn 7", "emoji_clues": ["💧", "🌾", "🚜"], "rarity": "LEGENDARY"},
+    {"word": "ĐÊM THÁNG NĂM CHƯA NẰM ĐÃ SÁNG", "grade": 7, "hint": "Tục ngữ giải thích hiện tượng ngày dài đêm ngắn vào mùa hè ở miền Bắc.", "lesson": "SGK Ngữ Văn 7 - Tục ngữ về thiên nhiên", "emoji_clues": ["🌙", "☀️", "⏰"], "rarity": "LEGENDARY"},
+    {"word": "NGÀY THÁNG MƯỜI CHƯA CƯỜI ĐÃ TỐI", "grade": 7, "hint": "Tục ngữ giải thích hiện tượng ngày ngắn đêm dài vào mùa đông.", "lesson": "SGK Ngữ Văn 7 - Tục ngữ về thiên nhiên", "emoji_clues": ["☀️", "🌙", "⏳"], "rarity": "LEGENDARY"},
+    {"word": "TRÂU ƠI TA BẢO TRÂU NÀY", "grade": 5, "hint": "Lời ca dao thân thương của người nông dân trò chuyện cùng con trâu đi cày ruộng.", "lesson": "SGK Tiếng Việt 5", "emoji_clues": ["🐂", "🌾", "👨‍🌾"], "rarity": "LEGENDARY"},
+    {"word": "ƠN TRỜI MƯA NẮNG PHẢI THÌ", "grade": 5, "hint": "Ca dao ước vọng mưa thuận gió hòa để mùa màng nông dân tốt tươi bội thu.", "lesson": "SGK Tiếng Việt 5", "emoji_clues": ["🌧️", "☀️", "🌾"], "rarity": "LEGENDARY"},
+    {"word": "CHUỒN CHUỒN BAY THẤP THÌ MƯA", "grade": 6, "hint": "Tục ngữ đúc kết kinh nghiệm nhìn độ cao bay của chuồn chuồn để dự báo trời sắp mưa.", "lesson": "SGK Ngữ Văn 6", "emoji_clues": ["🦗", "🌧️", "☁️"], "rarity": "LEGENDARY"},
+    {"word": "CHỚ NGHE KẺ PHỦ PHÀNG LÚA CHIÊM", "grade": 7, "hint": "Ca dao kinh nghiệm khuyên giữ vững mùa vụ lúa, không nghe lời bàn ra tán vào.", "lesson": "SGK Ngữ Văn 7", "emoji_clues": ["🌾", "👂", "🌾"], "rarity": "LEGENDARY"},
+
+    # Chủ đề 7: Yêu nước, cội nguồn, tự hào dân tộc
+    {"word": "LÁ RỤNG VỀ CỘI", "grade": 7, "hint": "Thành ngữ ví con người dù đi đâu xa cuối cùng cũng hướng về nguồn cội quê hương.", "lesson": "SGK Ngữ Văn 7", "emoji_clues": ["🍂", "🌳", "🏡"], "rarity": "LEGENDARY"},
+    {"word": "DÙ AI ĐI NGƯỢC VỀ XUÔI", "grade": 6, "hint": "Ca dao nhắc nhở ngày Giỗ Tổ Hùng Vương mùng mười tháng ba âm lịch.", "lesson": "SGK Ngữ Văn 6 - Hướng về cội nguồn", "emoji_clues": ["🚩", "🏛️", "🇻🇳"], "rarity": "LEGENDARY"},
+    {"word": "NHỚ NGÀY GIỖ TỔ MÙNG MƯỜI THÁNG BA", "grade": 6, "hint": "Lời ca dao tri ân công đức dựng nước to lớn của các Vua Hùng.", "lesson": "SGK Ngữ Văn 6", "emoji_clues": ["🙏", "👑", "🇻🇳"], "rarity": "LEGENDARY"},
+    {"word": "GIẶC ĐẾN NHÀ ĐÀN BÀ CŨNG ĐÁNH", "grade": 7, "hint": "Tục ngữ ngợi ca tinh thần yêu nước quật cường, bất khuất của phụ nữ Việt Nam.", "lesson": "SGK Ngữ Văn 7", "emoji_clues": ["🛡️", "⚔️", "🇻🇳"], "rarity": "LEGENDARY"},
 ]
 
 ENGLISH_SGK_WORDS: List[Dict[str, Any]] = [
@@ -646,18 +762,24 @@ YÊU CẦU ĐẦU RA JSON CHÍNH XÁC:
 
         is_english = "anh" in subject.lower() or "english" in subject.lower()
         sub_name = "Tiếng Anh" if is_english else "Tiếng Việt"
-        recent_str = ", ".join(recent_words[-50:]) if recent_words else "Không có"
+        recent_str = ", ".join(recent_words[-80:]) if recent_words else "Không có"
         is_infinite = stage > 15
         theme_title = get_theme_title(stage, subject)
+
+        is_folk_theme = not is_english and ("ca dao" in theme_title.lower() or "tục ngữ" in theme_title.lower() or "thành ngữ" in theme_title.lower())
+        cliche_str = ", ".join(OVERUSED_CLICHE_PROVERBS)
 
         if stage <= 5:
             req_type = "từ ghép hoặc từ vựng ngắn 2 tiếng (Ví dụ: 'TRUNG THỰC', 'YÊU THƯƠNG', 'TEACHER', 'FAMILY', 'LUNG LINH', 'RỰC RỠ')"
         elif stage <= 10:
             req_type = "từ ghép 2-3 tiếng, từ láy giàu hình ảnh/cảm xúc hoặc cụm từ quen thuộc (Ví dụ: 'BẢO VỆ MÔI TRƯỜNG', 'COMMUNITY', 'TÔN SƯ TRỌNG ĐẠO', 'BÁT NGÁT', 'CẦN MẪN')"
         elif stage <= 15:
-            req_type = "câu thành ngữ, tục ngữ dài hoặc câu nói hay SGK 3-5 tiếng (Ví dụ: 'UỐNG NƯỚC NHỚ NGUỒN', 'ĂN QUẢ NHỚ KẺ TRỒNG CÂY', 'PRACTICE MAKES PERFECT', 'ACTIONS SPEAK LOUDER')"
+            req_type = "câu thành ngữ, tục ngữ dài hoặc câu nói hay SGK 3-5 tiếng"
         else:
-            req_type = "ĐẤU TRƯỜNG VÔ CỰC: thành ngữ, tục ngữ thâm thúy, từ láy đỉnh cao, danh ngôn trí tuệ hoặc cụm từ sâu sắc 3-6 tiếng"
+            if is_folk_theme:
+                req_type = "ĐẤU TRƯỜNG VÔ CỰC: câu ca dao hoặc tục ngữ dân gian sâu sắc, phong phú từ 3 đến 8 tiếng"
+            else:
+                req_type = "ĐẤU TRƯỜNG VÔ CỰC: từ ngữ/cụm từ/từ láy đỉnh cao/thành ngữ triết lý 2 đến 6 tiếng bám sát chủ đề"
 
         if is_english:
             prompt = f"""Bạn là một từ điển Tiếng Anh AI thông minh biên soạn từ vựng SGK & Tiếng Anh chuẩn Quốc tế Lớp {grade} cho Chặng {stage}{" (ĐẤU TRƯỜNG VÔ CỰC)" if is_infinite else ""}.
@@ -685,18 +807,28 @@ TRẢ VỀ DUY NHẤT MỘT JSON ARRAY gồm đúng {count} phần tử:
 ]
 """
         else:
+            folk_prompt_section = ""
+            if is_folk_theme or is_infinite:
+                folk_prompt_section = f"""
+ĐẶC BIỆT LƯU Ý KHI BIÊN SOẠN CA DAO & TỤC NGỮ (CHỐNG LẶP TỪ TUYỆT ĐỐI):
+- TUYỆT ĐỐI CẤM SỬ DỤNG LẠI các câu quá phổ thông/nhàm chán đã lặp lại nhiều lần: {cliche_str}.
+- Hãy khai thác kho tàng ca dao, tục ngữ, thành ngữ đặc sắc, giàu chất văn học dân gian theo đúng chủ điểm chặng: '{theme_title}'.
+- Câu có độ dài từ 3 đến 8 tiếng (Ví dụ: 'CÔNG CHA NHƯ NÚI THÁI SƠN', 'NGHĨA MẸ NHƯ NƯỚC TRONG NGUỒN CHẢY RA', 'LỜI NÓI CHẲNG MẤT TIỀN MUA', 'LỰA LỜI MÀ NÓI CHO VỪA LÒNG NHAU', 'ĂN TRÔNG NỒI NGỒI TRÔNG HƯỚNG', 'ĐÓI CHO SẠCH RÁCH CHO THƠM', 'CÂY NGAY KHÔNG SỢ CHẾT ĐỨNG', 'TẤC ĐẤT TẤC VÀNG', 'CHỚ THẤY SÓNG CẢ MÀ RÃ TAY CHÈO', 'NƯỚC CHẢY ĐÁ MÒN', 'ANH EM NHƯ THỂ TAY CHÂN', 'CHỊ NGÃ EM NÂNG', 'KHÔN NGOAN ĐỐI ĐÁP NGƯỜI NGOÀI', 'CƠM CHA ÁO MẸ CHỮ THẦY'...).
+- Đảm bảo {count} câu phải hoàn toàn khác biệt nhau về nội dung, từ ngữ và hình ảnh gợi tả.
+"""
+
             prompt = f"""Bạn là một chuyên gia ngôn ngữ học & biên soạn từ điển SGK Tiếng Việt Lớp {grade} (GDPT 2018) cho Chặng {stage}{" (ĐẤU TRƯỜNG VÔ CỰC)" if is_infinite else ""}.
 Chủ điểm chặng: {theme_title}.
 Hãy tạo một danh sách gồm {count} từ/cụm từ hay, độc đáo, phong phú cho toàn bộ Chặng {stage}.
 Yêu cầu cấp độ: {req_type}.
-
+{folk_prompt_section}
 ĐẶC BIỆT LƯU Ý:
 - Đa dạng hóa vốn từ vựng phong phú, ưu tiên từ láy hay, từ giàu hình ảnh/cảm xúc/thiên nhiên/khoa học/văn học/thành ngữ phù hợp với chủ điểm chặng.
 - KHÔNG trùng lặp các từ trong danh sách.
 - TUYỆT ĐỐI KHÔNG TRÙNG VỚI CÁC TỪ ĐÃ XUẤT HIỆN: {recent_str}.
 
 YÊU CẦU BẮT BUỘC CHO MỖI PHẦN TỬ:
-1. Trường `word`: từ ghép/từ láy/thành ngữ TIẾNG VIỆT có nghĩa (viết IN HOA, có dấu đầy đủ, chỉ gồm chữ cái và khoảng trắng, không chứa dấu câu thừa).
+1. Trường `word`: từ ghép/từ láy/thành ngữ/ca dao/tục ngữ TIẾNG VIỆT có nghĩa (viết IN HOA, có dấu đầy đủ, chỉ gồm chữ cái và khoảng trắng, không chứa dấu câu thừa).
 2. Trường `hint`: giải thích nghĩa bằng Tiếng Việt ngắn gọn 1 câu gợi ý hay, súc tích, dễ hiểu cho học sinh Lớp {grade}.
 3. Trường `lesson`: tên chủ điểm hoặc bài học (ví dụ: 'SGK Tiếng Việt {grade} - {theme_title}').
 4. Trường `emoji_clues`: mảng chứa 2-3 emoji gợi ý sinh động cho nghĩa của từ (VD: ["🐝", "🍯", "🌸"]).
@@ -734,7 +866,7 @@ TRẢ VỀ DUY NHẤT MỘT JSON ARRAY gồm đúng {count} phần tử:
                     payload = {
                         "contents": [{"parts": [{"text": prompt}]}],
                         "generationConfig": {
-                            "temperature": 0.95,
+                            "temperature": 1.0,
                             "responseMimeType": "application/json",
                         },
                     }
@@ -774,6 +906,8 @@ TRẢ VỀ DUY NHẤT MỘT JSON ARRAY gồm đúng {count} phần tử:
                                     if not is_english and not cls._is_valid_vietnamese_word(word_val):
                                         continue
                                     if recent_words and word_val in recent_words:
+                                        continue
+                                    if not is_english and (is_folk_theme or is_infinite) and word_val in OVERUSED_CLICHE_PROVERBS:
                                         continue
                                     if any(x["word"] == word_val for x in valid_items):
                                         continue
@@ -829,6 +963,12 @@ TRẢ VỀ DUY NHẤT MỘT JSON ARRAY gồm đúng {count} phần tử:
         if not stage_pool:
             stage_pool = source_bank
 
+        # For Vietnamese folk stages or endless arena, prefer diverse proverbs not in cliche list
+        if not is_english and (stage > 15 or stage == 8):
+            non_cliche_pool = [x for x in stage_pool if x["word"] not in OVERUSED_CLICHE_PROVERBS and x["word"] not in recent]
+            if len(non_cliche_pool) >= count:
+                stage_pool = non_cliche_pool
+
         filtered = [item for item in stage_pool if item.get("grade") == grade and item["word"] not in recent]
         if len(filtered) < count:
             extra = [item for item in stage_pool if item["word"] not in recent and item not in filtered]
@@ -852,13 +992,31 @@ TRẢ VỀ DUY NHẤT MỘT JSON ARRAY gồm đúng {count} phần tử:
         grade: int,
         stage: int = 1,
         force_refresh: bool = False,
+        db: Optional[Session] = None,
     ) -> tuple[List[Dict[str, Any]], bool, bool]:
         """
         Retrieves or generates a batch of 10 words for the given user, subject, grade, stage.
         Returns: (stage_words, is_cached, is_ai_generated)
         """
         cache_key = f"{user_id}_{subject}_{grade}_{stage}"
-        recent = USER_RECENT_WORDS.get(user_id, [])
+
+        # Collect previously solved words from DB to prevent repetition across sessions
+        collected_words: List[str] = []
+        if db:
+            try:
+                db_recs = (
+                    db.query(UserWordCollection.word)
+                    .filter(
+                        UserWordCollection.user_id == user_id,
+                        UserWordCollection.subject == subject,
+                    )
+                    .all()
+                )
+                collected_words = [r[0].strip().upper() for r in db_recs if r[0]]
+            except Exception as e:
+                logger.warning(f"Error reading UserWordCollection for user {user_id}: {e}")
+
+        recent = list(dict.fromkeys(collected_words + USER_RECENT_WORDS.get(user_id, [])))
 
         if not force_refresh and cache_key in USER_STAGE_WORDS_CACHE:
             cached = USER_STAGE_WORDS_CACHE[cache_key]
@@ -934,6 +1092,7 @@ TRẢ VỀ DUY NHẤT MỘT JSON ARRAY gồm đúng {count} phần tử:
             grade=applied_grade,
             stage=current_stage,
             force_refresh=force_refresh,
+            db=db,
         )
 
         # 2. Select word corresponding to question_index (1 to 10), ensuring no immediate repeat

@@ -22,6 +22,7 @@ router = APIRouter(prefix="/games/word-scramble", tags=["word-scramble-game"])
 @router.post("/prepare-stage", response_model=WordScramblePrepareStageResponse)
 def prepare_word_scramble_stage(
     req: WordScramblePrepareStageRequest,
+    db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     """
@@ -34,6 +35,7 @@ def prepare_word_scramble_stage(
         grade=grade,
         stage=req.stage,
         force_refresh=bool(req.force_refresh),
+        db=db,
     )
     theme_title = WordScrambleService.get_theme_title(req.stage, req.subject)
     rank_title = WordScrambleService.get_rank_title(req.stage)
