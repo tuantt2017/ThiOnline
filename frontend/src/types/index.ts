@@ -789,12 +789,22 @@ export interface DiamondTransaction {
   created_at: string;
 }
 
+export interface GiftRedemptionRequest {
+  recipient_name: string;
+  phone_number: string;
+  delivery_address: string;
+  note?: string;
+}
+
 export interface GiftRedemption {
   id: number;
   user_id: number;
   reward_item_id: number;
   diamond_cost: number;
   status: 'PENDING' | 'APPROVED' | 'DELIVERED' | 'CANCELLED';
+  recipient_name?: string;
+  phone_number?: string;
+  delivery_address?: string;
   note?: string;
   created_at: string;
   updated_at: string;

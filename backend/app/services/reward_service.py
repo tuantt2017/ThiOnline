@@ -259,8 +259,13 @@ class RewardService:
 
     @staticmethod
     def redeem_gift(
-
-        db: Session, user_id: int, item_id: int, note: Optional[str] = None
+        db: Session,
+        user_id: int,
+        item_id: int,
+        note: Optional[str] = None,
+        recipient_name: Optional[str] = None,
+        phone_number: Optional[str] = None,
+        delivery_address: Optional[str] = None,
     ) -> GiftRedemption:
         user = db.query(User).filter(User.id == user_id).first()
         if not user:
@@ -287,11 +292,16 @@ class RewardService:
         user.diamond_balance -= item.diamond_cost
         item.stock_quantity -= 1
 
+        resolved_recipient_name = recipient_name or user.full_name
+
         redemption = GiftRedemption(
             user_id=user_id,
             reward_item_id=item.id,
             diamond_cost=item.diamond_cost,
             status=RedemptionStatus.PENDING,
+            recipient_name=resolved_recipient_name,
+            phone_number=phone_number,
+            delivery_address=delivery_address,
             note=note,
         )
         db.add(redemption)
@@ -336,6 +346,9 @@ class RewardService:
                     "reward_item_id": r.reward_item_id,
                     "diamond_cost": r.diamond_cost,
                     "status": r.status,
+                    "recipient_name": r.recipient_name or (r.user.full_name if r.user else None),
+                    "phone_number": r.phone_number,
+                    "delivery_address": r.delivery_address,
                     "note": r.note,
                     "created_at": r.created_at,
                     "updated_at": r.updated_at,
@@ -359,6 +372,9 @@ class RewardService:
                     "reward_item_id": r.reward_item_id,
                     "diamond_cost": r.diamond_cost,
                     "status": r.status,
+                    "recipient_name": r.recipient_name or (r.user.full_name if r.user else None),
+                    "phone_number": r.phone_number,
+                    "delivery_address": r.delivery_address,
                     "note": r.note,
                     "created_at": r.created_at,
                     "updated_at": r.updated_at,

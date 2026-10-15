@@ -49,6 +49,9 @@ class DiamondTransactionResponse(BaseModel):
 
 
 class GiftRedemptionCreate(BaseModel):
+    recipient_name: Optional[str] = None
+    phone_number: Optional[str] = None
+    delivery_address: Optional[str] = None
     note: Optional[str] = None
 
 
@@ -58,6 +61,9 @@ class GiftRedemptionResponse(BaseModel):
     reward_item_id: int
     diamond_cost: int
     status: RedemptionStatus
+    recipient_name: Optional[str] = None
+    phone_number: Optional[str] = None
+    delivery_address: Optional[str] = None
     note: Optional[str] = None
     created_at: datetime
     updated_at: datetime

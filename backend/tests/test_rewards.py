@@ -92,10 +92,22 @@ def test_gift_redemption_flow(db):
     db.refresh(student)
     db.refresh(item)
 
-    # Success redemption
-    redemption = RewardService.redeem_gift(db, student.id, item.id, note="Lớp 5A1")
+    # Success redemption with recipient details
+    redemption = RewardService.redeem_gift(
+        db,
+        student.id,
+        item.id,
+        recipient_name="Nguyễn Văn A",
+        phone_number="0987654321",
+        delivery_address="Số 123 Đường Cầu Giấy, Hà Nội",
+        note="Lớp 5A1",
+    )
     assert redemption.diamond_cost == 10
     assert redemption.status == RedemptionStatus.PENDING
+    assert redemption.recipient_name == "Nguyễn Văn A"
+    assert redemption.phone_number == "0987654321"
+    assert redemption.delivery_address == "Số 123 Đường Cầu Giấy, Hà Nội"
+    assert redemption.note == "Lớp 5A1"
 
     db.refresh(student)
     db.refresh(item)
@@ -148,9 +160,42 @@ def test_reward_api_endpoints(client, student_user, student_headers, admin_heade
     new_item = r_create.json()
     assert new_item["title"] == "Bình Nước Học Sinh 500ml"
 
+    # Give student enough diamonds to redeem
+    student_user.diamond_balance = 50
+    db.commit()
+    db.refresh(student_user)
+
+    # Student redeems gift item with recipient info
+    r_redeem = client.post(
+        f"/api/v1/rewards/redeem/{new_item['id']}",
+        headers=student_headers,
+        json={
+            "recipient_name": "Trần Thị B",
+            "phone_number": "0912345678",
+            "delivery_address": "456 Giải Phóng, Hà Nội",
+            "note": "Lớp 4B",
+        },
+    )
+    assert r_redeem.status_code == 200
+    red_resp = r_redeem.json()
+    assert red_resp["recipient_name"] == "Trần Thị B"
+    assert red_resp["phone_number"] == "0912345678"
+    assert red_resp["delivery_address"] == "456 Giải Phóng, Hà Nội"
+    assert red_resp["note"] == "Lớp 4B"
+
+    # Student views my history
+    r_my = client.get("/api/v1/rewards/my-history", headers=student_headers)
+    assert r_my.status_code == 200
+    my_data = r_my.json()
+    my_reds = my_data["redemptions"]
+    assert len(my_reds) >= 1
+    assert any(x["recipient_name"] == "Trần Thị B" for x in my_reds)
+
     # Admin lists all redemptions
     r_redemptions = client.get("/api/v1/rewards/admin/redemptions", headers=admin_headers)
     assert r_redemptions.status_code == 200
+    admin_red_list = r_redemptions.json()
+    assert any(x["recipient_name"] == "Trần Thị B" for x in admin_red_list)
 
     # Admin updates (edits) reward item
     r_update = client.put(
@@ -162,10 +207,11 @@ def test_reward_api_endpoints(client, student_user, student_headers, admin_heade
     assert r_update.json()["title"] == "Bình Nước Cỡ Lớn 800ml"
     assert r_update.json()["diamond_cost"] == 30
 
-    # Admin deletes reward item
+    # Admin deletes reward item (which has redemption, so it should soft delete)
     r_delete = client.delete(f"/api/v1/rewards/admin/items/{new_item['id']}", headers=admin_headers)
     assert r_delete.status_code == 200
-    assert r_delete.json()["deleted"] is True
+    assert r_delete.json()["soft_deleted"] is True
+    assert r_delete.json()["deleted"] is False
 
 
 def test_reward_image_proxy_endpoint(client, monkeypatch):

@@ -39,6 +39,7 @@ import {
   RewardItem,
   DiamondTransaction,
   GiftRedemption,
+  GiftRedemptionRequest,
   RewardBalance,
   WordScrambleQuestion,
   WordScrambleVerifyResponse,
@@ -668,10 +669,11 @@ export const api = {
     return request<RewardItem[]>('/api/v1/rewards/items', { method: 'GET' });
   },
 
-  redeemRewardItem: async (itemId: number, note?: string): Promise<GiftRedemption> => {
+  redeemRewardItem: async (itemId: number, data?: string | GiftRedemptionRequest): Promise<GiftRedemption> => {
+    const payload = typeof data === 'string' ? { note: data } : (data || {});
     return request<GiftRedemption>(`/api/v1/rewards/redeem/${itemId}`, {
       method: 'POST',
-      body: JSON.stringify({ note }),
+      body: JSON.stringify(payload),
     });
   },
 

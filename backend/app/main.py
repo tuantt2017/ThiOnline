@@ -33,6 +33,19 @@ async def lifespan(app: FastAPI):
         if "is_demo" not in user_cols:
             with engine.begin() as conn:
                 conn.execute(text("ALTER TABLE users ADD COLUMN is_demo BOOLEAN DEFAULT FALSE;"))
+
+        # Safe DB migration for gift_redemptions columns
+        if inspector.has_table("gift_redemptions"):
+            redemption_cols = [c["name"] for c in inspector.get_columns("gift_redemptions")]
+            if "recipient_name" not in redemption_cols:
+                with engine.begin() as conn:
+                    conn.execute(text("ALTER TABLE gift_redemptions ADD COLUMN recipient_name VARCHAR(255);"))
+            if "phone_number" not in redemption_cols:
+                with engine.begin() as conn:
+                    conn.execute(text("ALTER TABLE gift_redemptions ADD COLUMN phone_number VARCHAR(50);"))
+            if "delivery_address" not in redemption_cols:
+                with engine.begin() as conn:
+                    conn.execute(text("ALTER TABLE gift_redemptions ADD COLUMN delivery_address TEXT;"))
     except Exception as exc:
         print(f"[Migration Info] {exc}")
 

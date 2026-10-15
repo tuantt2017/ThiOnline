@@ -52,8 +52,20 @@ def redeem_gift_item(
 ):
     """Redeem a gift item using student's diamond balance."""
     TrialGuardService.check_and_increment_trial_usage(db, current_user, "doi_qua_tang")
+    recipient_name = (data.recipient_name if data and data.recipient_name else None) or current_user.full_name
+    phone_number = data.phone_number if data else None
+    delivery_address = data.delivery_address if data else None
     note = data.note if data else None
-    redemption = RewardService.redeem_gift(db, current_user.id, item_id, note)
+
+    redemption = RewardService.redeem_gift(
+        db,
+        current_user.id,
+        item_id,
+        note=note,
+        recipient_name=recipient_name,
+        phone_number=phone_number,
+        delivery_address=delivery_address,
+    )
 
     return {
         "id": redemption.id,
@@ -61,6 +73,9 @@ def redeem_gift_item(
         "reward_item_id": redemption.reward_item_id,
         "diamond_cost": redemption.diamond_cost,
         "status": redemption.status,
+        "recipient_name": redemption.recipient_name or current_user.full_name,
+        "phone_number": redemption.phone_number,
+        "delivery_address": redemption.delivery_address,
         "note": redemption.note,
         "created_at": redemption.created_at,
         "updated_at": redemption.updated_at,

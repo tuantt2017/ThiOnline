@@ -82,6 +82,9 @@ class GiftRedemption(Base):
         default=RedemptionStatus.PENDING,
         nullable=False,
     )
+    recipient_name = Column(String(255), nullable=True)
+    phone_number = Column(String(50), nullable=True)
+    delivery_address = Column(Text, nullable=True)
     note = Column(Text, nullable=True)
 
     created_at = Column(

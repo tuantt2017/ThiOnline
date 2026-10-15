@@ -2,11 +2,13 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { RewardItem, GiftRedemption, DiamondTransaction, RewardBalance } from '@/types';
 import { RewardImage } from '@/components/RewardImage';
 
 export default function StudentRewardsPage() {
+  const { user } = useAuth();
   const [balance, setBalance] = useState<RewardBalance | null>(null);
   const [items, setItems] = useState<RewardItem[]>([]);
   const [transactions, setTransactions] = useState<DiamondTransaction[]>([]);
@@ -19,7 +21,11 @@ export default function StudentRewardsPage() {
 
   // Redemption Modal State
   const [selectedItem, setSelectedItem] = useState<RewardItem | null>(null);
+  const [recipientName, setRecipientName] = useState<string>('');
+  const [phoneNumber, setPhoneNumber] = useState<string>('');
+  const [deliveryAddress, setDeliveryAddress] = useState<string>('');
   const [note, setNote] = useState<string>('');
+  const [modalError, setModalError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
@@ -54,21 +60,57 @@ export default function StudentRewardsPage() {
     ? items
     : items.filter((item) => item.category === selectedCategory);
 
+  const handleOpenRedeemModal = (item: RewardItem) => {
+    setSelectedItem(item);
+    setModalError(null);
+    setRecipientName(user?.full_name || '');
+    setPhoneNumber('');
+    setDeliveryAddress('');
+    setNote(user?.grade ? `Học sinh Lớp ${user.grade}` : '');
+  };
+
   const handleRedeem = async () => {
     if (!selectedItem) return;
+    setModalError(null);
+
+    // Validation: Require Name, Phone, and Delivery Address
+    if (!recipientName.trim()) {
+      setModalError('Vui lòng nhập họ và tên người nhận quà.');
+      return;
+    }
+
+    const cleanPhone = phoneNumber.trim().replace(/[\s.-]/g, '');
+    if (!cleanPhone || cleanPhone.length < 9 || cleanPhone.length > 12) {
+      setModalError('Vui lòng nhập số điện thoại hợp lệ (9 - 11 chữ số) để liên hệ giao quà.');
+      return;
+    }
+
+    if (!deliveryAddress.trim()) {
+      setModalError('Vui lòng nhập địa chỉ nhận quà chi tiết (địa chỉ nhà hoặc trường/lớp).');
+      return;
+    }
+
     setSubmitting(true);
     setSuccessMsg(null);
     setError(null);
 
     try {
-      await api.redeemRewardItem(selectedItem.id, note);
-      setSuccessMsg(`🎉 Đổi thành công quà: "${selectedItem.title}"! Đơn đổi quà đã được chuyển tới Thầy Cô để trao cho bạn.`);
+      await api.redeemRewardItem(selectedItem.id, {
+        recipient_name: recipientName.trim(),
+        phone_number: cleanPhone,
+        delivery_address: deliveryAddress.trim(),
+        note: note.trim() || undefined,
+      });
+      setSuccessMsg(`🎉 Đổi thành công quà: "${selectedItem.title}"! Đơn đổi quà đã được ghi nhận với thông tin người nhận: ${recipientName.trim()} (${cleanPhone}). Thầy Cô sẽ sớm liên hệ trao quà cho bạn!`);
       setSelectedItem(null);
+      setRecipientName('');
+      setPhoneNumber('');
+      setDeliveryAddress('');
       setNote('');
       // Refresh balance and history
       fetchData();
     } catch (err: any) {
-      setError(err.message || 'Đổi quà không thành công. Vui lòng kiểm tra lại số dư kim cương.');
+      setModalError(err.message || 'Đổi quà không thành công. Vui lòng kiểm tra lại số dư kim cương.');
     } finally {
       setSubmitting(false);
     }
@@ -250,7 +292,7 @@ export default function StudentRewardsPage() {
 
                           <button
                             disabled={!canAfford || isOutOfStock}
-                            onClick={() => setSelectedItem(item)}
+                            onClick={() => handleOpenRedeemModal(item)}
                             className={`w-full py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 ${
                               isOutOfStock
                                 ? 'bg-slate-700 text-slate-500 cursor-not-allowed'
@@ -304,11 +346,22 @@ export default function StudentRewardsPage() {
                           <p className="text-xs text-slate-400">
                             Trừ {red.diamond_cost} 💎 • Ngày đổi: {new Date(red.created_at).toLocaleDateString('vi-VN')}
                           </p>
-                          {red.note && (
-                            <p className="text-[11px] text-slate-400 italic">
-                              Ghi chú: {red.note}
+                          <div className="text-[11px] text-slate-300 bg-slate-950/60 p-2 rounded-lg border border-slate-800 space-y-0.5">
+                            <p>
+                              👤 <strong>Người nhận:</strong> {red.recipient_name || red.user_name || 'Học sinh'}
+                              {red.phone_number && <span className="ml-2 font-mono text-cyan-400">📞 {red.phone_number}</span>}
                             </p>
-                          )}
+                            {red.delivery_address && (
+                              <p className="text-slate-300">
+                                📍 <strong>Địa chỉ:</strong> {red.delivery_address}
+                              </p>
+                            )}
+                            {red.note && (
+                              <p className="text-slate-400 italic">
+                                📝 <strong>Ghi chú:</strong> {red.note}
+                              </p>
+                            )}
+                          </div>
                         </div>
                       </div>
 
@@ -378,10 +431,10 @@ export default function StudentRewardsPage() {
       {/* CONFIRMATION MODAL FOR REDEMPTION */}
       {selectedItem && (
         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-cyan-500/40 rounded-2xl max-w-md w-full p-6 space-y-5 shadow-2xl animate-in fade-in zoom-in duration-200">
+          <div className="bg-slate-900 border border-cyan-500/40 rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl animate-in fade-in zoom-in duration-200 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <h3 className="text-lg font-extrabold text-white flex items-center gap-2">
-                🎁 Xác Nhận Đổi Quà Tặng
+                🎁 Điền Thông Tin Nhận Quà
               </h3>
               <button
                 onClick={() => setSelectedItem(null)}
@@ -401,34 +454,94 @@ export default function StudentRewardsPage() {
               </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                Ghi chú địa chỉ / Lớp học (để Thầy Cô trao quà):
-              </label>
-              <textarea
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                placeholder="VD: Em ở Lớp 5A1, nhờ Thầy/Cô trao quà tại phòng học ạ."
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400"
-                rows={3}
-              />
+            {modalError && (
+              <div className="bg-rose-950/90 border border-rose-500/60 text-rose-200 px-3.5 py-2.5 rounded-xl text-xs flex items-center justify-between shadow-md">
+                <span>⚠️ {modalError}</span>
+                <button
+                  type="button"
+                  onClick={() => setModalError(null)}
+                  className="text-rose-400 hover:text-rose-200 font-bold ml-2"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+
+            <div className="space-y-3.5">
+              {/* Họ và tên */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Họ và tên người nhận quà <span className="text-rose-400 font-bold">*</span>:
+                </label>
+                <input
+                  type="text"
+                  value={recipientName}
+                  onChange={(e) => setRecipientName(e.target.value)}
+                  placeholder="VD: Nguyễn Văn An"
+                  className="w-full bg-slate-800/90 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition"
+                />
+              </div>
+
+              {/* Số điện thoại */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Số điện thoại nhận quà (học sinh hoặc phụ huynh) <span className="text-rose-400 font-bold">*</span>:
+                </label>
+                <input
+                  type="tel"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  placeholder="VD: 0912345678"
+                  className="w-full bg-slate-800/90 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition font-mono"
+                />
+              </div>
+
+              {/* Địa chỉ nhận quà */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Địa chỉ nhận quà chi tiết <span className="text-rose-400 font-bold">*</span>:
+                </label>
+                <textarea
+                  value={deliveryAddress}
+                  onChange={(e) => setDeliveryAddress(e.target.value)}
+                  placeholder="VD: Số 12, Ngõ 34 Đường ABC, Phường XYZ, TP... hoặc Địa chỉ Trường học / Lớp"
+                  className="w-full bg-slate-800/90 border border-slate-700 rounded-xl p-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition"
+                  rows={2}
+                />
+              </div>
+
+              {/* Lớp / Ghi chú thêm */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Lớp học / Ghi chú thêm (tùy chọn):
+                </label>
+                <textarea
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  placeholder="VD: Em ở Lớp 5A1, hoặc lời nhắn gửi thêm cho Thầy/Cô..."
+                  className="w-full bg-slate-800/90 border border-slate-700 rounded-xl p-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition"
+                  rows={2}
+                />
+              </div>
             </div>
 
             <div className="bg-cyan-950/40 border border-cyan-500/30 p-3 rounded-xl text-[11px] text-cyan-200">
               💡 Sau khi xác nhận, hệ thống sẽ trừ <strong>{selectedItem.diamond_cost} 💎</strong> trong ví của bạn. Số dư còn lại: <strong>{(balance?.diamond_balance || 0) - selectedItem.diamond_cost} 💎</strong>.
             </div>
 
-            <div className="flex items-center justify-end gap-3 pt-2">
+            <div className="flex items-center justify-end gap-3 pt-2 border-t border-slate-800">
               <button
+                type="button"
                 onClick={() => setSelectedItem(null)}
-                className="px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:bg-slate-800 hover:text-white"
+                className="px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:bg-slate-800 hover:text-white transition"
               >
                 Hủy Bỏ
               </button>
               <button
+                type="button"
                 disabled={submitting}
                 onClick={handleRedeem}
-                className="px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 hover:from-amber-300 hover:to-amber-400 shadow-md shadow-amber-500/20"
+                className="px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 hover:from-amber-300 hover:to-amber-400 shadow-md shadow-amber-500/20 active:scale-95 transition disabled:opacity-50"
               >
                 {submitting ? 'Đang Xử Lý...' : 'Xác Nhận Đổi Quà'}
               </button>

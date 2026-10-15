@@ -256,10 +256,10 @@ export default function AdminRewardsPage() {
                   <thead>
                     <tr className="border-b border-slate-700 text-xs font-semibold text-slate-400 uppercase tracking-wider">
                       <th className="py-3 px-4">Mã Đơn</th>
-                      <th className="py-3 px-4">Học Sinh</th>
+                      <th className="py-3 px-4">Người Nhận & Liên Hệ</th>
                       <th className="py-3 px-4">Vật Phẩm Quà Tặng</th>
                       <th className="py-3 px-4">Số Kim Cương</th>
-                      <th className="py-3 px-4">Ghi Chú Học Sinh</th>
+                      <th className="py-3 px-4">Địa Chỉ Nhận Quà & Ghi Chú</th>
                       <th className="py-3 px-4">Trạng Thái</th>
                       <th className="py-3 px-4 text-right">Thao Tác Duyệt</th>
                     </tr>
@@ -267,9 +267,26 @@ export default function AdminRewardsPage() {
                   <tbody className="divide-y divide-slate-800 text-sm">
                     {redemptions.map((red) => (
                       <tr key={red.id} className="hover:bg-slate-800/50 transition-colors">
-                        <td className="py-3.5 px-4 font-mono text-xs text-slate-400">#{red.id}</td>
-                        <td className="py-3.5 px-4 font-semibold text-white">
-                          {red.user_name || `Học sinh #${red.user_id}`}
+                        <td className="py-3.5 px-4 font-mono text-xs text-slate-400 whitespace-nowrap">
+                          <span className="font-bold text-slate-300">#{red.id}</span>
+                          {red.created_at && (
+                            <div className="text-[11px] text-slate-500 mt-0.5">
+                              {new Date(red.created_at).toLocaleDateString('vi-VN')}
+                            </div>
+                          )}
+                        </td>
+                        <td className="py-3.5 px-4 min-w-[160px]">
+                          <div className="font-bold text-white text-sm">
+                            {red.recipient_name || red.user_name || `Học sinh #${red.user_id}`}
+                          </div>
+                          {red.phone_number && (
+                            <div className="text-cyan-400 font-mono text-xs font-semibold mt-0.5 flex items-center gap-1">
+                              <span>📞</span> {red.phone_number}
+                            </div>
+                          )}
+                          <div className="text-[11px] text-slate-400 mt-0.5">
+                            Tài khoản: {red.user_name || `#${red.user_id}`}
+                          </div>
                         </td>
                         <td className="py-3.5 px-4 font-bold text-cyan-300">
                           <div className="flex items-center gap-3">
@@ -284,11 +301,23 @@ export default function AdminRewardsPage() {
                             <span>{red.reward_item?.title || `Vật phẩm #${red.reward_item_id}`}</span>
                           </div>
                         </td>
-                        <td className="py-3.5 px-4 font-black text-amber-400">
+                        <td className="py-3.5 px-4 font-black text-amber-400 whitespace-nowrap">
                           {red.diamond_cost} 💎
                         </td>
-                        <td className="py-3.5 px-4 text-xs text-slate-300 max-w-xs italic">
-                          {red.note || 'Không có'}
+                        <td className="py-3.5 px-4 max-w-sm">
+                          {red.delivery_address ? (
+                            <div className="text-xs text-slate-200 font-medium leading-relaxed flex items-start gap-1">
+                              <span className="text-amber-400 flex-shrink-0">📍</span>
+                              <span>{red.delivery_address}</span>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-slate-500 italic">Chưa có địa chỉ</span>
+                          )}
+                          {red.note && (
+                            <div className="text-[11px] text-slate-400 italic mt-1.5 bg-slate-900/60 p-1.5 rounded border border-slate-700/50">
+                              📝 <span className="font-medium text-slate-300">Ghi chú:</span> {red.note}
+                            </div>
+                          )}
                         </td>
                         <td className="py-3.5 px-4">
                           {red.status === 'PENDING' && (
